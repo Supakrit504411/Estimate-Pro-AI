@@ -619,6 +619,16 @@ input:focus,
   background: rgba(255,255,255,0.02);
 }
 
+.site-footer {
+  margin-top: 28px;
+  padding: 18px 16px 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
 .queue-note {
   margin-bottom: 14px;
   padding: 12px 14px;
