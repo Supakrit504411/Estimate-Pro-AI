@@ -312,24 +312,62 @@
       }
     }
 
-    if (rawId.includes(" or ") || rawId.includes("/") || rawId.includes(" OR ")) {
-      rawId.split(/ or |\/| OR /).forEach(part => {
-        pushMatch(state.dataStore.find(item => item.id === part.trim()));
-      });
-      return matches;
-    }
-
-    if (rawId.includes("-") && rawId.length > 5) {
-      const [base, range] = rawId.split("-");
-      for (let i = 0; i <= parseInt(range, 10); i++) {
-        const candidateId = (parseInt(base, 10) + i).toString();
+    tokenizeAiId(rawId).forEach(token => {
+      expandAiToken(token).forEach(candidateId => {
         pushMatch(state.dataStore.find(item => item.id === candidateId));
-      }
-      return matches;
+      });
+    });
+
+    return matches;
+  }
+
+  function tokenizeAiId(rawId) {
+    return String(rawId || "")
+      .replace(/\s+OR\s+/gi, " ")
+      .replace(/\s+or\s+/g, " ")
+      .replace(/[\/,]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function expandAiToken(token) {
+    const cleanToken = String(token || "").trim();
+    if (!cleanToken) return [];
+
+    if (!cleanToken.includes("-")) {
+      return [cleanToken];
     }
 
-    pushMatch(state.dataStore.find(item => item.id === rawId));
-    return matches;
+    const rangeMatch = cleanToken.match(/^(\d+)-(\d+)$/);
+    if (!rangeMatch) {
+      return [cleanToken];
+    }
+
+    const startStr = rangeMatch[1];
+    const endStr = rangeMatch[2];
+    const startNum = parseInt(startStr, 10);
+    if (Number.isNaN(startNum)) {
+      return [cleanToken];
+    }
+
+    let endNum;
+    if (endStr.length < startStr.length) {
+      const prefix = startStr.slice(0, startStr.length - endStr.length);
+      endNum = parseInt(prefix + endStr, 10);
+    } else {
+      endNum = parseInt(endStr, 10);
+    }
+
+    if (Number.isNaN(endNum) || endNum < startNum) {
+      return [startStr];
+    }
+
+    const expanded = [];
+    for (let current = startNum; current <= endNum; current++) {
+      expanded.push(String(current));
+    }
+    return expanded;
   }
 
   async function openAIReviewQueue() {
