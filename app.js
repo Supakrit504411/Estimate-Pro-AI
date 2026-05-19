@@ -66,7 +66,11 @@
     } catch (error) {
       state.dataStore = [];
       console.error(error);
-      Swal.fire("ไม่สามารถโหลดข้อมูลหลักได้", "กรุณาตรวจสอบ API backend ของ GAS", "error");
+      Swal.fire(
+        "ไม่สามารถโหลดข้อมูลหลักได้",
+        error.message || "กรุณาตรวจสอบ API backend ของ GAS",
+        "error"
+      );
     }
   }
 
