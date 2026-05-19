@@ -8,7 +8,9 @@ window.APP_CONFIG = {
     getProjectDetails: "project-details",
     verifyPassword: "verify-password",
     deleteProject: "delete-project",
-    health: "health"
+    health: "health",
+    lineIntake: "line-intake",
+    lineSearch: "line-search"
   },
   lineBridgePath: "/api/line-webhook"
 };

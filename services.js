@@ -66,6 +66,14 @@
 
     health() {
       return request(config.endpoints.health, null, "GET");
+    },
+
+    lineIntake(payload) {
+      return request(config.endpoints.lineIntake, payload);
+    },
+
+    lineSearch(query) {
+      return request(config.endpoints.lineSearch, { query });
     }
   };
 })();

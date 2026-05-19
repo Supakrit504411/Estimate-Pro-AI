@@ -5,7 +5,8 @@
     historyCache: null,
     currentJobId: null,
     currentFileUrl: "",
-    tempFileList: []
+    tempFileList: [],
+    aiReviewQueue: []
   };
 
   const els = {};
@@ -241,9 +242,10 @@
     }
 
     const files = Array.from(input.files);
+    const queueDraft = [];
     Swal.fire({
       title: "AI กำลังประมวลผล...",
-      text: "ระบบกำลังอ่านรหัสวัสดุและจำนวนจากไฟล์ที่เลือก",
+      text: "ระบบกำลังอ่านรหัสวัสดุและจำนวนจากไฟล์ที่เลือกเพื่อเตรียมเข้า review queue",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading()
     });
@@ -258,7 +260,7 @@
         const aiItems = await window.ApiService.processImageAI(base64, file.type);
         if (Array.isArray(aiItems)) {
           for (const ai of aiItems) {
-            await processAIItem(ai);
+            queueDraft.push(buildQueueEntry(ai, file.name));
           }
         } else if (aiItems && aiItems.error) {
           Swal.fire("AI Scan มีปัญหา", aiItems.msg || "ไม่สามารถอ่านข้อมูลได้", "error");
@@ -270,6 +272,12 @@
         processedCount++;
         if (processedCount === files.length) {
           Swal.close();
+          state.aiReviewQueue = queueDraft;
+          if (state.aiReviewQueue.length) {
+            await openAIReviewQueue();
+          } else {
+            Swal.fire("ไม่พบรายการจาก AI", "ระบบไม่พบข้อมูลพัสดุที่นำไปตรวจต่อได้", "info");
+          }
           render();
         }
       }
@@ -278,41 +286,245 @@
     input.value = "";
   }
 
-  async function processAIItem(ai) {
+  function buildQueueEntry(ai, sourceName) {
     const rawId = String(ai.id || "").trim();
-    let options = {};
+    const matchedItems = resolveAiCandidates(rawId);
+    const selectedItem = matchedItems.length === 1 ? matchedItems[0] : null;
+
+    return {
+      rawId,
+      qty: parseFloat(ai.qty) || 0,
+      sourceName: sourceName || "",
+      matchedItems,
+      selectedItemId: selectedItem ? selectedItem.id : "",
+      laborIndex: 0
+    };
+  }
+
+  function resolveAiCandidates(rawId) {
+    const matches = [];
+    const seen = new Set();
+
+    function pushMatch(item) {
+      if (item && !seen.has(item.id)) {
+        seen.add(item.id);
+        matches.push(item);
+      }
+    }
 
     if (rawId.includes(" or ") || rawId.includes("/") || rawId.includes(" OR ")) {
       rawId.split(/ or |\/| OR /).forEach(part => {
-        const match = state.dataStore.find(item => item.id === part.trim());
-        if (match) options[match.id] = `${match.id} - ${match.name}`;
+        pushMatch(state.dataStore.find(item => item.id === part.trim()));
       });
-    } else if (rawId.includes("-") && rawId.length > 5) {
+      return matches;
+    }
+
+    if (rawId.includes("-") && rawId.length > 5) {
       const [base, range] = rawId.split("-");
       for (let i = 0; i <= parseInt(range, 10); i++) {
         const candidateId = (parseInt(base, 10) + i).toString();
-        const match = state.dataStore.find(item => item.id === candidateId);
-        if (match) options[match.id] = `${match.id} - ${match.name}`;
+        pushMatch(state.dataStore.find(item => item.id === candidateId));
       }
+      return matches;
     }
 
-    if (Object.keys(options).length > 0) {
-      const { value: selectedId } = await Swal.fire({
-        title: "เลือกพัสดุที่ตรงกับเอกสาร",
-        input: "select",
-        inputOptions: options,
-        showCancelButton: true
+    pushMatch(state.dataStore.find(item => item.id === rawId));
+    return matches;
+  }
+
+  async function openAIReviewQueue() {
+    let keepEditing = true;
+
+    while (keepEditing) {
+      const { value, isConfirmed, dismiss } = await Swal.fire({
+        title: "AI Review Queue",
+        width: "96%",
+        html: buildQueueReviewHtml(),
+        confirmButtonText: "ยืนยันนำเข้า",
+        cancelButtonText: "ยกเลิกทั้งหมด",
+        showCancelButton: true,
+        focusConfirm: false,
+        didOpen: popup => {
+          bindQueueEvents(popup);
+        },
+        preConfirm: () => validateQueueBeforeImport()
       });
 
-      if (selectedId) {
-        const item = state.dataStore.find(entry => entry.id === selectedId);
-        if (item) await hideAndAsk(state.budgets.length - 1, item, ai.qty);
+      if (!isConfirmed) {
+        if (dismiss === Swal.DismissReason.cancel) {
+          state.aiReviewQueue = [];
+        }
+        return;
       }
+
+      importQueueItems(value);
+      state.aiReviewQueue = [];
+      keepEditing = false;
+      Swal.fire("นำเข้ารายการสำเร็จ", "ระบบเพิ่มรายการจาก AI review queue เรียบร้อยแล้ว", "success");
+    }
+  }
+
+  function buildQueueReviewHtml() {
+    return `
+      <div class="queue-note">
+        AI ช่วยอ่านเฉพาะรหัสพัสดุและจำนวน จากนั้นให้ผู้ใช้ตรวจและเลือกค่าแรงเองก่อนเพิ่มเข้า budget
+      </div>
+      <div class="queue-list">
+        ${state.aiReviewQueue.map((entry, index) => {
+          const selectedItem = getQueueSelectedItem(entry);
+          const laborOptions = selectedItem ? selectedItem.laborOptions : [];
+
+          return `
+            <div class="queue-row">
+              <div class="queue-topline">
+                <div class="queue-badge">#${index + 1}</div>
+                <div class="queue-source">${escapeHtml(entry.sourceName || "AI Scan")}</div>
+              </div>
+              <div class="queue-grid">
+                <div class="queue-field">
+                  <label>รหัสที่ AI อ่านได้</label>
+                  <div class="queue-raw-id">${escapeHtml(entry.rawId || "-")}</div>
+                </div>
+                <div class="queue-field">
+                  <label>พัสดุ</label>
+                  <select class="queue-select" data-queue-role="item" data-queue-index="${index}">
+                    <option value="">เลือกพัสดุ</option>
+                    ${entry.matchedItems.map(item => `
+                      <option value="${escapeHtml(item.id)}" ${entry.selectedItemId === item.id ? "selected" : ""}>
+                        ${escapeHtml(item.id)} - ${escapeHtml(item.name)}
+                      </option>
+                    `).join("")}
+                  </select>
+                </div>
+                <div class="queue-field">
+                  <label>ค่าแรง</label>
+                  <select class="queue-select" data-queue-role="labor" data-queue-index="${index}" ${selectedItem ? "" : "disabled"}>
+                    ${laborOptions.length ? laborOptions.map((labor, laborIndex) => `
+                      <option value="${laborIndex}" ${Number(entry.laborIndex) === laborIndex ? "selected" : ""}>
+                        ${escapeHtml(labor.desc)} (แรง: ${formatMoney(labor.price)})
+                      </option>
+                    `).join("") : `<option value="">เลือกพัสดุก่อน</option>`}
+                  </select>
+                </div>
+                <div class="queue-field">
+                  <label>จำนวน</label>
+                  <input class="queue-input" type="number" step="any" data-queue-role="qty" data-queue-index="${index}" value="${entry.qty}">
+                </div>
+                <div class="queue-field">
+                  <label>เพิ่มเข้า budget</label>
+                  <select class="queue-select" data-queue-role="budget" data-queue-index="${index}">
+                    ${state.budgets.map((budget, budgetIndex) => `
+                      <option value="${budgetIndex}" ${budgetIndex === state.budgets.length - 1 ? "selected" : ""}>
+                        Budget ${budget.type}
+                      </option>
+                    `).join("")}
+                  </select>
+                </div>
+              </div>
+              ${selectedItem ? `<div class="queue-item-name">${escapeHtml(selectedItem.name)}</div>` : `<div class="queue-warning">ระบบยังจับคู่พัสดุไม่สำเร็จ กรุณาเลือกพัสดุก่อนนำเข้า</div>`}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function bindQueueEvents(popup) {
+    popup.querySelectorAll("[data-queue-role]").forEach(element => {
+      element.addEventListener("change", handleQueueFieldChange);
+      element.addEventListener("input", handleQueueFieldChange);
+    });
+  }
+
+  function handleQueueFieldChange(event) {
+    const index = Number(event.target.dataset.queueIndex);
+    const role = event.target.dataset.queueRole;
+    const entry = state.aiReviewQueue[index];
+    if (!entry) return;
+
+    if (role === "item") {
+      entry.selectedItemId = event.target.value;
+      entry.laborIndex = 0;
+      rerenderQueueModal();
       return;
     }
 
-    const item = state.dataStore.find(entry => entry.id === String(ai.id));
-    if (item) await hideAndAsk(state.budgets.length - 1, item, ai.qty);
+    if (role === "labor") {
+      entry.laborIndex = Number(event.target.value || 0);
+      return;
+    }
+
+    if (role === "qty") {
+      entry.qty = parseFloat(event.target.value) || 0;
+      return;
+    }
+
+    if (role === "budget") {
+      entry.targetBudgetIndex = Number(event.target.value || 0);
+    }
+  }
+
+  function rerenderQueueModal() {
+    const popup = Swal.getHtmlContainer();
+    if (!popup) return;
+    popup.innerHTML = buildQueueReviewHtml();
+    bindQueueEvents(popup);
+  }
+
+  function validateQueueBeforeImport() {
+    const prepared = state.aiReviewQueue.map(entry => {
+      const selectedItem = getQueueSelectedItem(entry);
+      if (!selectedItem) {
+        Swal.showValidationMessage(`มีรายการที่ยังไม่ได้เลือกพัสดุ: ${entry.rawId || "-"}`);
+        return null;
+      }
+
+      if (!Number.isFinite(entry.qty) || entry.qty < 0) {
+        Swal.showValidationMessage(`จำนวนไม่ถูกต้องสำหรับพัสดุ ${selectedItem.id}`);
+        return null;
+      }
+
+      const laborIndex = Number(entry.laborIndex) || 0;
+      const labor = selectedItem.laborOptions[laborIndex];
+      if (!labor) {
+        Swal.showValidationMessage(`กรุณาเลือกค่าแรงสำหรับพัสดุ ${selectedItem.id}`);
+        return null;
+      }
+
+      const targetBudgetIndex = Number.isInteger(entry.targetBudgetIndex) ? entry.targetBudgetIndex : state.budgets.length - 1;
+      return {
+        selectedItem,
+        labor,
+        qty: entry.qty,
+        targetBudgetIndex
+      };
+    });
+
+    if (prepared.some(item => !item)) {
+      return false;
+    }
+
+    return prepared;
+  }
+
+  function importQueueItems(preparedItems) {
+    preparedItems.forEach(({ selectedItem, labor, qty, targetBudgetIndex }) => {
+      const budget = state.budgets[targetBudgetIndex];
+      if (!budget) return;
+
+      budget.items.push({
+        ...selectedItem,
+        qty,
+        labPrice: labor.price,
+        laborDesc: labor.desc,
+        total: (selectedItem.matPrice + labor.price) * qty
+      });
+    });
+    render();
+  }
+
+  function getQueueSelectedItem(entry) {
+    return entry.matchedItems.find(item => item.id === entry.selectedItemId) || null;
   }
 
   function findItems(input, budgetIndex) {
@@ -791,6 +1003,13 @@
 
   function formatQty(value) {
     return Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }
+
+  function formatMoney(value) {
+    return Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   }
 
   function escapeHtml(text) {

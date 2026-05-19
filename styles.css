@@ -619,6 +619,112 @@ input:focus,
   background: rgba(255,255,255,0.02);
 }
 
+.queue-note {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(245, 201, 106, 0.08);
+  border: 1px solid rgba(245, 201, 106, 0.16);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.queue-list {
+  display: grid;
+  gap: 12px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.queue-row {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(8, 20, 38, 0.06);
+  border: 1px solid rgba(143, 107, 255, 0.12);
+  text-align: left;
+}
+
+.queue-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.queue-badge,
+.queue-source {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.queue-badge {
+  background: rgba(143, 107, 255, 0.12);
+  color: var(--purple-strong);
+}
+
+.queue-source {
+  background: rgba(113, 232, 255, 0.08);
+  color: #2b6b80;
+}
+
+.queue-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.queue-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #4d627a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.queue-select,
+.queue-input,
+.queue-raw-id {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 36, 66, 0.14);
+  padding: 11px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.queue-select,
+.queue-input {
+  background: white;
+  color: #13253b;
+}
+
+.queue-raw-id {
+  background: #f6f8fb;
+  color: #34495e;
+}
+
+.queue-item-name {
+  margin-top: 10px;
+  color: #1b3654;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.queue-warning {
+  margin-top: 10px;
+  color: #b5475d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .detail-table {
   width: 100%;
   border-collapse: collapse;
@@ -681,4 +787,9 @@ input:focus,
   }
 
   .summary-card { position: static; }
+
+  .queue-grid {
+    grid-template-columns: 1.15fr 1.6fr 1.2fr 0.7fr 0.95fr;
+    align-items: end;
+  }
 }
