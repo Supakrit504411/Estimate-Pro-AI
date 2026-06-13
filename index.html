@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>PEA Estimation AI Pro 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-card">
+        <div class="hero-top">
+          <div class="brand">
+            <span class="brand-tag">AI Estimation Console</span>
+            <h1 class="brand-title">PEA ESTIMATION AI PRO 2026</h1>
+            <p class="brand-subtitle">ระบบประมาณการ "รู้ราคาใน 15 วินาที"</p>
+          </div>
+          <div class="hero-orb">PEA<br>AI<br>Inno MOVE</div>
+        </div>
+
+        <div class="tab-bar">
+          <button id="t1" class="tab-item active" type="button">สร้างงานใหม่</button>
+          <button id="t3" class="tab-item" type="button">สำรวจหน้างาน</button>
+          <button id="t2" class="tab-item" type="button">ประวัติโครงการ</button>
+        </div>
+      </div>
+    </header>
+
+    <section id="view1" class="view">
+      <div class="view-grid">
+        <div>
+          <div class="panel">
+            <div class="section-head">
+              <div>
+                <h2 id="formTitle" class="section-title">Your Project</h2>
+                <p class="section-note">*กรอกรายละเอียด</p>
+              </div>
+              <span class="mini-tag">Ver 1.0</span>
+            </div>
+
+            <div class="input-shell">
+              <label class="input-label" for="pjName">Project Name</label>
+              <input type="text" id="pjName" placeholder="ระบุชื่อโครงการ / สถานที่ / งานที่ต้องการประมาณ">
+            </div>
+
+            <div class="budget-grid">
+              <button class="btn-type" id="m1" type="button" data-budget-type="01.1" disabled>
+                <div>
+                  <strong>งบ 01.1</strong>
+                  <small>PEA 100%</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m2" type="button" data-budget-type="02.1" disabled>
+                <div>
+                  <strong>งบ 02.1</strong>
+                  <small>CUS 100%</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m3" type="button" data-budget-type="02.2" disabled>
+                <div>
+                  <strong>งบ 02.2</strong>
+                  <small>CUS 100%</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m4" type="button" data-budget-type="03.1" disabled>
+                <div>
+                  <strong>งบ 03.1</strong>
+                  <small>PEA 50% ,CUS 50%</small>
+                </div>
+                <span>+</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <span class="hint-pill">1</span>
+              <span>(money)</span>
+            </div>
+          </div>
+
+          <div id="aiSection" class="panel scan-zone hidden">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title">AI Scan Intake</h2>
+                <p class="section-note">สแกนรูปหรือ PDF</p>
+              </div>
+              <span class="mini-tag">AI Agent</span>
+            </div>
+
+            <input type="file" id="aiFile" accept="image/*,application/pdf" style="display:none;" multiple>
+            <button id="scanBtn" class="scan-btn" type="button">ถ่ายรูป / เลือกไฟล์เพื่อสแกน AI</button>
+
+            <div class="hint-row">
+              <span class="hint-pill">2</span>
+              <span>(time)</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div id="budgetSpace"></div>
+
+          <div id="saveZone" class="summary-card hidden">
+            <div class="summary-strip">
+              <div>
+                <div class="summary-label">Grand Total</div>
+                <div id="grandText" class="summary-value">0.00 บาท</div>
+              </div>
+              <div class="summary-side">
+                จำนวนงบ
+                <strong id="budgetCount">0</strong>
+              </div>
+            </div>
+            <button id="saveProjectBtn" class="primary-btn" type="button">บันทึกโครงการ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view3" class="view hidden">
+      <div class="survey-layout">
+        <div class="panel survey-panel">
+          <div class="section-head">
+            <div>
+              <h2 class="section-title">Field Survey</h2>
+              <p class="section-note">สำรวจ + ประมาณการ ครั้งเดียวจบหน้างาน</p>
+            </div>
+            <span class="mini-tag">Span Map</span>
+          </div>
+
+          <div id="surveyMap" class="survey-map"></div>
+
+          <div id="surveySpanBar" class="survey-span-bar">
+            <span class="survey-span-label">Span</span>
+            <button type="button" class="span-btn" data-span="15">15 ม.</button>
+            <button type="button" class="span-btn active" data-span="20">20 ม.</button>
+            <button type="button" class="span-btn" data-span="40">40 ม.</button>
+            <button type="button" class="span-btn" data-span="80">80 ม.</button>
+          </div>
+
+          <div class="survey-actions">
+            <button id="surveyGpsBtn" class="ghost-btn" type="button">ใช้ GPS</button>
+            <button id="surveyStartBtn" class="ghost-btn" type="button">ปักจุดเริ่ม</button>
+            <button id="surveyAddPoleBtn" class="primary-btn survey-action-main" type="button">เพิ่มเสาถัดไป</button>
+          </div>
+
+          <div id="surveySummary" class="survey-summary"></div>
+
+          <div class="survey-actions secondary">
+            <button id="surveyGenerateBtn" class="primary-btn" type="button">สร้างรายการประมาณการ</button>
+            <button id="surveyResetBtn" class="ghost-btn" type="button">เริ่มใหม่</button>
+          </div>
+        </div>
+
+        <div class="panel survey-side-panel">
+          <div class="section-head">
+            <div>
+              <h2 class="section-title">รายละเอียดเสา</h2>
+              <p class="section-note">เลือกขนาดเสา หัวเสา และสายไฟแต่ละจุด</p>
+            </div>
+          </div>
+          <div id="surveyPoleList" class="survey-pole-list">
+            <div class="survey-empty">ปักจุดเริ่มจากเสาระบบจำหน่าย แล้วเลือก span เพื่อวางเสาถัดไป</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view2" class="view hidden">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Project History</h2>
+            <p class="section-note">ค้นหาโครงการย้อนหลัง ตรวจดูรายการวัสดุ แก้ไข หรือลบรายการเดิมได้จากจุดเดียว</p>
+          </div>
+          <button id="reloadHistoryBtn" class="ghost-btn" type="button">รีโหลด</button>
+        </div>
+
+        <div class="input-shell" style="margin-top:0;">
+          <label class="input-label" for="histSearch">Search History</label>
+          <input type="text" id="histSearch" class="search-input" placeholder="ค้นหาชื่อโครงการ เช่น สงขลา, ศรีสงคราม...">
+        </div>
+
+        <div class="hint-row" style="margin-bottom:14px;">
+          <span class="hint-pill">3</span>
+          <span>ชั้น service</span>
+        </div>
+
+        <div id="histContent">
+          <div class="empty-state">
+            <div class="hero-orb empty-orb">SYNC</div>
+            <div>กำลังโหลดข้อมูลประวัติโครงการ...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div>Developed by PEA Nakhon Phanom - Customer Service and Relations Section</div>
+      <div>(นายศุภกฤษ ทะวัง ชผ.บส.กฟจ.นพ.)</div>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./config.js"></script>
+  <script src="./services.js"></script>
+  <script src="./app.js"></script>
+  <script src="./survey.js"></script>
+</body>
+</html>
