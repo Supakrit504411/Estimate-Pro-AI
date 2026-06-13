@@ -1056,7 +1056,7 @@ input:focus,
 }
 
 .curve-row {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   margin-bottom: 12px;
 }
 
@@ -1136,4 +1136,12 @@ input:focus,
   height: 22px;
   font-size: 9px;
   background: rgba(113, 232, 255, 0.85);
+}
+
+.survey-pin.is-zero {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+  background: linear-gradient(135deg, #ff9f43, #ffd86a);
+  border-width: 3px;
 }

@@ -36,6 +36,7 @@
     els.startBtn = document.getElementById("surveyStartBtn");
     els.addPointBtn = document.getElementById("surveyAddPointBtn");
     els.curveInBtn = document.getElementById("surveyCurveInBtn");
+    els.curveWaypointBtn = document.getElementById("surveyCurveWaypointBtn");
     els.curveOutBtn = document.getElementById("surveyCurveOutBtn");
     els.completeBtn = document.getElementById("surveyCompleteBtn");
     els.generateBtn = document.getElementById("surveyGenerateBtn");
@@ -45,11 +46,12 @@
   function bindEvents() {
     if (!els.mapEl) return;
 
-    els.gpsBtn.addEventListener("click", useCurrentLocation);
-    els.startBtn.addEventListener("click", () => beginPlaceMode("start"));
-    els.addPointBtn.addEventListener("click", () => beginPlaceMode("control"));
-    els.curveInBtn.addEventListener("click", beginCurveIn);
-    els.curveOutBtn.addEventListener("click", () => beginPlaceMode("curve_out"));
+    els.gpsBtn.addEventListener("click", () => guardSpan(() => useCurrentLocation()));
+    els.startBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("start")));
+    els.addPointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("control")));
+    els.curveInBtn.addEventListener("click", () => guardSpan(beginCurveIn));
+    els.curveWaypointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_waypoint")));
+    els.curveOutBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_out")));
     els.completeBtn.addEventListener("click", completeSurvey);
     els.generateBtn.addEventListener("click", generateEstimate);
     els.resetBtn.addEventListener("click", resetSurvey);
@@ -69,6 +71,11 @@
     if (els.poleList) {
       els.poleList.addEventListener("change", handlePoleListChange);
     }
+  }
+
+  function guardSpan(action) {
+    if (!ensureSpanSelected()) return;
+    action();
   }
 
   function onTabOpen() {
@@ -98,7 +105,12 @@
 
   function ensureSpanSelected() {
     if (!state.selectedSpan) {
-      Swal.fire("เลือก Span ก่อน", "กรุณาเลือกระยะ Span ก่อนเริ่มปักหมุด", "warning");
+      Swal.fire({
+        title: "เลือก Span ก่อน",
+        text: "กรุณาเลือกระยะ Span (15/20/40/80 ม.) ก่อนเริ่มสำรวจ",
+        icon: "warning",
+        confirmButtonText: "เข้าใจแล้ว"
+      });
       return false;
     }
     return true;
@@ -111,8 +123,8 @@
     });
 
     const { value } = await Swal.fire({
-      title: "หัวเสาจุดเริ่ม (ระบบจำหน่ายเดิม)",
-      text: "เลือกประเภทหัวเสาที่จุดต่อไลน์",
+      title: "หมุด 0 — จุดต่อระบบจำหน่ายเดิม",
+      text: "เลือกประเภทหัวเสา (ไม่ต้องเลือกขนาดเสา)",
       input: "select",
       inputOptions: options,
       inputValue: surveyConfig.startHeadTypes[0],
@@ -124,17 +136,7 @@
     return value || null;
   }
 
-  async function beginCurveIn() {
-    if (!ensureProjectReady() || !ensureSpanSelected()) return;
-    if (!state.controlPoints.length) {
-      Swal.fire("ยังไม่มีจุดเริ่ม", "ปักจุดเริ่มก่อนเข้าโค้ง", "info");
-      return;
-    }
-    if (getCurveInPoint()) {
-      Swal.fire("มีจุดเข้าโค้งแล้ว", "กรุณาปักจุดออกโค้งก่อนเพิ่มเข้าโค้งใหม่", "info");
-      return;
-    }
-
+  async function pickCurveSpan() {
     const options = {};
     (surveyConfig.curveSpanPresets || [15, 20]).forEach(span => {
       options[span] = `${span} เมตร`;
@@ -149,49 +151,101 @@
       showCancelButton: true
     });
 
-    if (!value) return;
-    state.pendingCurveSpan = Number(value);
-    beginPlaceMode("curve_in", `แตะแผนที่เพื่อปักหมุด "เข้าโค้ง" (Span โค้ง ${state.pendingCurveSpan} ม.)`);
+    return value ? Number(value) : null;
+  }
+
+  async function askConvertToCurveIn(ctrl) {
+    const pole = state.poles.find(p => p.ctrlId === ctrl.id);
+    const label = pole?.label || "หมุดสุดท้าย";
+
+    const { isConfirmed } = await Swal.fire({
+      title: "เปลี่ยนเป็นเข้าโค้ง?",
+      text: `${label} — ต้องการใช้เป็นจุด "เข้าโค้ง" หรือไม่`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "ใช่ เข้าโค้ง",
+      cancelButtonText: "ไม่ ใช้ปกติ"
+    });
+
+    if (!isConfirmed) return false;
+
+    const curveSpan = await pickCurveSpan();
+    if (!curveSpan) return false;
+
+    ctrl.role = "curve_in";
+    ctrl.curveSpan = curveSpan;
+    return true;
+  }
+
+  async function beginCurveIn() {
+    if (!ensureProjectReady()) return;
+    if (!state.controlPoints.length) {
+      Swal.fire("ยังไม่มีจุดเริ่ม", "ปักหมุด 0 ก่อนเข้าโค้ง", "info");
+      return;
+    }
+    if (getCurveInPoint()) {
+      Swal.fire("มีจุดเข้าโค้งแล้ว", "ใช้จุดบนโค้งหรือออกโค้งต่อ", "info");
+      return;
+    }
+
+    const curveSpan = await pickCurveSpan();
+    if (!curveSpan) return;
+
+    state.pendingCurveSpan = curveSpan;
+    beginPlaceMode("curve_in", `แตะแผนที่ปักหมุด "เข้าโค้ง" (Span โค้ง ${curveSpan} ม.)`);
   }
 
   function beginPlaceMode(mode, customHint) {
-    if (!ensureProjectReady() || !ensureSpanSelected()) return;
+    if (!ensureProjectReady()) return;
 
     if (mode === "control" && !state.controlPoints.length) {
-      Swal.fire("ยังไม่มีจุดเริ่ม", "ปักจุดเริ่มก่อน", "info");
+      Swal.fire("ยังไม่มีหมุด 0", "ปักจุดเริ่มก่อน", "info");
       return;
+    }
+
+    if (mode === "curve_waypoint") {
+      if (!getCurveInPoint()) {
+        Swal.fire("ยังไม่มีจุดเข้าโค้ง", "กดเข้าโค้งก่อนปักจุดบนโค้ง", "info");
+        return;
+      }
+      if (getCurveOutPoint()) {
+        Swal.fire("ออกโค้งแล้ว", "ใช้ปักหมุดถัดไปสำหรับช่วงปกติ", "info");
+        return;
+      }
+      customHint = "แตะแผนที่ปักจุดบนเส้นโค้ง (ช่วยให้เสาตามสภาพหน้างานจริง)";
     }
 
     if (mode === "curve_out") {
       if (!getCurveInPoint()) {
-        Swal.fire("ยังไม่มีจุดเข้าโค้ง", "กดเข้าโค้งและปักหมุดก่อน", "info");
+        Swal.fire("ยังไม่มีจุดเข้าโค้ง", "กดเข้าโค้งก่อน", "info");
         return;
       }
       if (getCurveOutPoint()) {
         Swal.fire("มีจุดออกโค้งแล้ว", "ใช้ปักหมุดถัดไปสำหรับจุดสิ้นสุด", "info");
         return;
       }
-      customHint = 'แตะแผนที่เพื่อปักหมุด "ออกโค้ง"';
+      customHint = 'แตะแผนที่ปักหมุด "ออกโค้ง"';
     }
 
     if (mode === "start" && state.controlPoints.length) {
-      Swal.fire("มีจุดเริ่มแล้ว", "กดเริ่มใหม่หากต้องการปักใหม่", "info");
+      Swal.fire("มีหมุด 0 แล้ว", "กดเริ่มใหม่หากต้องการปักใหม่", "info");
       return;
     }
 
     state.placeMode = mode;
     const hints = {
-      start: "แตะแผนที่เพื่อปักจุดเริ่ม (เสา/จุดต่อระบบจำหน่ายเดิม)",
-      control: `แตะแผนที่ปักหมุดถัดไป — ระบบจะคำนวณเสาตาม Span ${state.selectedSpan} ม.`,
-      curve_in: `แตะแผนที่ปักหมุด "เข้าโค้ง"`,
-      curve_out: `แตะแผนที่ปักหมุด "ออกโค้ง"`
+      start: "แตะแผนที่ปักหมุด 0 (เสา/จุดต่อระบบจำหน่ายเดิม)",
+      control: `แตะแผนที่ปักหมุดถัดไป — ระบบคำนวณเสาตาม Span ${state.selectedSpan} ม.`,
+      curve_in: "แตะแผนที่ปักหมุดเข้าโค้ง",
+      curve_out: "แตะแผนที่ปักหมุดออกโค้ง",
+      curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง"
     };
 
-    els.modeHint.textContent = customHint || hints[mode] || "";
+    if (els.modeHint) els.modeHint.textContent = customHint || hints[mode] || "";
     Swal.fire({
       title: customHint || hints[mode],
       icon: "info",
-      timer: 2400,
+      timer: 2600,
       showConfirmButton: false
     });
   }
@@ -220,10 +274,12 @@
         lng: point.lng,
         role
       };
+
       if (role === "curve_in") {
-        ctrl.curveSpan = state.pendingCurveSpan;
+        ctrl.curveSpan = state.pendingCurveSpan || 15;
         state.pendingCurveSpan = null;
       }
+
       state.controlPoints.push(ctrl);
       state.placeMode = null;
     }
@@ -232,61 +288,147 @@
     renderAll();
   }
 
+  async function handleControlMarkerClick(pole) {
+    if (state.phase !== "surveying" || getCurveInPoint()) return;
+    if (!pole.ctrlId) return;
+
+    const ctrl = state.controlPoints.find(c => c.id === pole.ctrlId);
+    if (!ctrl || ctrl.role !== "control") return;
+
+    const lastCtrl = state.controlPoints[state.controlPoints.length - 1];
+    if (ctrl.id !== lastCtrl.id) return;
+
+    const converted = await askConvertToCurveIn(ctrl);
+    if (converted) {
+      rebuildPolesFromControls();
+      renderAll();
+    }
+  }
+
   function rebuildPolesFromControls() {
     const poles = [];
+    if (!state.controlPoints.length) {
+      state.poles = [];
+      return;
+    }
 
-    for (let i = 0; i < state.controlPoints.length; i++) {
-      const ctrl = state.controlPoints[i];
-      const isFirst = i === 0;
+    const start = state.controlPoints[0];
+    poles.push(makePole(start, "start", start.headType || "", start.id));
 
-      if (isFirst) {
-        poles.push(makePole(ctrl, "start", ctrl.headType || "", ctrl.id));
+    let i = 1;
+    while (i < state.controlPoints.length) {
+      const curveInIdx = findNextRoleIndex(i, "curve_in");
+
+      if (curveInIdx === -1) {
+        while (i < state.controlPoints.length) {
+          appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[i]);
+          i++;
+        }
+        break;
+      }
+
+      while (i < curveInIdx) {
+        appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[i]);
+        i++;
+      }
+
+      const curveOutIdx = findNextRoleIndex(curveInIdx + 1, "curve_out");
+      if (curveOutIdx === -1) {
+        appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[curveInIdx]);
+        i = curveInIdx + 1;
         continue;
       }
 
-      const prevCtrl = state.controlPoints[i - 1];
-      const span = getSpanForSegment(prevCtrl, ctrl);
-      const from = { lat: prevCtrl.lat, lng: prevCtrl.lng };
-      const to = { lat: ctrl.lat, lng: ctrl.lng };
-      const positions = interpolatePolePositions(from, to, span);
-
-      positions.slice(1, -1).forEach(pos => {
-        poles.push(makePole(pos, "auto"));
-      });
-
-      const endRole = ctrl.role === "curve_in" ? "curve_in"
-        : ctrl.role === "curve_out" ? "curve_out"
-          : i === state.controlPoints.length - 1 ? "end" : "control";
-
-      const headType = ctrl.role === "start" ? ctrl.headType : "";
-      poles.push(makePole(ctrl, endRole, headType, ctrl.id));
+      const pathCtrls = state.controlPoints.slice(curveInIdx, curveOutIdx + 1);
+      const curveSpan = pathCtrls[0].curveSpan || 15;
+      appendPathSegment(poles, pathCtrls, curveSpan);
+      i = curveOutIdx + 1;
     }
 
     state.poles = renumberPoles(poles);
   }
 
-  function getSpanForSegment(fromCtrl, toCtrl) {
-    if (fromCtrl.role === "curve_in" && toCtrl.role === "curve_out") {
-      return fromCtrl.curveSpan || 15;
+  function findNextRoleIndex(fromIdx, role) {
+    for (let i = fromIdx; i < state.controlPoints.length; i++) {
+      if (state.controlPoints[i].role === role) return i;
     }
-    return state.selectedSpan;
+    return -1;
   }
 
-  function interpolatePolePositions(from, to, spanM) {
-    const distance = distanceMeters(from, to);
-    if (distance < 1) return [from, to];
+  function appendStraightSegment(poles, fromCtrl, toCtrl) {
+    const from = { lat: fromCtrl.lat, lng: fromCtrl.lng };
+    const to = { lat: toCtrl.lat, lng: toCtrl.lng };
+    const positions = interpolateAlongPath([from, to], state.selectedSpan);
+    appendPositions(poles, positions, toCtrl);
+  }
 
-    const brng = bearing(from, to);
-    const positions = [from];
-    let d = spanM;
+  function appendPathSegment(poles, pathCtrls, spanM) {
+    const points = pathCtrls.map(c => ({ lat: c.lat, lng: c.lng }));
+    const positions = interpolateAlongPath(points, spanM);
+    const lastCtrl = pathCtrls[pathCtrls.length - 1];
+    appendPositions(poles, positions, lastCtrl, pathCtrls);
+  }
 
-    while (d < distance - spanM * 0.35) {
-      positions.push(destinationPoint(from.lat, from.lng, brng, d));
-      d += spanM;
+  function appendPositions(poles, positions, endCtrl, pathCtrls) {
+    const endRole = resolveEndRole(endCtrl, pathCtrls);
+
+    positions.slice(1, -1).forEach(pos => {
+      poles.push(makePole(pos, "auto"));
+    });
+
+    const headType = endCtrl.role === "start" ? endCtrl.headType : "";
+    poles.push(makePole(endCtrl, endRole, headType, endCtrl.id));
+  }
+
+  function resolveEndRole(ctrl, pathCtrls) {
+    if (ctrl.role === "curve_in") return "curve_in";
+    if (ctrl.role === "curve_out") return "curve_out";
+    if (ctrl.role === "curve_waypoint") return "curve_waypoint";
+    if (ctrl.role === "start") return "start";
+    const idx = state.controlPoints.indexOf(ctrl);
+    if (idx === state.controlPoints.length - 1) return "end";
+    return "control";
+  }
+
+  function interpolateAlongPath(points, spanM) {
+    if (!points.length) return [];
+    if (points.length === 1) return [points[0]];
+
+    const total = pathTotalDistance(points);
+    if (total < 1) return [points[0], points[points.length - 1]];
+
+    const result = [points[0]];
+    let nextAt = spanM;
+
+    while (nextAt < total - spanM * 0.3) {
+      result.push(pointAtPathDistance(points, nextAt));
+      nextAt += spanM;
     }
 
-    positions.push(to);
-    return positions;
+    result.push(points[points.length - 1]);
+    return result;
+  }
+
+  function pathTotalDistance(points) {
+    let sum = 0;
+    for (let i = 1; i < points.length; i++) {
+      sum += distanceMeters(points[i - 1], points[i]);
+    }
+    return sum;
+  }
+
+  function pointAtPathDistance(points, targetDist) {
+    let traveled = 0;
+    for (let i = 1; i < points.length; i++) {
+      const segLen = distanceMeters(points[i - 1], points[i]);
+      if (traveled + segLen >= targetDist) {
+        const remain = targetDist - traveled;
+        const brng = bearing(points[i - 1], points[i]);
+        return destinationPoint(points[i - 1].lat, points[i - 1].lng, brng, remain);
+      }
+      traveled += segLen;
+    }
+    return points[points.length - 1];
   }
 
   function makePole(point, source, headType = "", ctrlId = null) {
@@ -297,18 +439,22 @@
       lng: point.lng,
       source,
       headType,
-      poleSize: "",
-      cableType: "",
+      poleMaterialId: "",
+      headMaterialId: "",
+      cableMaterialId: "",
       specFilled: false
     };
   }
 
   function renumberPoles(poles) {
-    return poles.map((pole, index) => ({
-      ...pole,
-      number: index + 1,
-      label: `หมุด ${index + 1}`
-    }));
+    let num = 0;
+    return poles.map(pole => {
+      if (pole.source === "start") {
+        return { ...pole, number: 0, label: "หมุด 0" };
+      }
+      num += 1;
+      return { ...pole, number: num, label: `หมุด ${num}` };
+    });
   }
 
   function getCurveInPoint() {
@@ -319,8 +465,12 @@
     return state.controlPoints.find(c => c.role === "curve_out");
   }
 
+  function isInsideCurveZone() {
+    return Boolean(getCurveInPoint()) && !getCurveOutPoint();
+  }
+
   async function useCurrentLocation() {
-    if (!ensureProjectReady() || !ensureSpanSelected()) return;
+    if (!ensureProjectReady()) return;
     if (!navigator.geolocation) {
       Swal.fire("ไม่รองรับ GPS", "อุปกรณ์นี้ไม่สามารถดึงตำแหน่งได้", "error");
       return;
@@ -357,8 +507,10 @@
   }
 
   function completeSurvey() {
+    if (!ensureSpanSelected()) return;
+
     if (state.controlPoints.length < 2) {
-      Swal.fire("ยังสำรวจไม่ครบ", "ต้องมีอย่างน้อยจุดเริ่มและจุดถัดไปอีก 1 จุด", "info");
+      Swal.fire("ยังสำรวจไม่ครบ", "ต้องมีอย่างน้อยหมุด 0 และหมุดถัดไปอีก 1 จุด", "info");
       return;
     }
 
@@ -375,9 +527,9 @@
 
     Swal.fire({
       title: "สำรวจเสร็จสิ้น",
-      text: "กรอกรายละเอียดเสา / หัวเสา / สายไฟ ของแต่ละหมุดด้านขวา",
+      text: "กรอกรายละเอียดเสา / หัวเสา / สายไฟ ของแต่ละหมุด (หมุด 0 ไม่ต้องเลือกขนาดเสา)",
       icon: "success",
-      timer: 2600,
+      timer: 2800,
       showConfirmButton: false
     });
   }
@@ -392,25 +544,27 @@
 
   function updateUiState() {
     const surveying = state.phase === "surveying";
-    const hasSpan = Boolean(state.selectedSpan);
     const hasStart = state.controlPoints.length > 0;
     const hasCurveIn = Boolean(getCurveInPoint());
     const hasCurveOut = Boolean(getCurveOutPoint());
+    const inCurve = isInsideCurveZone();
     const canComplete = hasStart && state.controlPoints.length >= 2;
 
-    if (els.startBtn) els.startBtn.disabled = !surveying || !hasSpan || hasStart;
-    if (els.addPointBtn) els.addPointBtn.disabled = !surveying || !hasStart;
+    if (els.startBtn) els.startBtn.disabled = !surveying || hasStart;
+    if (els.gpsBtn) els.gpsBtn.disabled = !surveying || hasStart;
+    if (els.addPointBtn) els.addPointBtn.disabled = !surveying || !hasStart || inCurve;
     if (els.curveInBtn) els.curveInBtn.disabled = !surveying || !hasStart || hasCurveIn;
+    if (els.curveWaypointBtn) els.curveWaypointBtn.disabled = !surveying || !inCurve;
     if (els.curveOutBtn) els.curveOutBtn.disabled = !surveying || !hasCurveIn || hasCurveOut;
     if (els.completeBtn) els.completeBtn.disabled = !surveying || !canComplete;
+
     if (els.generateBtn) {
       els.generateBtn.classList.toggle("hidden", state.phase !== "spec");
       els.generateBtn.disabled = state.phase !== "spec" || !allSpecsFilled();
     }
-    if (els.gpsBtn) els.gpsBtn.disabled = !surveying || !hasSpan || hasStart;
 
-    if (surveying && !hasSpan && els.modeHint) {
-      els.modeHint.textContent = "เลือก Span ก่อน (บังคับ) แล้วปักจุดเริ่ม";
+    if (surveying && !state.selectedSpan && els.modeHint) {
+      els.modeHint.textContent = "⚠️ เลือก Span ก่อน (บังคับ) แล้วปักหมุด 0";
     }
 
     if (els.sideTitle) {
@@ -418,29 +572,33 @@
     }
     if (els.sideNote) {
       els.sideNote.textContent = state.phase === "spec"
-        ? "หมุดที่มีเลขกำกับ — ระบุเสา / หัวเสา / สายไฟ"
-        : "ปักหมุดควบคุม ระบบคำนวณเสาตาม Span อัตโนมัติ";
+        ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ."
+        : "ช่วงโค้ง: ใช้ปุ่มจุดบนโค้งเพื่อให้เสาตามเส้นทางจริง";
     }
   }
 
   function allSpecsFilled() {
-    return state.poles.length > 0 && state.poles.every(pole =>
-      pole.poleSize && pole.headType && pole.cableType
-    );
+    return state.poles.length > 0 && state.poles.every(pole => {
+      if (pole.source === "start") {
+        return pole.headMaterialId && pole.cableMaterialId;
+      }
+      return pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId;
+    });
   }
 
   function createNumberIcon(number, source) {
     const classes = ["survey-pin"];
-    if (source === "start") classes.push("is-start");
+    if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
     if (source === "curve_out") classes.push("is-curve-out");
+    if (source === "curve_waypoint") classes.push("is-curve-in");
     if (source === "auto") classes.push("is-auto");
 
     return L.divIcon({
       className: "survey-pin-wrap",
       html: `<div class="${classes.join(" ")}">${number}</div>`,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      iconSize: source === "start" ? [30, 30] : [28, 28],
+      iconAnchor: source === "start" ? [15, 15] : [14, 14]
     });
   }
 
@@ -455,21 +613,16 @@
     state.poles.forEach(pole => {
       const marker = L.marker([pole.lat, pole.lng], {
         icon: createNumberIcon(pole.number, pole.source),
-        draggable: state.phase === "surveying" && pole.source !== "auto"
+        draggable: state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId
       }).addTo(state.map);
 
-      const roleLabel = {
-        start: "จุดเริ่ม (ระบบจำหน่ายเดิม)",
-        control: "หมุดควบคุม",
-        curve_in: "เข้าโค้ง",
-        curve_out: "ออกโค้ง",
-        end: "จุดสุดท้าย",
-        auto: "เสาคำนวณอัตโนมัติ"
-      }[pole.source] || "เสา";
+      marker.bindPopup(`<b>${pole.label}</b><br>${roleText(pole.source)}${pole.headType ? `<br>หัวเสา: ${pole.headType}` : ""}`);
 
-      marker.bindPopup(`<b>หมุด ${pole.number}</b><br>${roleLabel}${pole.headType ? `<br>หัวเสา: ${pole.headType}` : ""}`);
-
-      if (state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId) {
+      if (state.phase === "surveying" && pole.ctrlId) {
+        marker.on("click", event => {
+          L.DomEvent.stopPropagation(event);
+          handleControlMarkerClick(pole);
+        });
         marker.on("dragend", () => {
           const pos = marker.getLatLng();
           const ctrl = state.controlPoints.find(c => c.id === pole.ctrlId);
@@ -485,60 +638,79 @@
       state.markers.push(marker);
     });
 
+    if (state.controlPoints.length > 1) {
+      const ctrlLine = L.polyline(
+        state.controlPoints.map(c => [c.lat, c.lng]),
+        { color: "#f5c96a", weight: 2, dashArray: "4 6" }
+      ).addTo(state.map);
+      state.polylines.push(ctrlLine);
+    }
+
     if (state.poles.length > 1) {
-      const line = L.polyline(
+      const poleLine = L.polyline(
         state.poles.map(p => [p.lat, p.lng]),
         { color: "#71e8ff", weight: 3, dashArray: "6 8" }
       ).addTo(state.map);
-      state.polylines.push(line);
+      state.polylines.push(poleLine);
     }
+  }
+
+  function renderCatalogOptions(catalog, selectedId) {
+    return (catalog || []).map(item => `
+      <option value="${item.id}" ${selectedId === item.id ? "selected" : ""}>${item.id} — ${item.name}</option>
+    `).join("");
   }
 
   function renderPoleList() {
     if (!els.poleList) return;
 
     if (!state.poles.length) {
-      els.poleList.innerHTML = `<div class="survey-empty">เลือก Span → ปักจุดเริ่ม + ระบุหัวเสา → ปักหมุดถัดไป</div>`;
+      els.poleList.innerHTML = `<div class="survey-empty">1) เลือก Span → 2) ปักหมุด 0 + หัวเสา → 3) ปักหมุดถัดไป</div>`;
       return;
     }
 
     if (state.phase === "surveying") {
       els.poleList.innerHTML = state.poles.map(pole => `
         <div class="survey-pole-card ${pole.source === "start" ? "is-start" : ""}">
-          <div class="survey-pole-title">หมุด ${pole.number} — ${roleText(pole.source)}</div>
-          <div class="survey-pole-meta">${pole.headType ? `หัวเสาเริ่มต้น: ${pole.headType}` : "รอกรอกรายละเอียดหลังสำรวจเสร็จ"}</div>
+          <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
+          <div class="survey-pole-meta">${pole.headType ? `หัวเสา: ${pole.headType}` : "รอกรอกรายละเอียดหลังสำรวจเสร็จ"}</div>
         </div>
       `).join("");
       return;
     }
 
+    const poleCatalog = surveyConfig.poleCatalog || [];
+    const headCatalog = surveyConfig.headCatalog || [];
+    const cableCatalog = surveyConfig.cableCatalog || [];
+
     els.poleList.innerHTML = state.poles.map(pole => {
-      const sizeOptions = (surveyConfig.poleSizes || []).map(size =>
-        `<option value="${size}" ${pole.poleSize === size ? "selected" : ""}>${size}</option>`
-      ).join("");
-
-      const headOptions = (surveyConfig.poleHeadTypes || []).map(head =>
-        `<option value="${head}" ${pole.headType === head ? "selected" : ""}>${head}</option>`
-      ).join("");
-
-      const cableOptions = (surveyConfig.cableTypes || []).map(cable =>
-        `<option value="${cable}" ${pole.cableType === cable ? "selected" : ""}>${cable}</option>`
-      ).join("");
+      const isStart = pole.source === "start";
+      const headDefault = pole.headType || "";
 
       return `
-        <div class="survey-pole-card" data-pole-id="${pole.id}">
-          <div class="survey-pole-title">หมุด ${pole.number} — ${roleText(pole.source)}</div>
+        <div class="survey-pole-card ${isStart ? "is-start" : ""}" data-pole-id="${pole.id}">
+          <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
+          ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${headDefault} (กำหนดตอนปักหมุด 0)</div>` : `
           <div class="survey-field">
-            <label>ขนาดเสา</label>
-            <select data-field="poleSize" data-pole-id="${pole.id}"><option value="">-- เลือก --</option>${sizeOptions}</select>
+            <label>เสา (รหัสพัสดุ)</label>
+            <select data-field="poleMaterialId" data-pole-id="${pole.id}">
+              <option value="">-- เลือกเสา --</option>
+              ${renderCatalogOptions(poleCatalog, pole.poleMaterialId)}
+            </select>
+          </div>`}
+          <div class="survey-field">
+            <label>หัวเสา (รหัสพัสดุ)</label>
+            <select data-field="headMaterialId" data-pole-id="${pole.id}">
+              <option value="">-- เลือกหัวเสา --</option>
+              ${renderCatalogOptions(headCatalog, pole.headMaterialId)}
+            </select>
           </div>
           <div class="survey-field">
-            <label>หัวเสา</label>
-            <select data-field="headType" data-pole-id="${pole.id}"><option value="">-- เลือก --</option>${headOptions}</select>
-          </div>
-          <div class="survey-field">
-            <label>สายไฟ</label>
-            <select data-field="cableType" data-pole-id="${pole.id}"><option value="">-- เลือก --</option>${cableOptions}</select>
+            <label>สายไฟ (รหัสพัสดุ)</label>
+            <select data-field="cableMaterialId" data-pole-id="${pole.id}">
+              <option value="">-- เลือกสายไฟ --</option>
+              ${renderCatalogOptions(cableCatalog, pole.cableMaterialId)}
+            </select>
           </div>
         </div>
       `;
@@ -551,6 +723,7 @@
       control: "หมุดควบคุม",
       curve_in: "เข้าโค้ง",
       curve_out: "ออกโค้ง",
+      curve_waypoint: "จุดบนโค้ง",
       end: "จุดสุดท้าย",
       auto: "เสาคำนวณอัตโนมัติ"
     }[source] || "เสา";
@@ -566,7 +739,11 @@
     const pole = state.poles.find(item => item.id === poleId);
     if (pole) {
       pole[field] = target.value;
-      pole.specFilled = Boolean(pole.poleSize && pole.headType && pole.cableType);
+      if (pole.source === "start") {
+        pole.specFilled = Boolean(pole.headMaterialId && pole.cableMaterialId);
+      } else {
+        pole.specFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
+      }
       updateUiState();
     }
   }
@@ -583,86 +760,84 @@
       <div class="survey-stat"><span>หมุดทั้งหมด</span><strong>${state.poles.length}</strong></div>
       <div class="survey-stat"><span>หมุดควบคุม</span><strong>${state.controlPoints.length}</strong></div>
       <div class="survey-stat"><span>ระยะรวม</span><strong>${Math.round(totalDist)} ม.</strong></div>
-      <div class="survey-stat"><span>Span หลัก</span><strong>${state.selectedSpan ? state.selectedSpan + " ม." : "-"}</strong></div>
+      <div class="survey-stat"><span>Span หลัก</span><strong>${state.selectedSpan ? state.selectedSpan + " ม." : "ยังไม่เลือก"}</strong></div>
     `;
+  }
+
+  function getControlPathDistance(fromIdx, toIdx) {
+    const slice = state.controlPoints.slice(fromIdx, toIdx + 1).map(c => ({ lat: c.lat, lng: c.lng }));
+    return pathTotalDistance(slice);
   }
 
   function updateDistanceLegs() {
     if (!els.distanceLegs) return;
 
-    const curveIn = getCurveInPoint();
-    const curveOut = getCurveOutPoint();
-    const start = state.controlPoints[0];
-    const end = state.controlPoints[state.controlPoints.length - 1];
+    const curveInIdx = state.controlPoints.findIndex(c => c.role === "curve_in");
+    const curveOutIdx = state.controlPoints.findIndex(c => c.role === "curve_out");
 
-    if (!curveIn || !curveOut || !start || !end || state.phase !== "spec") {
+    if (curveInIdx === -1 || curveOutIdx === -1 || state.phase !== "spec") {
       els.distanceLegs.classList.add("hidden");
       els.distanceLegs.innerHTML = "";
       return;
     }
 
-    const leg1 = distanceMeters(start, curveIn);
-    const legCurve = distanceMeters(curveIn, curveOut);
-    const leg2 = distanceMeters(curveOut, end);
+    const leg1 = getControlPathDistance(0, curveInIdx);
+    const legCurve = getControlPathDistance(curveInIdx, curveOutIdx);
+    const leg2 = getControlPathDistance(curveOutIdx, state.controlPoints.length - 1);
 
     els.distanceLegs.classList.remove("hidden");
     els.distanceLegs.innerHTML = `
-      <div class="distance-leg"><span>ต้นทาง → เข้าโค้ง</span><strong>${Math.round(leg1)} ม.</strong></div>
+      <div class="distance-leg"><span>หมุด 0 → เข้าโค้ง</span><strong>${Math.round(leg1)} ม.</strong></div>
       <div class="distance-leg is-curve"><span>เข้าโค้ง → ออกโค้ง</span><strong>${Math.round(legCurve)} ม.</strong></div>
       <div class="distance-leg"><span>ออกโค้ง → จุดสุดท้าย</span><strong>${Math.round(leg2)} ม.</strong></div>
     `;
   }
 
   function buildBomLines() {
-    const poleCounts = {};
-    const headCounts = {};
-    const cableLengths = {};
+    const counts = {};
 
     state.poles.forEach((pole, index) => {
-      const poleKey = pole.poleSize || surveyConfig.poleSizes[0];
-      const headKey = pole.headType || "";
-      poleCounts[poleKey] = (poleCounts[poleKey] || 0) + 1;
-      headCounts[headKey] = (headCounts[headKey] || 0) + 1;
-
-      if (index > 0) {
-        const cableKey = pole.cableType || surveyConfig.cableTypes[0];
+      if (pole.source !== "start" && pole.poleMaterialId) {
+        const key = `pole:${pole.poleMaterialId}`;
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      if (pole.headMaterialId) {
+        const key = `head:${pole.headMaterialId}`;
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      if (index > 0 && pole.cableMaterialId) {
         const span = distanceMeters(state.poles[index - 1], pole);
-        cableLengths[cableKey] = (cableLengths[cableKey] || 0) + span;
+        const key = `cable:${pole.cableMaterialId}`;
+        counts[key] = (counts[key] || 0) + span;
       }
     });
 
     const lines = [];
-    Object.entries(poleCounts).forEach(([size, qty]) => {
-      lines.push({ type: "pole", label: `เสา ${size}`, qty, keywords: (surveyConfig.materialKeywords.pole || {})[size] || ["เสา"] });
-    });
-    Object.entries(headCounts).forEach(([head, qty]) => {
-      if (!head) return;
-      lines.push({ type: "head", label: `หัวเสา ${head}`, qty, keywords: (surveyConfig.materialKeywords.head || {})[head] || ["หัวเสา"] });
-    });
-    Object.entries(cableLengths).forEach(([cable, meters]) => {
-      lines.push({ type: "cable", label: `สายไฟ ${cable}`, qty: Math.ceil(meters), keywords: (surveyConfig.materialKeywords.cable || {})[cable] || ["สาย"] });
+    Object.entries(counts).forEach(([key, qty]) => {
+      const [type, id] = key.split(":");
+      const catalog = type === "pole" ? surveyConfig.poleCatalog
+        : type === "head" ? surveyConfig.headCatalog
+          : surveyConfig.cableCatalog;
+      const item = (catalog || []).find(c => c.id === id);
+      lines.push({
+        type,
+        materialId: id,
+        label: item ? `${id} ${item.name}` : id,
+        qty: type === "cable" ? Math.ceil(qty) : qty
+      });
     });
     return lines;
   }
 
-  function findMaterial(keywords) {
+  function findMaterialById(materialId) {
     const store = window.AppCore ? window.AppCore.getDataStore() : [];
-    const terms = (keywords || []).map(term => term.toLowerCase());
-    const hits = store.filter(item => {
-      const hay = `${item.id} ${item.name}`.toLowerCase();
-      return terms.every(term => hay.includes(term));
-    });
-    if (hits.length) return hits[0];
-    const loose = store.filter(item => {
-      const hay = `${item.id} ${item.name}`.toLowerCase();
-      return terms.some(term => hay.includes(term));
-    });
-    return loose[0] || null;
+    const idKey = String(materialId).trim();
+    return store.find(item => String(item.id).trim() === idKey) || null;
   }
 
   async function generateEstimate() {
     if (!allSpecsFilled()) {
-      Swal.fire("กรอกไม่ครบ", "กรุณากรอกเสา / หัวเสา / สายไฟ ทุกหมุด", "warning");
+      Swal.fire("กรอกไม่ครบ", "กรุณาเลือกรหัสพัสดุให้ครบทุกหมุด", "warning");
       return;
     }
 
@@ -673,7 +848,10 @@
     }
 
     const bomLines = buildBomLines();
-    const matched = bomLines.map(line => ({ ...line, item: findMaterial(line.keywords) }));
+    const matched = bomLines.map(line => ({
+      ...line,
+      item: findMaterialById(line.materialId)
+    }));
     const missing = matched.filter(line => !line.item);
 
     if (missing.length) {
@@ -689,7 +867,7 @@
 
     const ready = matched.filter(line => line.item);
     if (!ready.length) {
-      Swal.fire("ไม่พบพัสดุ", "ไม่สามารถจับคู่กับ master data ได้", "error");
+      Swal.fire("ไม่พบพัสดุ", "ไม่สามารถจับคู่รหัสพัสดุกับ master data ได้", "error");
       return;
     }
 
