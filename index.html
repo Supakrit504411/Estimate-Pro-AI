@@ -147,6 +147,46 @@
             <button type="button" class="span-btn" data-span="80">80 ม.</button>
           </div>
 
+          <div id="surveyDefaultsPanel" class="survey-defaults-panel hidden">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">ค่า Default พัสดุ</span>
+              <span class="optional-tag">ไม่บังคับ</span>
+            </div>
+            <p class="survey-defaults-note">ตั้งค่าล่วงหน้าเพื่อเติมอัตโนมัติหลังสำรวจเสร็จ — แก้ไขรายหมุดได้ภายหลัง</p>
+            <div class="survey-defaults-grid">
+              <div class="survey-defaults-group">
+                <h3 class="survey-defaults-label">ทางตรง</h3>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightPole">เสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightPole" data-default-group="straight" data-default-field="poleMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightHead">หัวเสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightHead" data-default-group="straight" data-default-field="headMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightCable">สายไฟ (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightCable" data-default-group="straight" data-default-field="cableMaterialId"></select>
+                </div>
+              </div>
+              <div class="survey-defaults-group is-curve">
+                <h3 class="survey-defaults-label">ทางโค้ง</h3>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurvePole">เสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurvePole" data-default-group="curve" data-default-field="poleMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurveHead">หัวเสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurveHead" data-default-group="curve" data-default-field="headMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurveCable">สายไฟ (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurveCable" data-default-group="curve" data-default-field="cableMaterialId"></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div id="surveyModeHint" class="survey-mode-hint">เลือก Span ก่อน แล้วปักจุดเริ่มจากเสาระบบจำหน่ายเดิม</div>
 
           <div class="survey-actions">

@@ -1044,6 +1044,81 @@ input:focus,
   font-weight: 700;
 }
 
+.optional-tag {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.survey-defaults-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.survey-defaults-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.survey-defaults-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.survey-defaults-note {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
+.survey-defaults-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.survey-defaults-group {
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(113, 232, 255, 0.05);
+  border: 1px solid rgba(113, 232, 255, 0.12);
+}
+
+.survey-defaults-group.is-curve {
+  background: rgba(143, 107, 255, 0.07);
+  border-color: rgba(143, 107, 255, 0.2);
+}
+
+.survey-defaults-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.survey-defaults-group .survey-field {
+  margin-bottom: 8px;
+}
+
+.survey-defaults-group .survey-field:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .survey-defaults-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .survey-mode-hint {
   font-size: 12px;
   color: var(--primary-soft);

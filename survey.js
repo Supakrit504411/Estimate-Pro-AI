@@ -16,7 +16,11 @@
     routedPaths: [],
     routedLegs: [],
     routeCache: {},
-    isRebuilding: false
+    isRebuilding: false,
+    defaults: {
+      straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" },
+      curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" }
+    }
   };
 
   let rebuildToken = 0;
@@ -25,6 +29,7 @@
 
   function init() {
     cacheElements();
+    initDefaultMaterialSelects();
     bindEvents();
     updateUiState();
   }
@@ -47,6 +52,8 @@
     els.completeBtn = document.getElementById("surveyCompleteBtn");
     els.generateBtn = document.getElementById("surveyGenerateBtn");
     els.resetBtn = document.getElementById("surveyResetBtn");
+    els.defaultsPanel = document.getElementById("surveyDefaultsPanel");
+    els.defaultSelects = document.querySelectorAll("[data-default-group]");
   }
 
   function bindEvents() {
@@ -76,6 +83,52 @@
 
     if (els.poleList) {
       els.poleList.addEventListener("change", handlePoleListChange);
+    }
+
+    if (els.defaultSelects) {
+      els.defaultSelects.forEach(select => {
+        select.addEventListener("change", handleDefaultSelectChange);
+      });
+    }
+  }
+
+  function initDefaultMaterialSelects() {
+    const poleCatalog = surveyConfig.poleCatalog || [];
+    const headCatalog = surveyConfig.headCatalog || [];
+    const cableCatalog = surveyConfig.cableCatalog || [];
+
+    const configs = [
+      { id: "surveyDefaultStraightPole", catalog: poleCatalog, placeholder: "-- เลือกเสา (ทางตรง) --" },
+      { id: "surveyDefaultStraightHead", catalog: headCatalog, placeholder: "-- เลือกหัวเสา (ทางตรง) --" },
+      { id: "surveyDefaultStraightCable", catalog: cableCatalog, placeholder: "-- เลือกสายไฟ (ทางตรง) --" },
+      { id: "surveyDefaultCurvePole", catalog: poleCatalog, placeholder: "-- เลือกเสา (ทางโค้ง) --" },
+      { id: "surveyDefaultCurveHead", catalog: headCatalog, placeholder: "-- เลือกหัวเสา (ทางโค้ง) --" },
+      { id: "surveyDefaultCurveCable", catalog: cableCatalog, placeholder: "-- เลือกสายไฟ (ทางโค้ง) --" }
+    ];
+
+    configs.forEach(({ id, catalog, placeholder }) => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      select.innerHTML = `<option value="">${placeholder}</option>${renderCatalogOptions(catalog, "")}`;
+    });
+  }
+
+  function handleDefaultSelectChange(event) {
+    const select = event.target;
+    const group = select.dataset.defaultGroup;
+    const field = select.dataset.defaultField;
+    if (!group || !field || !state.defaults[group]) return;
+    state.defaults[group][field] = select.value;
+  }
+
+  function resetDefaultMaterialSelects() {
+    state.defaults.straight = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" };
+    state.defaults.curve = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" };
+
+    if (els.defaultSelects) {
+      els.defaultSelects.forEach(select => {
+        select.value = "";
+      });
     }
   }
 
@@ -315,6 +368,7 @@
     const pole = state.poles.find(p => p.ctrlId === ctrl.id);
     if (pole) {
       pole.source = "curve_in";
+      pole.section = "curve";
     }
     state.poles = renumberPoles(state.poles);
   }
@@ -337,6 +391,7 @@
 
     const prefix = state.poles.slice(0, splitIdx + 1).map(clonePole);
     prefix[splitIdx].source = "curve_in";
+    prefix[splitIdx].section = "curve";
     return { prefix, curveInControlIdx };
   }
 
@@ -500,10 +555,10 @@
     const lastCtrl = pathCtrls[pathCtrls.length - 1];
 
     positions.slice(1, -1).forEach(pos => {
-      poles.push(makePole(pos, "auto"));
+      poles.push(makePole(pos, "auto", "", null, "curve"));
     });
 
-    poles.push(makePole(lastCtrl, resolveEndRole(lastCtrl, pathCtrls), "", lastCtrl.id));
+    poles.push(makePole(lastCtrl, resolveEndRole(lastCtrl, pathCtrls), "", lastCtrl.id, "curve"));
   }
 
   async function appendStraightSegment(poles, fromIdx, toIdx) {
@@ -517,7 +572,7 @@
     state.routedPaths.push(pathPoints);
     state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
     const positions = interpolateAlongPath(pathPoints, state.selectedSpan);
-    appendPositions(poles, positions, toCtrl);
+    appendPositions(poles, positions, toCtrl, null, "straight");
   }
 
   async function appendPathSegment(poles, pathCtrls, spanM, fromIdx, toIdx) {
@@ -527,7 +582,7 @@
     state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
     const positions = interpolateAlongPath(pathPoints, spanM);
     const lastCtrl = pathCtrls[pathCtrls.length - 1];
-    appendPositions(poles, positions, lastCtrl, pathCtrls);
+    appendPositions(poles, positions, lastCtrl, pathCtrls, "curve");
   }
 
   function findNextRoleIndex(fromIdx, role) {
@@ -537,15 +592,63 @@
     return -1;
   }
 
-  function appendPositions(poles, positions, endCtrl, pathCtrls) {
+  function appendPositions(poles, positions, endCtrl, pathCtrls, section = "straight") {
     const endRole = resolveEndRole(endCtrl, pathCtrls);
+    const endSection = isCurveSource(endRole) ? "curve" : section;
 
     positions.slice(1, -1).forEach(pos => {
-      poles.push(makePole(pos, "auto"));
+      poles.push(makePole(pos, "auto", "", null, section));
     });
 
     const headType = endCtrl.role === "start" ? endCtrl.headType : "";
-    poles.push(makePole(endCtrl, endRole, headType, endCtrl.id));
+    poles.push(makePole(endCtrl, endRole, headType, endCtrl.id, endSection));
+  }
+
+  function isCurveSource(source) {
+    return source === "curve_in" || source === "curve_out" || source === "curve_waypoint";
+  }
+
+  function isCurvePole(pole) {
+    return pole.section === "curve" || isCurveSource(pole.source);
+  }
+
+  function getDefaultsForPole(pole) {
+    return isCurvePole(pole) ? state.defaults.curve : state.defaults.straight;
+  }
+
+  function markPoleSpecFilled(pole) {
+    if (pole.source === "start") {
+      pole.specFilled = Boolean(pole.headMaterialId && pole.cableMaterialId);
+      return;
+    }
+    pole.specFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
+  }
+
+  function applyDefaultSpecs() {
+    let appliedCount = 0;
+
+    state.poles.forEach(pole => {
+      const defs = getDefaultsForPole(pole);
+      let changed = false;
+
+      if (pole.source !== "start" && defs.poleMaterialId && !pole.poleMaterialId) {
+        pole.poleMaterialId = defs.poleMaterialId;
+        changed = true;
+      }
+      if (defs.headMaterialId && !pole.headMaterialId) {
+        pole.headMaterialId = defs.headMaterialId;
+        changed = true;
+      }
+      if (defs.cableMaterialId && !pole.cableMaterialId) {
+        pole.cableMaterialId = defs.cableMaterialId;
+        changed = true;
+      }
+
+      if (changed) appliedCount += 1;
+      markPoleSpecFilled(pole);
+    });
+
+    return appliedCount;
   }
 
   function resolveEndRole(ctrl, pathCtrls) {
@@ -599,13 +702,14 @@
     return points[points.length - 1];
   }
 
-  function makePole(point, source, headType = "", ctrlId = null) {
+  function makePole(point, source, headType = "", ctrlId = null, section = "straight") {
     return {
       id: makeId("pole"),
       ctrlId,
       lat: point.lat,
       lng: point.lng,
       source,
+      section,
       headType,
       poleMaterialId: "",
       headMaterialId: "",
@@ -690,11 +794,16 @@
 
     state.phase = "spec";
     state.placeMode = null;
+    const appliedCount = applyDefaultSpecs();
     renderAll();
+
+    const defaultHint = appliedCount > 0
+      ? `เติมค่า Default ให้ ${appliedCount} หมุดแล้ว — ตรวจสอบ/แก้ไขรายหมุดได้`
+      : "กรอกรายละเอียดเสา / หัวเสา / สายไฟ ของแต่ละหมุด (หมุด 0 ไม่ต้องเลือกขนาดเสา)";
 
     Swal.fire({
       title: "สำรวจเสร็จสิ้น",
-      text: "กรอกรายละเอียดเสา / หัวเสา / สายไฟ ของแต่ละหมุด (หมุด 0 ไม่ต้องเลือกขนาดเสา)",
+      text: defaultHint,
       icon: "success",
       timer: 2800,
       showConfirmButton: false
@@ -734,13 +843,17 @@
       els.modeHint.textContent = "⚠️ เลือก Span ก่อน (บังคับ) แล้วปักหมุด 0";
     }
 
+    if (els.defaultsPanel) {
+      els.defaultsPanel.classList.toggle("hidden", !surveying || !state.selectedSpan);
+    }
+
     if (els.sideTitle) {
       els.sideTitle.textContent = state.phase === "spec" ? "กรอกรายละเอียดแต่ละหมุด" : "คู่มือสำรวจ";
     }
     if (els.sideNote) {
       els.sideNote.textContent = state.phase === "spec"
-        ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ."
-        : "เสาคำนวณตามเส้นถนนบนแผนที่ (OpenStreetMap) — ปักหมุดปลายทางแล้วระบบโค้งตามถนนให้อัตโนมัติ";
+        ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ. — แก้ไขเฉพาะหมุดที่ต้องการได้"
+        : "ตั้งค่า Default พัสดุได้หลังเลือก Span แล้วเริ่มปักหมุด";
     }
   }
 
@@ -915,11 +1028,7 @@
     const pole = state.poles.find(item => item.id === poleId);
     if (pole) {
       pole[field] = target.value;
-      if (pole.source === "start") {
-        pole.specFilled = Boolean(pole.headMaterialId && pole.cableMaterialId);
-      } else {
-        pole.specFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
-      }
+      markPoleSpecFilled(pole);
       updateUiState();
     }
   }
@@ -1089,6 +1198,7 @@
     if (els.spanBar) {
       els.spanBar.querySelectorAll("[data-span]").forEach(node => node.classList.remove("active"));
     }
+    resetDefaultMaterialSelects();
     renderAll();
   }
 
