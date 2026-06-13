@@ -38,6 +38,8 @@ window.APP_CONFIG = {
     spanPresets: [15, 20, 40, 80],
     curveSpanPresets: [15, 20],
     startHeadTypes: ["DE", "SP", "CCB", "CTB", "ป.ปลา", "สระอา"],
+    useRoadRouting: true,
+    osrmUrl: "https://router.project-osrm.org",
 
     poleCatalog: [
       { id: "1000010001", name: "POLE,CONCRETE, 8 M.LONG" },

@@ -12,8 +12,14 @@
     placeMode: null,
     pendingCurveSpan: null,
     phase: "surveying",
-    mapReady: false
+    mapReady: false,
+    routedPaths: [],
+    routedLegs: [],
+    routeCache: {},
+    isRebuilding: false
   };
+
+  let rebuildToken = 0;
 
   let els = {};
 
@@ -235,7 +241,7 @@
     state.placeMode = mode;
     const hints = {
       start: "แตะแผนที่ปักหมุด 0 (เสา/จุดต่อระบบจำหน่ายเดิม)",
-      control: `แตะแผนที่ปักหมุดถัดไป — ระบบคำนวณเสาตาม Span ${state.selectedSpan} ม.`,
+      control: `แตะแผนที่ปักหมุดถัดไป — ระบบวางเสาตามถนนบนแผนที่ (Span ${state.selectedSpan} ม.)`,
       curve_in: "แตะแผนที่ปักหมุดเข้าโค้ง",
       curve_out: "แตะแผนที่ปักหมุดออกโค้ง",
       curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง"
@@ -285,7 +291,6 @@
     }
 
     rebuildPolesFromControls();
-    renderAll();
   }
 
   async function handleControlMarkerClick(pole) {
@@ -301,51 +306,135 @@
     const converted = await askConvertToCurveIn(ctrl);
     if (converted) {
       rebuildPolesFromControls();
-      renderAll();
     }
   }
 
-  function rebuildPolesFromControls() {
+  async function rebuildPolesFromControls() {
+    const token = ++rebuildToken;
     const poles = [];
+    state.routedPaths = [];
+    state.routedLegs = [];
+    state.routeCache = {};
+
     if (!state.controlPoints.length) {
       state.poles = [];
+      state.isRebuilding = false;
+      renderAll();
       return;
     }
 
-    const start = state.controlPoints[0];
-    poles.push(makePole(start, "start", start.headType || "", start.id));
+    state.isRebuilding = true;
+    updateRebuildHint();
+    renderAll();
 
-    let i = 1;
-    while (i < state.controlPoints.length) {
-      const curveInIdx = findNextRoleIndex(i, "curve_in");
+    try {
+      const start = state.controlPoints[0];
+      poles.push(makePole(start, "start", start.headType || "", start.id));
 
-      if (curveInIdx === -1) {
-        while (i < state.controlPoints.length) {
-          appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[i]);
+      let i = 1;
+      while (i < state.controlPoints.length) {
+        const curveInIdx = findNextRoleIndex(i, "curve_in");
+
+        if (curveInIdx === -1) {
+          while (i < state.controlPoints.length) {
+            await appendStraightSegment(poles, i - 1, i);
+            if (token !== rebuildToken) return;
+            i++;
+          }
+          break;
+        }
+
+        while (i < curveInIdx) {
+          await appendStraightSegment(poles, i - 1, i);
+          if (token !== rebuildToken) return;
           i++;
         }
-        break;
+
+        const curveOutIdx = findNextRoleIndex(curveInIdx + 1, "curve_out");
+        if (curveOutIdx === -1) {
+          await appendStraightSegment(poles, i - 1, curveInIdx);
+          if (token !== rebuildToken) return;
+          i = curveInIdx + 1;
+          continue;
+        }
+
+        const pathCtrls = state.controlPoints.slice(curveInIdx, curveOutIdx + 1);
+        const curveSpan = pathCtrls[0].curveSpan || 15;
+        await appendPathSegment(poles, pathCtrls, curveSpan, curveInIdx, curveOutIdx);
+        if (token !== rebuildToken) return;
+        i = curveOutIdx + 1;
       }
 
-      while (i < curveInIdx) {
-        appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[i]);
-        i++;
+      state.poles = renumberPoles(poles);
+    } finally {
+      if (token === rebuildToken) {
+        state.isRebuilding = false;
+        renderAll();
       }
-
-      const curveOutIdx = findNextRoleIndex(curveInIdx + 1, "curve_out");
-      if (curveOutIdx === -1) {
-        appendStraightSegment(poles, state.controlPoints[i - 1], state.controlPoints[curveInIdx]);
-        i = curveInIdx + 1;
-        continue;
-      }
-
-      const pathCtrls = state.controlPoints.slice(curveInIdx, curveOutIdx + 1);
-      const curveSpan = pathCtrls[0].curveSpan || 15;
-      appendPathSegment(poles, pathCtrls, curveSpan);
-      i = curveOutIdx + 1;
     }
+  }
 
-    state.poles = renumberPoles(poles);
+  function updateRebuildHint() {
+    if (!els.modeHint || !state.isRebuilding) return;
+    els.modeHint.textContent = "กำลังคำนวณเสาตามเส้นถนนบนแผนที่...";
+  }
+
+  function routeCacheKey(points) {
+    return points.map(p => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|");
+  }
+
+  async function fetchRoutePath(anchorPoints) {
+    if (anchorPoints.length < 2) return anchorPoints.slice();
+
+    const useRouting = surveyConfig.useRoadRouting !== false;
+    if (!useRouting) return anchorPoints.slice();
+
+    const key = routeCacheKey(anchorPoints);
+    if (state.routeCache[key]) return state.routeCache[key];
+
+    const coords = anchorPoints.map(p => `${p.lng},${p.lat}`).join(";");
+    const base = (surveyConfig.osrmUrl || "https://router.project-osrm.org").replace(/\/$/, "");
+    const url = `${base}/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`OSRM ${res.status}`);
+      const data = await res.json();
+      if (data.code !== "Ok" || !data.routes?.[0]?.geometry?.coordinates?.length) {
+        throw new Error(data.message || "no route");
+      }
+
+      const path = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      state.routeCache[key] = path;
+      return path;
+    } catch (error) {
+      console.warn("Road routing fallback to straight line:", error);
+      return anchorPoints.slice();
+    }
+  }
+
+  async function appendStraightSegment(poles, fromIdx, toIdx) {
+    const fromCtrl = state.controlPoints[fromIdx];
+    const toCtrl = state.controlPoints[toIdx];
+    const anchors = [
+      { lat: fromCtrl.lat, lng: fromCtrl.lng },
+      { lat: toCtrl.lat, lng: toCtrl.lng }
+    ];
+    const pathPoints = await fetchRoutePath(anchors);
+    state.routedPaths.push(pathPoints);
+    state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
+    const positions = interpolateAlongPath(pathPoints, state.selectedSpan);
+    appendPositions(poles, positions, toCtrl);
+  }
+
+  async function appendPathSegment(poles, pathCtrls, spanM, fromIdx, toIdx) {
+    const anchors = pathCtrls.map(c => ({ lat: c.lat, lng: c.lng }));
+    const pathPoints = await fetchRoutePath(anchors);
+    state.routedPaths.push(pathPoints);
+    state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
+    const positions = interpolateAlongPath(pathPoints, spanM);
+    const lastCtrl = pathCtrls[pathCtrls.length - 1];
+    appendPositions(poles, positions, lastCtrl, pathCtrls);
   }
 
   function findNextRoleIndex(fromIdx, role) {
@@ -353,20 +442,6 @@
       if (state.controlPoints[i].role === role) return i;
     }
     return -1;
-  }
-
-  function appendStraightSegment(poles, fromCtrl, toCtrl) {
-    const from = { lat: fromCtrl.lat, lng: fromCtrl.lng };
-    const to = { lat: toCtrl.lat, lng: toCtrl.lng };
-    const positions = interpolateAlongPath([from, to], state.selectedSpan);
-    appendPositions(poles, positions, toCtrl);
-  }
-
-  function appendPathSegment(poles, pathCtrls, spanM) {
-    const points = pathCtrls.map(c => ({ lat: c.lat, lng: c.lng }));
-    const positions = interpolateAlongPath(points, spanM);
-    const lastCtrl = pathCtrls[pathCtrls.length - 1];
-    appendPositions(poles, positions, lastCtrl, pathCtrls);
   }
 
   function appendPositions(poles, positions, endCtrl, pathCtrls) {
@@ -499,7 +574,6 @@
         }];
         state.placeMode = null;
         rebuildPolesFromControls();
-        renderAll();
       },
       error => Swal.fire("GPS ไม่สำเร็จ", error.message || "ไม่สามารถดึงตำแหน่งได้", "error"),
       { enableHighAccuracy: true, timeout: 12000 }
@@ -573,7 +647,7 @@
     if (els.sideNote) {
       els.sideNote.textContent = state.phase === "spec"
         ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ."
-        : "ช่วงโค้ง: ใช้ปุ่มจุดบนโค้งเพื่อให้เสาตามเส้นทางจริง";
+        : "เสาคำนวณตามเส้นถนนบนแผนที่ (OpenStreetMap) — ปักหมุดปลายทางแล้วระบบโค้งตามถนนให้อัตโนมัติ";
     }
   }
 
@@ -629,13 +703,22 @@
           if (ctrl) {
             ctrl.lat = pos.lat;
             ctrl.lng = pos.lng;
+            state.routeCache = {};
             rebuildPolesFromControls();
-            renderAll();
           }
         });
       }
 
       state.markers.push(marker);
+    });
+
+    state.routedPaths.forEach(path => {
+      if (path.length < 2) return;
+      const routeLine = L.polyline(
+        path.map(p => [p.lat, p.lng]),
+        { color: "#3ecf6e", weight: 5, opacity: 0.55 }
+      ).addTo(state.map);
+      state.polylines.push(routeLine);
     });
 
     if (state.controlPoints.length > 1) {
@@ -765,6 +848,11 @@
   }
 
   function getControlPathDistance(fromIdx, toIdx) {
+    const routed = state.routedLegs
+      .filter(leg => leg.fromIdx >= fromIdx && leg.toIdx <= toIdx)
+      .reduce((sum, leg) => sum + pathTotalDistance(leg.path), 0);
+    if (routed > 0) return routed;
+
     const slice = state.controlPoints.slice(fromIdx, toIdx + 1).map(c => ({ lat: c.lat, lng: c.lng }));
     return pathTotalDistance(slice);
   }
@@ -897,6 +985,10 @@
     state.placeMode = null;
     state.pendingCurveSpan = null;
     state.phase = "surveying";
+    state.routedPaths = [];
+    state.routedLegs = [];
+    state.routeCache = {};
+    state.isRebuilding = false;
     state.markers.forEach(m => m.remove());
     state.markers = [];
     state.polylines.forEach(p => p.remove());
