@@ -305,8 +305,39 @@
 
     const converted = await askConvertToCurveIn(ctrl);
     if (converted) {
-      rebuildPolesFromControls();
+      markPoleAsCurveIn(ctrl);
+      renderAll();
+      updateUiState();
     }
+  }
+
+  function markPoleAsCurveIn(ctrl) {
+    const pole = state.poles.find(p => p.ctrlId === ctrl.id);
+    if (pole) {
+      pole.source = "curve_in";
+    }
+    state.poles = renumberPoles(state.poles);
+  }
+
+  function clonePole(pole) {
+    return { ...pole };
+  }
+
+  function findPoleIndexByCtrlId(ctrlId) {
+    return state.poles.findIndex(p => p.ctrlId === ctrlId);
+  }
+
+  function getPreservedPrefixBeforeCurveIn() {
+    const curveInControlIdx = state.controlPoints.findIndex(c => c.role === "curve_in");
+    if (curveInControlIdx <= 0) return null;
+
+    const curveInCtrl = state.controlPoints[curveInControlIdx];
+    const splitIdx = findPoleIndexByCtrlId(curveInCtrl.id);
+    if (splitIdx < 0) return null;
+
+    const prefix = state.poles.slice(0, splitIdx + 1).map(clonePole);
+    prefix[splitIdx].source = "curve_in";
+    return { prefix, curveInControlIdx };
   }
 
   async function rebuildPolesFromControls() {
@@ -328,6 +359,17 @@
     renderAll();
 
     try {
+      const preserved = getPreservedPrefixBeforeCurveIn();
+
+      if (preserved) {
+        const { prefix, curveInControlIdx } = preserved;
+        const poles = [...prefix];
+        await rebuildFromCurveIn(poles, curveInControlIdx, token);
+        if (token !== rebuildToken) return;
+        state.poles = renumberPoles(poles);
+        return;
+      }
+
       const start = state.controlPoints[0];
       poles.push(makePole(start, "start", start.headType || "", start.id));
 
@@ -411,6 +453,57 @@
       console.warn("Road routing fallback to straight line:", error);
       return anchorPoints.slice();
     }
+  }
+
+  async function rebuildFromCurveIn(poles, curveInControlIdx, token) {
+    const curveOutIdx = findNextRoleIndex(curveInControlIdx + 1, "curve_out");
+    const tailAfterCurveIn = state.controlPoints.slice(curveInControlIdx + 1);
+
+    if (curveOutIdx === -1) {
+      if (!tailAfterCurveIn.length) return;
+
+      const pathCtrls = [
+        state.controlPoints[curveInControlIdx],
+        ...tailAfterCurveIn
+      ];
+      const curveSpan = state.controlPoints[curveInControlIdx].curveSpan || 15;
+      await appendPathSegmentSkipFirst(
+        poles,
+        pathCtrls,
+        curveSpan,
+        curveInControlIdx,
+        curveInControlIdx + tailAfterCurveIn.length
+      );
+      if (token !== rebuildToken) return;
+      return;
+    }
+
+    const pathCtrls = state.controlPoints.slice(curveInControlIdx, curveOutIdx + 1);
+    const curveSpan = pathCtrls[0].curveSpan || 15;
+    await appendPathSegmentSkipFirst(poles, pathCtrls, curveSpan, curveInControlIdx, curveOutIdx);
+    if (token !== rebuildToken) return;
+
+    let i = curveOutIdx + 1;
+    while (i < state.controlPoints.length) {
+      await appendStraightSegment(poles, i - 1, i);
+      if (token !== rebuildToken) return;
+      i++;
+    }
+  }
+
+  async function appendPathSegmentSkipFirst(poles, pathCtrls, spanM, fromIdx, toIdx) {
+    const anchors = pathCtrls.map(c => ({ lat: c.lat, lng: c.lng }));
+    const pathPoints = await fetchRoutePath(anchors);
+    state.routedPaths.push(pathPoints);
+    state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
+    const positions = interpolateAlongPath(pathPoints, spanM);
+    const lastCtrl = pathCtrls[pathCtrls.length - 1];
+
+    positions.slice(1, -1).forEach(pos => {
+      poles.push(makePole(pos, "auto"));
+    });
+
+    poles.push(makePole(lastCtrl, resolveEndRole(lastCtrl, pathCtrls), "", lastCtrl.id));
   }
 
   async function appendStraightSegment(poles, fromIdx, toIdx) {
