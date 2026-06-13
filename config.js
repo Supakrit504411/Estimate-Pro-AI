@@ -36,8 +36,10 @@ window.APP_CONFIG = {
     defaultCenter: [17.4081, 104.7762],
     defaultZoom: 15,
     spanPresets: [15, 20, 40, 80],
+    curveSpanPresets: [15, 20],
+    startHeadTypes: ["DE", "SP", "CCB", "CTB", "ป.ปลา", "สระอา"],
     poleSizes: ["9 ม.", "12 ม."],
-    poleHeadTypes: ["คอนกรีต", "คอนเหล็ก", "Spacer แขวน", "อื่นๆ"],
+    poleHeadTypes: ["คอนกรีต", "คอนเหล็ก", "Spacer แขวน", "DE", "SP", "CCB", "CTB", "ป.ปลา", "สระอา", "อื่นๆ"],
     cableTypes: ["AAC 50", "AAC 95", "XLPE 50", "XLPE 95"],
     materialKeywords: {
       pole: {
@@ -48,6 +50,12 @@ window.APP_CONFIG = {
         "คอนกรีต": ["หัวเสา", "คอนกรีต", "คอ."],
         "คอนเหล็ก": ["หัวเสา", "คอนเหล็ก", "คอ."],
         "Spacer แขวน": ["spacer", "แขวน", "สเปเซอร์"],
+        "DE": ["de", "dead"],
+        "SP": ["sp", "spacer"],
+        "CCB": ["ccb"],
+        "CTB": ["ctb"],
+        "ป.ปลา": ["ปลา", "ป.ปลา"],
+        "สระอา": ["สระอา"],
         "อื่นๆ": ["หัวเสา", "ยึด"]
       },
       cable: {

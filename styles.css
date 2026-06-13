@@ -1037,3 +1037,103 @@ input:focus,
   padding: 10px 12px;
   font-size: 13px;
 }
+
+.required-tag {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.survey-mode-hint {
+  font-size: 12px;
+  color: var(--primary-soft);
+  margin-bottom: 10px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(113, 232, 255, 0.08);
+  border: 1px solid rgba(113, 232, 255, 0.15);
+}
+
+.curve-row {
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 12px;
+}
+
+.curve-btn {
+  border: 1px solid rgba(143, 107, 255, 0.35);
+  background: rgba(143, 107, 255, 0.12);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 11px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.curve-btn:disabled {
+  opacity: 0.4;
+}
+
+.survey-distance-legs {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.distance-leg {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
+.distance-leg.is-curve {
+  border-color: rgba(143, 107, 255, 0.35);
+  background: rgba(143, 107, 255, 0.1);
+}
+
+.distance-leg strong {
+  font-family: "Orbitron", sans-serif;
+  color: var(--primary-soft);
+}
+
+.survey-pin-wrap {
+  background: transparent;
+  border: none;
+}
+
+.survey-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #03111f;
+  background: linear-gradient(135deg, var(--gold), var(--primary-soft));
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.survey-pin.is-start {
+  background: linear-gradient(135deg, #ffd86a, #ff9f43);
+}
+
+.survey-pin.is-curve-in,
+.survey-pin.is-curve-out {
+  background: linear-gradient(135deg, #b197fc, #8f6bff);
+  color: #fff;
+}
+
+.survey-pin.is-auto {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
+  background: rgba(113, 232, 255, 0.85);
+}

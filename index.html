@@ -140,23 +140,32 @@
           <div id="surveyMap" class="survey-map"></div>
 
           <div id="surveySpanBar" class="survey-span-bar">
-            <span class="survey-span-label">Span</span>
+            <span class="survey-span-label">Span <span class="required-tag">*บังคับ</span></span>
             <button type="button" class="span-btn" data-span="15">15 ม.</button>
-            <button type="button" class="span-btn active" data-span="20">20 ม.</button>
+            <button type="button" class="span-btn" data-span="20">20 ม.</button>
             <button type="button" class="span-btn" data-span="40">40 ม.</button>
             <button type="button" class="span-btn" data-span="80">80 ม.</button>
           </div>
 
+          <div id="surveyModeHint" class="survey-mode-hint">เลือก Span ก่อน แล้วปักจุดเริ่มจากเสาระบบจำหน่ายเดิม</div>
+
           <div class="survey-actions">
             <button id="surveyGpsBtn" class="ghost-btn" type="button">ใช้ GPS</button>
-            <button id="surveyStartBtn" class="ghost-btn" type="button">ปักจุดเริ่ม</button>
-            <button id="surveyAddPoleBtn" class="primary-btn survey-action-main" type="button">เพิ่มเสาถัดไป</button>
+            <button id="surveyStartBtn" class="ghost-btn" type="button" disabled>ปักจุดเริ่ม</button>
+            <button id="surveyAddPointBtn" class="ghost-btn" type="button" disabled>ปักหมุดถัดไป</button>
+          </div>
+
+          <div class="survey-actions curve-row">
+            <button id="surveyCurveInBtn" class="curve-btn" type="button" disabled>เข้าโค้ง</button>
+            <button id="surveyCurveOutBtn" class="curve-btn" type="button" disabled>ออกโค้ง</button>
           </div>
 
           <div id="surveySummary" class="survey-summary"></div>
+          <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
 
           <div class="survey-actions secondary">
-            <button id="surveyGenerateBtn" class="primary-btn" type="button">สร้างรายการประมาณการ</button>
+            <button id="surveyCompleteBtn" class="primary-btn" type="button" disabled>สำรวจเสร็จสิ้น</button>
+            <button id="surveyGenerateBtn" class="primary-btn hidden" type="button" disabled>สร้างรายการประมาณการ</button>
             <button id="surveyResetBtn" class="ghost-btn" type="button">เริ่มใหม่</button>
           </div>
         </div>
@@ -164,12 +173,12 @@
         <div class="panel survey-side-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-title">รายละเอียดเสา</h2>
-              <p class="section-note">เลือกขนาดเสา หัวเสา และสายไฟแต่ละจุด</p>
+              <h2 id="surveySideTitle" class="section-title">คู่มือสำรวจ</h2>
+              <p id="surveySideNote" class="section-note">ปักหมุดควบคุม 4–5 จุด ระบบจะคำนวณเสาตาม Span ให้อัตโนมัติ</p>
             </div>
           </div>
           <div id="surveyPoleList" class="survey-pole-list">
-            <div class="survey-empty">ปักจุดเริ่มจากเสาระบบจำหน่าย แล้วเลือก span เพื่อวางเสาถัดไป</div>
+            <div class="survey-empty">1) เลือก Span → 2) ปักจุดเริ่ม + ระบุหัวเสา → 3) ปักหมุดถัดไปหรือเข้า/ออกโค้ง</div>
           </div>
         </div>
       </div>
