@@ -5,6 +5,7 @@
     dataStore: [],
     budgets: [],
     historyCache: null,
+    historyRowCache: {},
     currentJobId: null,
     currentFileUrl: "",
     tempFileList: [],
@@ -867,6 +868,8 @@
   }
 
   function renderHistory(data) {
+    state.historyRowCache = {};
+
     if (!data.length) {
       els.histContent.innerHTML = `
         <div class="empty-state">
@@ -880,6 +883,12 @@
 
     els.histContent.innerHTML = data.map(row => {
       const dateDisplay = safeDateDisplay(row[1]);
+      const projectId = String(row[0] || "");
+      state.historyRowCache[projectId] = {
+        name: String(row[2] || ""),
+        imgStr: String(row[4] || ""),
+        surveyMetaStr: String(row[5] || "")
+      };
       return `
         <div class="history-card">
           <div class="history-top">
@@ -887,16 +896,16 @@
               <h3 class="history-name">${escapeHtml(row[2])}</h3>
               <div class="history-meta">
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
-                <span class="type-chip">ID ${escapeHtml(String(row[0]))}</span>
+                <span class="type-chip">ID ${escapeHtml(projectId)}</span>
               </div>
               <div style="margin-top:10px;font-family:'Orbitron',sans-serif;font-size:19px;color:#ff9caa;">
                 ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
               </div>
             </div>
             <div class="history-actions">
-              <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(row[0])}', '${escapeJs(row[2])}', '${escapeJs(row[4] || "")}', '${escapeJs(row[5] || "")}')">ดู</button>
-              <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(row[0])}', '${escapeJs(row[2])}', '${escapeJs(row[4] || "")}')">แก้ไข</button>
-              <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(row[0])}')">ลบ</button>
+              <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>
+              <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>
+              <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
             </div>
           </div>
         </div>
@@ -913,7 +922,12 @@
     });
   }
 
-  async function viewDetail(id, name, imgStr, surveyMetaStr) {
+  async function viewDetail(id) {
+    const cached = state.historyRowCache[id] || {};
+    const name = cached.name || id;
+    const imgStr = cached.imgStr || "";
+    const surveyMetaStr = cached.surveyMetaStr || "";
+
     Swal.fire({
       title: "กำลังโหลด...",
       allowOutsideClick: false,
@@ -1030,7 +1044,11 @@
     XLSX.writeFile(wb, `รายการพัสดุ_${name}.xlsx`);
   }
 
-  async function askEdit(id, name, img) {
+  async function askEdit(id) {
+    const cached = state.historyRowCache[id] || {};
+    const name = cached.name || "";
+    const img = cached.imgStr || "";
+
     const { value: password } = await Swal.fire({
       title: "รหัสผ่านเพื่อแก้ไข",
       input: "password",
