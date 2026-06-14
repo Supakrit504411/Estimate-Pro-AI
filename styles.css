@@ -809,6 +809,7 @@ input:focus,
   font-size: 12px;
 }
 
+.media-fallback.is-visible,
 .media-preview-wrap.has-fallback .media-fallback {
   display: block;
 }

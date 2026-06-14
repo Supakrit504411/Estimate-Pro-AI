@@ -74,6 +74,10 @@
 
     lineSearch(query) {
       return request(config.endpoints.lineSearch, { query });
+    },
+
+    getDriveFilePreviews(fileIds) {
+      return request(config.endpoints.driveFilePreviews, { fileIds });
     }
   };
 })();

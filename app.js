@@ -936,7 +936,9 @@
 
     try {
       const details = await window.ApiService.getProjectDetails(id);
-      const html = buildDetailHtml(details, imgStr, name, surveyMetaStr);
+      const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
+      const previews = await fetchDrivePreviews(urls);
+      const html = buildDetailHtml(details, imgStr, name, surveyMetaStr, previews);
       Swal.fire({
         title: name,
         html,
@@ -968,11 +970,69 @@
     return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
   }
 
-  function buildMediaItemHtml(url, label) {
+  async function fetchDrivePreviews(urls) {
+    const fileIds = [...new Set(
+      (urls || []).map(extractDriveFileId).filter(Boolean)
+    )];
+    if (!fileIds.length || !window.ApiService.getDriveFilePreviews) {
+      return {};
+    }
+
+    try {
+      const previews = await window.ApiService.getDriveFilePreviews(fileIds);
+      return previews && typeof previews === "object" ? previews : {};
+    } catch (error) {
+      console.warn("drive previews failed", error);
+      return {};
+    }
+  }
+
+  function buildMediaItemHtml(url, label, preview) {
     const fileId = extractDriveFileId(url);
-    const viewUrl = normalizeDriveViewUrl(url);
+    const viewUrl = (preview && preview.viewUrl) || normalizeDriveViewUrl(url);
     const safeLabel = escapeHtml(label);
     const safeViewUrl = escapeHtml(viewUrl);
+    const fileName = preview && preview.name ? String(preview.name) : "";
+    const isSurveyMap = /Survey_Map/i.test(fileName) || /Survey_Map/i.test(label);
+
+    if (preview && preview.base64 && preview.mime && preview.mime.indexOf("image/") === 0) {
+      const dataUrl = `data:${preview.mime};base64,${preview.base64}`;
+      return `
+        <div class="media-item">
+          <p class="media-item-label">${isSurveyMap ? "แผนที่สำรวจ (ปักหมุด)" : safeLabel}</p>
+          <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-preview-link">
+            <img class="media-preview-img" src="${dataUrl}" alt="${safeLabel}">
+          </a>
+          <div class="media-item-actions">
+            <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิดแยกใน Drive</a>
+          </div>
+        </div>
+      `;
+    }
+
+    if (preview && preview.mime === "application/pdf") {
+      return `
+        <div class="media-item">
+          <p class="media-item-label">${safeLabel}</p>
+          <div class="media-fallback is-visible">
+            <p>ไฟล์ PDF — แตะเพื่อเปิดดู</p>
+            <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิด PDF ใน Google Drive</a>
+          </div>
+        </div>
+      `;
+    }
+
+    if (preview && preview.tooLarge) {
+      return `
+        <div class="media-item">
+          <p class="media-item-label">${safeLabel}</p>
+          <div class="media-fallback is-visible">
+            <p>ไฟล์มีขนาดใหญ่ — เปิดดูใน Google Drive</p>
+            <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิดใน Google Drive</a>
+          </div>
+        </div>
+      `;
+    }
 
     if (!fileId) {
       return `
@@ -1011,7 +1071,7 @@
     `;
   }
 
-  function buildDetailHtml(details, imgStr, name, surveyMetaStr) {
+  function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews) {
     let surveyMetaHtml = "";
     if (surveyMetaStr) {
       try {
@@ -1045,9 +1105,12 @@
       mediaHtml += "<p>ไม่มีไฟล์แนบ</p>";
     } else {
       sortedUrls.forEach((url, index) => {
-        const isSurveyMap = /Survey_Map/i.test(url);
+        const fileId = extractDriveFileId(url);
+        const preview = fileId && previews ? previews[fileId] : null;
+        const fileName = preview && preview.name ? String(preview.name) : "";
+        const isSurveyMap = /Survey_Map/i.test(url) || /Survey_Map/i.test(fileName);
         const label = isSurveyMap ? "แผนที่สำรวจ (ปักหมุด)" : `ไฟล์ที่ ${index + 1}`;
-        mediaHtml += buildMediaItemHtml(url, label);
+        mediaHtml += buildMediaItemHtml(url, label, preview);
       });
     }
 

@@ -10,7 +10,8 @@ window.APP_CONFIG = {
     deleteProject: "delete-project",
     health: "health",
     lineIntake: "line-intake",
-    lineSearch: "line-search"
+    lineSearch: "line-search",
+    driveFilePreviews: "drive-file-previews"
   },
   lineBridgePath: "/api/line-webhook",
 
