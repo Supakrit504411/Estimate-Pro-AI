@@ -949,6 +949,68 @@
     }
   }
 
+  function extractDriveFileId(url) {
+    const match = String(url || "").match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : null;
+  }
+
+  function normalizeDriveViewUrl(url) {
+    const fileId = extractDriveFileId(url);
+    if (!fileId) return String(url || "");
+    return `https://drive.google.com/file/d/${fileId}/view`;
+  }
+
+  function buildDriveThumbnailUrl(fileId) {
+    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`;
+  }
+
+  function buildDriveDirectImageUrl(fileId) {
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+  }
+
+  function buildMediaItemHtml(url, label) {
+    const fileId = extractDriveFileId(url);
+    const viewUrl = normalizeDriveViewUrl(url);
+    const safeLabel = escapeHtml(label);
+    const safeViewUrl = escapeHtml(viewUrl);
+
+    if (!fileId) {
+      return `
+        <div class="media-item">
+          <p class="media-item-label">${safeLabel}</p>
+          <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิดไฟล์</a>
+        </div>
+      `;
+    }
+
+    const thumbUrl = escapeHtml(buildDriveThumbnailUrl(fileId));
+    const directUrl = escapeHtml(buildDriveDirectImageUrl(fileId));
+
+    return `
+      <div class="media-item">
+        <p class="media-item-label">${safeLabel}</p>
+        <div class="media-preview-wrap">
+          <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-preview-link">
+            <img
+              class="media-preview-img"
+              src="${thumbUrl}"
+              alt="${safeLabel}"
+              loading="lazy"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${directUrl}';}else{this.closest('.media-preview-wrap').classList.add('has-fallback');}"
+            >
+          </a>
+          <div class="media-fallback">
+            <p>ไม่สามารถแสดงตัวอย่างบนอุปกรณ์นี้ได้</p>
+            <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิดใน Google Drive</a>
+          </div>
+        </div>
+        <div class="media-item-actions">
+          <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="media-open-link">เปิดแยกใน Drive</a>
+        </div>
+      </div>
+    `;
+  }
+
   function buildDetailHtml(details, imgStr, name, surveyMetaStr) {
     let surveyMetaHtml = "";
     if (surveyMetaStr) {
@@ -983,18 +1045,9 @@
       mediaHtml += "<p>ไม่มีไฟล์แนบ</p>";
     } else {
       sortedUrls.forEach((url, index) => {
-        const preview = url.replace("/view", "/preview").replace("thumbnail?sz=w600", "preview");
-        const fullUrl = url.replace("thumbnail?sz=w600", "view");
         const isSurveyMap = /Survey_Map/i.test(url);
-        mediaHtml += `
-          <div class="media-item">
-            <p style="font-size:10px;">${isSurveyMap ? "แผนที่สำรวจ (ปักหมุด)" : `ไฟล์ที่ ${index + 1}`}</p>
-            <iframe src="${preview}" width="100%" height="300" style="border:none;border-radius:8px;"></iframe>
-            <div style="text-align:right;">
-              <a href="${fullUrl}" target="_blank" style="font-size:10px;">เปิดแยก</a>
-            </div>
-          </div>
-        `;
+        const label = isSurveyMap ? "แผนที่สำรวจ (ปักหมุด)" : `ไฟล์ที่ ${index + 1}`;
+        mediaHtml += buildMediaItemHtml(url, label);
       });
     }
 
