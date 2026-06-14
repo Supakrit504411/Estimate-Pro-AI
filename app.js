@@ -1183,6 +1183,30 @@
     getDataStore: () => state.dataStore,
     getBudgets: () => state.budgets,
     getProjectName: () => els.pjName.value.trim(),
+    setProjectName: name => {
+      els.pjName.value = String(name || "").trim();
+      checkInput();
+    },
+    addProjectFiles: async (files, source = "survey") => {
+      const list = Array.from(files || []);
+      const indices = [];
+      for (const file of list) {
+        const base64 = await readFileAsBase64(file);
+        const entry = { base64, type: file.type, name: file.name, source };
+        state.tempFileList.push(entry);
+        indices.push(state.tempFileList.length - 1);
+      }
+      return indices;
+    },
+    removeProjectFileAt: index => {
+      if (index >= 0 && index < state.tempFileList.length) {
+        state.tempFileList.splice(index, 1);
+      }
+    },
+    clearSurveyFiles: () => {
+      state.tempFileList = state.tempFileList.filter(file => file.source !== "survey");
+    },
+    getProjectFileCount: () => state.tempFileList.length,
     addItemWithLabor: (budgetIndex, item, qty) => hideAndAsk(budgetIndex, item, qty),
     switchToCreateTab: () => switchTab(1),
     render

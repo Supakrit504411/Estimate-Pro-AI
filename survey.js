@@ -12,11 +12,15 @@
     placeMode: null,
     pendingCurveSpan: null,
     phase: "surveying",
+    sessionActive: false,
     mapReady: false,
     routedPaths: [],
     routedLegs: [],
     routeCache: {},
     isRebuilding: false,
+    history: [],
+    historyIndex: -1,
+    attachFiles: [],
     defaults: {
       straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" },
       curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" }
@@ -37,12 +41,18 @@
   function cacheElements() {
     els.mapEl = document.getElementById("surveyMap");
     els.poleList = document.getElementById("surveyPoleList");
-    els.spanBar = document.getElementById("surveySpanBar");
+    els.prePanel = document.getElementById("surveyPrePanel");
+    els.mapStage = document.getElementById("surveyMapStage");
+    els.sidePanel = document.getElementById("surveySidePanel");
+    els.layout = document.querySelector(".survey-layout");
     els.summary = document.getElementById("surveySummary");
     els.distanceLegs = document.getElementById("surveyDistanceLegs");
     els.modeHint = document.getElementById("surveyModeHint");
     els.sideTitle = document.getElementById("surveySideTitle");
     els.sideNote = document.getElementById("surveySideNote");
+    els.beginBtn = document.getElementById("surveyBeginBtn");
+    els.backBtn = document.getElementById("surveyBackBtn");
+    els.forwardBtn = document.getElementById("surveyForwardBtn");
     els.gpsBtn = document.getElementById("surveyGpsBtn");
     els.startBtn = document.getElementById("surveyStartBtn");
     els.addPointBtn = document.getElementById("surveyAddPointBtn");
@@ -52,13 +62,22 @@
     els.completeBtn = document.getElementById("surveyCompleteBtn");
     els.generateBtn = document.getElementById("surveyGenerateBtn");
     els.resetBtn = document.getElementById("surveyResetBtn");
+    els.specActions = document.getElementById("surveySpecActions");
     els.defaultsPanel = document.getElementById("surveyDefaultsPanel");
     els.defaultSelects = document.querySelectorAll("[data-default-group]");
+    els.fileInput = document.getElementById("surveyFileInput");
+    els.attachBtn = document.getElementById("surveyAttachBtn");
+    els.attachBtnMap = document.getElementById("surveyAttachBtnMap");
+    els.attachList = document.getElementById("surveyAttachList");
+    els.toolButtons = document.querySelectorAll("[data-survey-tool]");
   }
 
   function bindEvents() {
     if (!els.mapEl) return;
 
+    if (els.beginBtn) els.beginBtn.addEventListener("click", beginSurveySession);
+    if (els.backBtn) els.backBtn.addEventListener("click", undoSurvey);
+    if (els.forwardBtn) els.forwardBtn.addEventListener("click", redoSurvey);
     els.gpsBtn.addEventListener("click", () => guardSpan(() => useCurrentLocation()));
     els.startBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("start")));
     els.addPointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("control")));
@@ -69,17 +88,9 @@
     els.generateBtn.addEventListener("click", generateEstimate);
     els.resetBtn.addEventListener("click", resetSurvey);
 
-    if (els.spanBar) {
-      els.spanBar.addEventListener("click", event => {
-        const btn = event.target.closest("[data-span]");
-        if (!btn || state.phase !== "surveying") return;
-        state.selectedSpan = Number(btn.dataset.span);
-        els.spanBar.querySelectorAll("[data-span]").forEach(node => {
-          node.classList.toggle("active", node === btn);
-        });
-        updateUiState();
-      });
-    }
+    if (els.attachBtn) els.attachBtn.addEventListener("click", () => els.fileInput?.click());
+    if (els.attachBtnMap) els.attachBtnMap.addEventListener("click", () => els.fileInput?.click());
+    if (els.fileInput) els.fileInput.addEventListener("change", handleSurveyFileSelect);
 
     if (els.poleList) {
       els.poleList.addEventListener("change", handlePoleListChange);
@@ -90,6 +101,254 @@
         select.addEventListener("change", handleDefaultSelectChange);
       });
     }
+  }
+
+  async function handleSurveyFileSelect(event) {
+    const input = event.target;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+
+    if (!window.AppCore || !window.AppCore.addProjectFiles) {
+      Swal.fire("ระบบไม่พร้อม", "ไม่สามารถแนบไฟล์ได้", "error");
+      input.value = "";
+      return;
+    }
+
+    try {
+      const indices = await window.AppCore.addProjectFiles(files);
+      files.forEach((file, i) => {
+        state.attachFiles.push({
+          name: file.name,
+          type: file.type,
+          listIndex: indices[i]
+        });
+      });
+      renderAttachList();
+      updateModeHint();
+    } catch (error) {
+      Swal.fire("แนบไฟล์ไม่สำเร็จ", error.message || "ลองใหม่อีกครั้ง", "error");
+    }
+
+    input.value = "";
+  }
+
+  function renderAttachList() {
+    if (!els.attachList) return;
+
+    if (!state.attachFiles.length) {
+      els.attachList.innerHTML = "";
+      return;
+    }
+
+    els.attachList.innerHTML = state.attachFiles.map((file, index) => `
+      <div class="survey-attach-item">
+        <span>${escapeHtml(file.name)}</span>
+        <button type="button" class="ghost-btn" data-remove-attach="${index}">ลบ</button>
+      </div>
+    `).join("");
+
+    els.attachList.querySelectorAll("[data-remove-attach]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.removeAttach);
+        const file = state.attachFiles[idx];
+        if (file && window.AppCore && window.AppCore.removeProjectFileAt) {
+          window.AppCore.removeProjectFileAt(file.listIndex);
+          state.attachFiles.forEach(item => {
+            if (item.listIndex > file.listIndex) item.listIndex -= 1;
+          });
+        }
+        state.attachFiles.splice(idx, 1);
+        renderAttachList();
+      });
+    });
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  async function pickSpanOnStart() {
+    const presets = surveyConfig.spanPresets || [15, 20, 40, 80];
+    const options = {};
+    presets.forEach(span => {
+      options[span] = `${span} เมตร`;
+    });
+
+    const { value, isDismissed } = await Swal.fire({
+      title: "เลือก Span",
+      text: "ระยะ Span ระหว่างเสา (บังคับ)",
+      input: "select",
+      inputOptions: options,
+      inputValue: String(presets[0]),
+      showCancelButton: true,
+      confirmButtonText: "เริ่มสำรวจ",
+      cancelButtonText: "ยกเลิก"
+    });
+
+    if (isDismissed || !value) return null;
+    return Number(value);
+  }
+
+  async function promptProjectNameIfNeeded() {
+    if (window.AppCore && window.AppCore.getProjectName()) return true;
+
+    const { value, isDismissed } = await Swal.fire({
+      title: "ชื่อโครงการ",
+      text: "กรอกชื่อโครงการก่อนเริ่มสำรวจ (บันทึกร่วมกับแท็บสร้างงานใหม่)",
+      input: "text",
+      inputPlaceholder: "ระบุชื่อโครงการ / สถานที่ / งานที่ต้องการประมาณ",
+      showCancelButton: true,
+      confirmButtonText: "ยืนยัน",
+      inputValidator: val => {
+        if (!val || !val.trim()) return "กรุณากรอกชื่อโครงการ";
+        return undefined;
+      }
+    });
+
+    if (isDismissed || !value) return false;
+    window.AppCore.setProjectName(value.trim());
+    return true;
+  }
+
+  async function beginSurveySession() {
+    const span = await pickSpanOnStart();
+    if (!span) return;
+
+    const ready = await promptProjectNameIfNeeded();
+    if (!ready) return;
+
+    state.selectedSpan = span;
+    state.sessionActive = true;
+    state.placeMode = null;
+    resetHistory();
+
+    if (els.prePanel) els.prePanel.classList.add("hidden");
+    if (els.mapStage) els.mapStage.classList.remove("hidden");
+    if (els.sidePanel) els.sidePanel.classList.add("hidden");
+    if (els.layout) els.layout.classList.remove("is-spec-mode");
+
+    if (!state.mapReady) initMap();
+    setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+    }, 120);
+
+    pushHistory();
+    renderAll();
+    updateModeHint();
+  }
+
+  function createSnapshot() {
+    return {
+      controlPoints: JSON.parse(JSON.stringify(state.controlPoints)),
+      poles: JSON.parse(JSON.stringify(state.poles)),
+      placeMode: state.placeMode,
+      pendingCurveSpan: state.pendingCurveSpan,
+      phase: state.phase
+    };
+  }
+
+  function resetHistory() {
+    state.history = [];
+    state.historyIndex = -1;
+  }
+
+  function pushHistory() {
+    const snap = createSnapshot();
+    if (state.historyIndex < state.history.length - 1) {
+      state.history = state.history.slice(0, state.historyIndex + 1);
+    }
+    state.history.push(snap);
+    if (state.history.length > 40) {
+      state.history.shift();
+    } else {
+      state.historyIndex += 1;
+    }
+    updateHistoryButtons();
+  }
+
+  function restoreSnapshot(snap) {
+    state.controlPoints = JSON.parse(JSON.stringify(snap.controlPoints));
+    state.poles = JSON.parse(JSON.stringify(snap.poles));
+    state.placeMode = snap.placeMode;
+    state.pendingCurveSpan = snap.pendingCurveSpan;
+    state.phase = snap.phase || "surveying";
+    state.routeCache = {};
+    renderAll();
+    updateModeHint();
+    updateToolbarActiveState();
+  }
+
+  function undoSurvey() {
+    if (state.historyIndex <= 0) return;
+    state.historyIndex -= 1;
+    restoreSnapshot(state.history[state.historyIndex]);
+  }
+
+  function redoSurvey() {
+    if (state.historyIndex >= state.history.length - 1) return;
+    state.historyIndex += 1;
+    restoreSnapshot(state.history[state.historyIndex]);
+  }
+
+  function updateHistoryButtons() {
+    if (els.backBtn) els.backBtn.disabled = state.historyIndex <= 0;
+    if (els.forwardBtn) els.forwardBtn.disabled = state.historyIndex >= state.history.length - 1;
+  }
+
+  function updateToolbarActiveState() {
+    if (!els.toolButtons) return;
+    els.toolButtons.forEach(btn => {
+      const tool = btn.dataset.surveyTool;
+      if (!tool || tool === "back" || tool === "forward" || tool === "complete" || tool === "reset" || tool === "attach") {
+        btn.classList.remove("is-active");
+        return;
+      }
+      btn.classList.toggle("is-active", state.placeMode === tool);
+    });
+  }
+
+  function updateModeHint() {
+    if (!els.modeHint) return;
+
+    if (!state.sessionActive) {
+      els.modeHint.textContent = "กดเริ่มสำรวจเพื่อเลือก Span และเข้าโหมดแผนที่";
+      return;
+    }
+
+    if (state.isRebuilding) {
+      els.modeHint.textContent = "กำลังคำนวณเสาตามเส้นถนนบนแผนที่...";
+      return;
+    }
+
+    if (state.phase === "spec") {
+      els.modeHint.textContent = "กรอกรายละเอียดแต่ละหมุดด้านล่าง / ด้านข้าง";
+      return;
+    }
+
+    const attachNote = state.attachFiles.length
+      ? ` | แนบไฟล์ ${state.attachFiles.length} รายการ`
+      : "";
+
+    if (!state.placeMode) {
+      els.modeHint.textContent = `Span ${state.selectedSpan} ม. — เลือกเครื่องมือด้านขวาเพื่อปักหมุด${attachNote}`;
+      updateToolbarActiveState();
+      return;
+    }
+
+    const hints = {
+      start: "แตะแผนที่ปักหมุด 0 (เสา/จุดต่อระบบจำหน่ายเดิม)",
+      control: `แตะแผนที่ปักหมุดถัดไป — วางเสาตามถนน (Span ${state.selectedSpan} ม.)`,
+      curve_in: `แตะแผนที่ปักหมุดเข้าโค้ง (Span โค้ง ${state.pendingCurveSpan || 15} ม.)`,
+      curve_out: "แตะแผนที่ปักหมุดออกโค้ง",
+      curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง"
+    };
+
+    els.modeHint.textContent = (hints[state.placeMode] || "") + attachNote;
+    updateToolbarActiveState();
   }
 
   function initDefaultMaterialSelects() {
@@ -138,15 +397,18 @@
   }
 
   function onTabOpen() {
-    if (!state.mapReady) initMap();
-    else state.map.invalidateSize();
+    if (state.sessionActive) {
+      if (!state.mapReady) initMap();
+      else state.map.invalidateSize();
+    }
     renderAll();
   }
 
   function initMap() {
     if (!window.L || !els.mapEl) return;
     const center = surveyConfig.defaultCenter || [17.4081, 104.7762];
-    state.map = L.map(els.mapEl, { zoomControl: true }).setView(center, surveyConfig.defaultZoom || 15);
+    state.map = L.map(els.mapEl, { zoomControl: false }).setView(center, surveyConfig.defaultZoom || 15);
+    L.control.zoom({ position: "bottomleft" }).addTo(state.map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap"
     }).addTo(state.map);
@@ -156,17 +418,16 @@
 
   function ensureProjectReady() {
     if (!window.AppCore || !window.AppCore.getProjectName()) {
-      Swal.fire("กรุณากรอกชื่อโครงการก่อน", "ไปที่แท็บสร้างงานใหม่เพื่อระบุชื่อโครงการ", "info");
-      return false;
+      return promptProjectNameIfNeeded();
     }
-    return true;
+    return Promise.resolve(true);
   }
 
   function ensureSpanSelected() {
     if (!state.selectedSpan) {
       Swal.fire({
         title: "เลือก Span ก่อน",
-        text: "กรุณาเลือกระยะ Span (15/20/40/80 ม.) ก่อนเริ่มสำรวจ",
+        text: "กรุณากดเริ่มสำรวจและเลือก Span ก่อนปักหมุด",
         icon: "warning",
         confirmButtonText: "เข้าใจแล้ว"
       });
@@ -237,7 +498,8 @@
   }
 
   async function beginCurveIn() {
-    if (!ensureProjectReady()) return;
+    const ready = await ensureProjectReady();
+    if (!ready) return;
     if (!state.controlPoints.length) {
       Swal.fire("ยังไม่มีจุดเริ่ม", "ปักหมุด 0 ก่อนเข้าโค้ง", "info");
       return;
@@ -251,11 +513,12 @@
     if (!curveSpan) return;
 
     state.pendingCurveSpan = curveSpan;
-    beginPlaceMode("curve_in", `แตะแผนที่ปักหมุด "เข้าโค้ง" (Span โค้ง ${curveSpan} ม.)`);
+    beginPlaceMode("curve_in");
   }
 
-  function beginPlaceMode(mode, customHint) {
-    if (!ensureProjectReady()) return;
+  async function beginPlaceMode(mode) {
+    const ready = await ensureProjectReady();
+    if (!ready) return;
 
     if (mode === "control" && !state.controlPoints.length) {
       Swal.fire("ยังไม่มีหมุด 0", "ปักจุดเริ่มก่อน", "info");
@@ -271,7 +534,6 @@
         Swal.fire("ออกโค้งแล้ว", "ใช้ปักหมุดถัดไปสำหรับช่วงปกติ", "info");
         return;
       }
-      customHint = "แตะแผนที่ปักจุดบนเส้นโค้ง (ช่วยให้เสาตามสภาพหน้างานจริง)";
     }
 
     if (mode === "curve_out") {
@@ -283,7 +545,6 @@
         Swal.fire("มีจุดออกโค้งแล้ว", "ใช้ปักหมุดถัดไปสำหรับจุดสิ้นสุด", "info");
         return;
       }
-      customHint = 'แตะแผนที่ปักหมุด "ออกโค้ง"';
     }
 
     if (mode === "start" && state.controlPoints.length) {
@@ -292,21 +553,7 @@
     }
 
     state.placeMode = mode;
-    const hints = {
-      start: "แตะแผนที่ปักหมุด 0 (เสา/จุดต่อระบบจำหน่ายเดิม)",
-      control: `แตะแผนที่ปักหมุดถัดไป — ระบบวางเสาตามถนนบนแผนที่ (Span ${state.selectedSpan} ม.)`,
-      curve_in: "แตะแผนที่ปักหมุดเข้าโค้ง",
-      curve_out: "แตะแผนที่ปักหมุดออกโค้ง",
-      curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง"
-    };
-
-    if (els.modeHint) els.modeHint.textContent = customHint || hints[mode] || "";
-    Swal.fire({
-      title: customHint || hints[mode],
-      icon: "info",
-      timer: 2600,
-      showConfirmButton: false
-    });
+    updateModeHint();
   }
 
   async function handleMapClick(event) {
@@ -343,7 +590,9 @@
       state.placeMode = null;
     }
 
-    rebuildPolesFromControls();
+    await rebuildPolesFromControls();
+    pushHistory();
+    updateModeHint();
   }
 
   async function handleControlMarkerClick(pole) {
@@ -359,6 +608,7 @@
     const converted = await askConvertToCurveIn(ctrl);
     if (converted) {
       markPoleAsCurveIn(ctrl);
+      pushHistory();
       renderAll();
       updateUiState();
     }
@@ -472,8 +722,7 @@
   }
 
   function updateRebuildHint() {
-    if (!els.modeHint || !state.isRebuilding) return;
-    els.modeHint.textContent = "กำลังคำนวณเสาตามเส้นถนนบนแผนที่...";
+    updateModeHint();
   }
 
   function routeCacheKey(points) {
@@ -742,7 +991,8 @@
   }
 
   async function useCurrentLocation() {
-    if (!ensureProjectReady()) return;
+    const ready = await ensureProjectReady();
+    if (!ready) return;
     if (!navigator.geolocation) {
       Swal.fire("ไม่รองรับ GPS", "อุปกรณ์นี้ไม่สามารถดึงตำแหน่งได้", "error");
       return;
@@ -770,7 +1020,10 @@
           headType
         }];
         state.placeMode = null;
-        rebuildPolesFromControls();
+        rebuildPolesFromControls().then(() => {
+          pushHistory();
+          updateModeHint();
+        });
       },
       error => Swal.fire("GPS ไม่สำเร็จ", error.message || "ไม่สามารถดึงตำแหน่งได้", "error"),
       { enableHighAccuracy: true, timeout: 12000 }
@@ -795,6 +1048,16 @@
     state.phase = "spec";
     state.placeMode = null;
     const appliedCount = applyDefaultSpecs();
+
+    if (els.mapStage) els.mapStage.classList.add("is-spec");
+    if (els.sidePanel) els.sidePanel.classList.remove("hidden");
+    if (els.layout) els.layout.classList.add("is-spec-mode");
+    if (els.specActions) els.specActions.classList.remove("hidden");
+
+    setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+    }, 120);
+
     renderAll();
 
     const defaultHint = appliedCount > 0
@@ -820,31 +1083,25 @@
 
   function updateUiState() {
     const surveying = state.phase === "surveying";
+    const sessionActive = state.sessionActive;
     const hasStart = state.controlPoints.length > 0;
     const hasCurveIn = Boolean(getCurveInPoint());
     const hasCurveOut = Boolean(getCurveOutPoint());
     const inCurve = isInsideCurveZone();
-    const canComplete = hasStart && state.controlPoints.length >= 2;
+    const canComplete = sessionActive && hasStart && state.controlPoints.length >= 2;
 
-    if (els.startBtn) els.startBtn.disabled = !surveying || hasStart;
-    if (els.gpsBtn) els.gpsBtn.disabled = !surveying || hasStart;
-    if (els.addPointBtn) els.addPointBtn.disabled = !surveying || !hasStart || inCurve;
-    if (els.curveInBtn) els.curveInBtn.disabled = !surveying || !hasStart || hasCurveIn;
-    if (els.curveWaypointBtn) els.curveWaypointBtn.disabled = !surveying || !inCurve;
-    if (els.curveOutBtn) els.curveOutBtn.disabled = !surveying || !hasCurveIn || hasCurveOut;
-    if (els.completeBtn) els.completeBtn.disabled = !surveying || !canComplete;
+    if (els.startBtn) els.startBtn.disabled = !sessionActive || !surveying || hasStart;
+    if (els.gpsBtn) els.gpsBtn.disabled = !sessionActive || !surveying || hasStart;
+    if (els.addPointBtn) els.addPointBtn.disabled = !sessionActive || !surveying || !hasStart || inCurve;
+    if (els.curveInBtn) els.curveInBtn.disabled = !sessionActive || !surveying || !hasStart || hasCurveIn;
+    if (els.curveWaypointBtn) els.curveWaypointBtn.disabled = !sessionActive || !surveying || !inCurve;
+    if (els.curveOutBtn) els.curveOutBtn.disabled = !sessionActive || !surveying || !hasCurveIn || hasCurveOut;
+    if (els.completeBtn) els.completeBtn.disabled = !canComplete || !surveying;
+    if (els.backBtn) els.backBtn.disabled = !sessionActive || state.historyIndex <= 0;
+    if (els.forwardBtn) els.forwardBtn.disabled = !sessionActive || state.historyIndex >= state.history.length - 1;
 
     if (els.generateBtn) {
-      els.generateBtn.classList.toggle("hidden", state.phase !== "spec");
       els.generateBtn.disabled = state.phase !== "spec" || !allSpecsFilled();
-    }
-
-    if (surveying && !state.selectedSpan && els.modeHint) {
-      els.modeHint.textContent = "⚠️ เลือก Span ก่อน (บังคับ) แล้วปักหมุด 0";
-    }
-
-    if (els.defaultsPanel) {
-      els.defaultsPanel.classList.toggle("hidden", !surveying || !state.selectedSpan);
     }
 
     if (els.sideTitle) {
@@ -853,8 +1110,12 @@
     if (els.sideNote) {
       els.sideNote.textContent = state.phase === "spec"
         ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ. — แก้ไขเฉพาะหมุดที่ต้องการได้"
-        : "ตั้งค่า Default พัสดุได้หลังเลือก Span แล้วเริ่มปักหมุด";
+        : "ตั้งค่า Default / แนบรูปก่อนเริ่ม แล้วปักหมุดบนแผนที่";
     }
+
+    updateHistoryButtons();
+    updateToolbarActiveState();
+    updateModeHint();
   }
 
   function allSpecsFilled() {
@@ -910,7 +1171,9 @@
             ctrl.lat = pos.lat;
             ctrl.lng = pos.lng;
             state.routeCache = {};
-            rebuildPolesFromControls();
+            rebuildPolesFromControls().then(() => {
+              pushHistory();
+            });
           }
         });
       }
@@ -1042,10 +1305,9 @@
     }, 0);
 
     els.summary.innerHTML = `
-      <div class="survey-stat"><span>หมุดทั้งหมด</span><strong>${state.poles.length}</strong></div>
-      <div class="survey-stat"><span>หมุดควบคุม</span><strong>${state.controlPoints.length}</strong></div>
-      <div class="survey-stat"><span>ระยะรวม</span><strong>${Math.round(totalDist)} ม.</strong></div>
-      <div class="survey-stat"><span>Span หลัก</span><strong>${state.selectedSpan ? state.selectedSpan + " ม." : "ยังไม่เลือก"}</strong></div>
+      <span>ระยะรวม</span>
+      <strong>${Math.round(totalDist)} ม.</strong>
+      <span style="margin-top:6px;">หมุด ${state.poles.length} | Span ${state.selectedSpan || "-"} ม.</span>
     `;
   }
 
@@ -1187,18 +1449,32 @@
     state.placeMode = null;
     state.pendingCurveSpan = null;
     state.phase = "surveying";
+    state.sessionActive = false;
+    state.attachFiles = [];
     state.routedPaths = [];
     state.routedLegs = [];
     state.routeCache = {};
     state.isRebuilding = false;
+    resetHistory();
     state.markers.forEach(m => m.remove());
     state.markers = [];
     state.polylines.forEach(p => p.remove());
     state.polylines = [];
-    if (els.spanBar) {
-      els.spanBar.querySelectorAll("[data-span]").forEach(node => node.classList.remove("active"));
+
+    if (els.prePanel) els.prePanel.classList.remove("hidden");
+    if (els.mapStage) {
+      els.mapStage.classList.add("hidden");
+      els.mapStage.classList.remove("is-spec");
     }
+    if (els.sidePanel) els.sidePanel.classList.add("hidden");
+    if (els.layout) els.layout.classList.remove("is-spec-mode");
+    if (els.specActions) els.specActions.classList.add("hidden");
+
     resetDefaultMaterialSelects();
+    if (window.AppCore && window.AppCore.clearSurveyFiles) {
+      window.AppCore.clearSurveyFiles();
+    }
+    renderAttachList();
     renderAll();
   }
 

@@ -128,26 +128,16 @@
 
     <section id="view3" class="view hidden">
       <div class="survey-layout">
-        <div class="panel survey-panel">
+        <div id="surveyPrePanel" class="panel survey-pre-panel">
           <div class="section-head">
             <div>
               <h2 class="section-title">Field Survey</h2>
-              <p class="section-note">สำรวจ + ประมาณการ ครั้งเดียวจบหน้างาน</p>
+              <p class="section-note">ตั้งค่าล่วงหน้า แนบรูปหน้างาน แล้วเริ่มสำรวจบนแผนที่</p>
             </div>
             <span class="mini-tag">Span Map</span>
           </div>
 
-          <div id="surveyMap" class="survey-map"></div>
-
-          <div id="surveySpanBar" class="survey-span-bar">
-            <span class="survey-span-label">Span <span class="required-tag">*บังคับ</span></span>
-            <button type="button" class="span-btn" data-span="15">15 ม.</button>
-            <button type="button" class="span-btn" data-span="20">20 ม.</button>
-            <button type="button" class="span-btn" data-span="40">40 ม.</button>
-            <button type="button" class="span-btn" data-span="80">80 ม.</button>
-          </div>
-
-          <div id="surveyDefaultsPanel" class="survey-defaults-panel hidden">
+          <div id="surveyDefaultsPanel" class="survey-defaults-panel">
             <div class="survey-defaults-head">
               <span class="survey-defaults-title">ค่า Default พัสดุ</span>
               <span class="optional-tag">ไม่บังคับ</span>
@@ -187,31 +177,51 @@
             </div>
           </div>
 
-          <div id="surveyModeHint" class="survey-mode-hint">เลือก Span ก่อน แล้วปักจุดเริ่มจากเสาระบบจำหน่ายเดิม</div>
-
-          <div class="survey-actions">
-            <button id="surveyGpsBtn" class="ghost-btn" type="button">ใช้ GPS</button>
-            <button id="surveyStartBtn" class="ghost-btn" type="button" disabled>ปักจุดเริ่ม</button>
-            <button id="surveyAddPointBtn" class="ghost-btn" type="button" disabled>ปักหมุดถัดไป</button>
+          <div class="survey-attach-panel">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">รูป/ไฟล์หน้างาน</span>
+              <span class="optional-tag">ไม่บังคับ</span>
+            </div>
+            <p class="survey-defaults-note">แนบรูปหรือไฟล์หน้างาน — บันทึกเข้า Drive พร้อมโครงการ (คอลัมน์ E)</p>
+            <input type="file" id="surveyFileInput" accept="image/*,application/pdf" multiple hidden>
+            <button id="surveyAttachBtn" class="ghost-btn" type="button">แนบรูป/ไฟล์หน้างาน</button>
+            <div id="surveyAttachList" class="survey-attach-list"></div>
           </div>
 
-          <div class="survey-actions curve-row">
-            <button id="surveyCurveInBtn" class="curve-btn" type="button" disabled>เข้าโค้ง</button>
-            <button id="surveyCurveWaypointBtn" class="curve-btn" type="button" disabled>จุดบนโค้ง</button>
-            <button id="surveyCurveOutBtn" class="curve-btn" type="button" disabled>ออกโค้ง</button>
+          <button id="surveyBeginBtn" class="primary-btn survey-begin-btn" type="button">เริ่มสำรวจ</button>
+        </div>
+
+        <div id="surveyMapStage" class="survey-map-stage hidden">
+          <div class="survey-map-shell">
+            <div id="surveyMap" class="survey-map"></div>
+
+            <aside id="surveyToolbar" class="survey-toolbar">
+              <button id="surveyBackBtn" class="survey-tool-btn" type="button" data-survey-tool="back" title="ย้อนกลับ" disabled>↩</button>
+              <button id="surveyForwardBtn" class="survey-tool-btn" type="button" data-survey-tool="forward" title="เดินหน้า" disabled>↪</button>
+              <div class="survey-toolbar-divider"></div>
+              <button id="surveyGpsBtn" class="survey-tool-btn" type="button" data-survey-tool="gps">ใช้ GPS</button>
+              <button id="surveyStartBtn" class="survey-tool-btn" type="button" data-survey-tool="start" disabled>ปักจุดเริ่ม</button>
+              <button id="surveyAddPointBtn" class="survey-tool-btn" type="button" data-survey-tool="control" disabled>ปักหมุดถัดไป</button>
+              <button id="surveyCurveInBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_in" disabled>เข้าโค้ง</button>
+              <button id="surveyCurveWaypointBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_waypoint" disabled>จุดบนโค้ง</button>
+              <button id="surveyCurveOutBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_out" disabled>ออกโค้ง</button>
+              <div class="survey-toolbar-divider"></div>
+              <button id="surveyAttachBtnMap" class="survey-tool-btn" type="button" data-survey-tool="attach">แนบรูป</button>
+              <div id="surveySummary" class="survey-toolbar-stat"></div>
+              <button id="surveyCompleteBtn" class="survey-tool-btn is-primary" type="button" data-survey-tool="complete" disabled>สำรวจเสร็จ</button>
+              <button id="surveyResetBtn" class="survey-tool-btn is-muted" type="button" data-survey-tool="reset">เริ่มใหม่</button>
+            </aside>
+
+            <div id="surveyModeHint" class="survey-map-hint">เลือกเครื่องมือด้านขวาเพื่อปักหมุด</div>
           </div>
 
-          <div id="surveySummary" class="survey-summary"></div>
           <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
-
-          <div class="survey-actions secondary">
-            <button id="surveyCompleteBtn" class="primary-btn" type="button" disabled>สำรวจเสร็จสิ้น</button>
-            <button id="surveyGenerateBtn" class="primary-btn hidden" type="button" disabled>สร้างรายการประมาณการ</button>
-            <button id="surveyResetBtn" class="ghost-btn" type="button">เริ่มใหม่</button>
+          <div class="survey-actions secondary hidden" id="surveySpecActions">
+            <button id="surveyGenerateBtn" class="primary-btn" type="button" disabled>สร้างรายการประมาณการ</button>
           </div>
         </div>
 
-        <div class="panel survey-side-panel">
+        <div id="surveySidePanel" class="panel survey-side-panel hidden">
           <div class="section-head">
             <div>
               <h2 id="surveySideTitle" class="section-title">คู่มือสำรวจ</h2>
@@ -219,7 +229,7 @@
             </div>
           </div>
           <div id="surveyPoleList" class="survey-pole-list">
-            <div class="survey-empty">1) เลือก Span → 2) ปักจุดเริ่ม + ระบุหัวเสา → 3) ปักหมุดถัดไปหรือเข้า/ออกโค้ง</div>
+            <div class="survey-empty">กดเริ่มสำรวจ → เลือก Span → ปักหมุดบนแผนที่</div>
           </div>
         </div>
       </div>
