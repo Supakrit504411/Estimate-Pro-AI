@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -194,8 +195,9 @@
         <div id="surveyMapStage" class="survey-map-stage hidden">
           <div class="survey-map-shell">
             <div id="surveyMap" class="survey-map"></div>
+            <button id="surveyToolbarToggle" class="survey-toolbar-toggle" type="button" aria-expanded="false">เครื่องมือ ▾</button>
 
-            <aside id="surveyToolbar" class="survey-toolbar">
+            <aside id="surveyToolbar" class="survey-toolbar is-collapsed-mobile">
               <button id="surveyBackBtn" class="survey-tool-btn" type="button" data-survey-tool="back" title="ย้อนกลับ" disabled>↩</button>
               <button id="surveyForwardBtn" class="survey-tool-btn" type="button" data-survey-tool="forward" title="เดินหน้า" disabled>↪</button>
               <div class="survey-toolbar-divider"></div>

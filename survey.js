@@ -21,6 +21,7 @@
     history: [],
     historyIndex: -1,
     attachFiles: [],
+    surveyMeta: null,
     defaults: {
       straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" },
       curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" }
@@ -70,6 +71,8 @@
     els.attachBtnMap = document.getElementById("surveyAttachBtnMap");
     els.attachList = document.getElementById("surveyAttachList");
     els.toolButtons = document.querySelectorAll("[data-survey-tool]");
+    els.toolbar = document.getElementById("surveyToolbar");
+    els.toolbarToggle = document.getElementById("surveyToolbarToggle");
   }
 
   function bindEvents() {
@@ -84,9 +87,13 @@
     els.curveInBtn.addEventListener("click", () => guardSpan(beginCurveIn));
     els.curveWaypointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_waypoint")));
     els.curveOutBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_out")));
-    els.completeBtn.addEventListener("click", completeSurvey);
+    els.completeBtn.addEventListener("click", () => { completeSurvey(); });
     els.generateBtn.addEventListener("click", generateEstimate);
     els.resetBtn.addEventListener("click", resetSurvey);
+
+    if (els.toolbarToggle) {
+      els.toolbarToggle.addEventListener("click", toggleMobileToolbar);
+    }
 
     if (els.attachBtn) els.attachBtn.addEventListener("click", () => els.fileInput?.click());
     if (els.attachBtnMap) els.attachBtnMap.addEventListener("click", () => els.fileInput?.click());
@@ -227,9 +234,15 @@
     resetHistory();
 
     if (els.prePanel) els.prePanel.classList.add("hidden");
-    if (els.mapStage) els.mapStage.classList.remove("hidden");
+    if (els.mapStage) {
+      els.mapStage.classList.remove("hidden");
+      els.mapStage.classList.add("is-active");
+    }
     if (els.sidePanel) els.sidePanel.classList.add("hidden");
     if (els.layout) els.layout.classList.remove("is-spec-mode");
+
+    setMapActiveMode(true);
+    collapseMobileToolbar();
 
     if (!state.mapReady) initMap();
     setTimeout(() => {
@@ -398,10 +411,180 @@
 
   function onTabOpen() {
     if (state.sessionActive) {
+      setMapActiveMode(state.phase === "surveying");
       if (!state.mapReady) initMap();
       else state.map.invalidateSize();
+    } else {
+      setMapActiveMode(false);
     }
     renderAll();
+  }
+
+  function setMapActiveMode(active) {
+    const immersive = Boolean(active && state.sessionActive && state.phase === "surveying");
+    document.body.classList.toggle("survey-map-active", immersive);
+    if (els.mapStage) {
+      els.mapStage.classList.toggle("is-active", Boolean(active && state.sessionActive));
+    }
+  }
+
+  function toggleMobileToolbar() {
+    if (!els.toolbar || !els.toolbarToggle) return;
+    const open = els.toolbar.classList.toggle("is-open-mobile");
+    els.toolbarToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    els.toolbarToggle.textContent = open ? "เครื่องมือ ▴" : "เครื่องมือ ▾";
+  }
+
+  function collapseMobileToolbar() {
+    if (!els.toolbar || !els.toolbarToggle) return;
+    els.toolbar.classList.remove("is-open-mobile");
+    els.toolbarToggle.setAttribute("aria-expanded", "false");
+    els.toolbarToggle.textContent = "เครื่องมือ ▾";
+  }
+
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function buildSurveyMetaObject() {
+    if (!state.poles.length) return null;
+
+    const start = state.poles[0];
+    const end = state.poles[state.poles.length - 1];
+    const totalDist = state.poles.reduce((sum, pole, index) => {
+      if (index === 0) return sum;
+      return sum + distanceMeters(state.poles[index - 1], pole);
+    }, 0);
+
+    return {
+      startLat: start.lat,
+      startLng: start.lng,
+      endLat: end.lat,
+      endLng: end.lng,
+      startLabel: start.label || "หมุด 0",
+      endLabel: end.label || `หมุด ${end.number ?? state.poles.length - 1}`,
+      poleCount: state.poles.length,
+      totalDistanceM: Math.round(totalDist),
+      spanM: state.selectedSpan,
+      capturedAt: new Date().toISOString()
+    };
+  }
+
+  function getSurveyMeta() {
+    return state.surveyMeta || buildSurveyMetaObject();
+  }
+
+  async function drawRouteCanvasFallback() {
+    const map = state.map;
+    const width = els.mapEl.clientWidth || 900;
+    const height = els.mapEl.clientHeight || 600;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#0a1524";
+    ctx.fillRect(0, 0, width, height);
+
+    const points = state.poles.map(pole => map.latLngToContainerPoint([pole.lat, pole.lng]));
+    if (points.length > 1) {
+      ctx.strokeStyle = "#71e8ff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+    }
+
+    state.poles.forEach((pole, index) => {
+      const pt = points[index];
+      const isStart = pole.source === "start" || pole.number === 0;
+      ctx.fillStyle = isStart ? "#f5c96a" : "#71e8ff";
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, isStart ? 12 : 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#03111f";
+      ctx.font = "bold 10px Sarabun,sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+    });
+
+    const meta = buildSurveyMetaObject();
+    if (meta) {
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "11px Sarabun,sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(
+        `${meta.startLabel}: ${meta.startLat.toFixed(6)}, ${meta.startLng.toFixed(6)}`,
+        12,
+        height - 28
+      );
+      ctx.fillText(
+        `${meta.endLabel}: ${meta.endLat.toFixed(6)}, ${meta.endLng.toFixed(6)}`,
+        12,
+        height - 12
+      );
+    }
+
+    return canvas.toDataURL("image/png").split(",")[1];
+  }
+
+  async function captureSurveyMapImage() {
+    if (!state.map || !state.poles.length) return null;
+
+    const bounds = L.latLngBounds(state.poles.map(pole => [pole.lat, pole.lng]));
+    state.map.fitBounds(bounds, { padding: [50, 50] });
+    await delay(700);
+    state.map.invalidateSize();
+
+    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle].filter(Boolean);
+    const prevDisplay = hideEls.map(el => el.style.display);
+    hideEls.forEach(el => { el.style.display = "none"; });
+
+    let base64 = null;
+    if (window.html2canvas) {
+      try {
+        const canvas = await html2canvas(els.mapEl, {
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          scale: window.innerWidth < 720 ? 1.5 : 2
+        });
+        base64 = canvas.toDataURL("image/png").split(",")[1];
+      } catch (error) {
+        console.warn("html2canvas failed", error);
+      }
+    }
+
+    hideEls.forEach((el, index) => {
+      el.style.display = prevDisplay[index] || "";
+    });
+
+    if (!base64) {
+      base64 = await drawRouteCanvasFallback();
+    }
+
+    return base64;
+  }
+
+  async function captureAndStoreSurveyArtifacts() {
+    const meta = buildSurveyMetaObject();
+    if (!meta) return;
+    state.surveyMeta = meta;
+
+    if (!window.AppCore || !window.AppCore.addProjectFileFromBase64) return;
+
+    const mapBase64 = await captureSurveyMapImage();
+    if (mapBase64) {
+      window.AppCore.addProjectFileFromBase64(
+        mapBase64,
+        "image/png",
+        `Survey_Map_${Date.now()}.png`
+      );
+    }
   }
 
   function initMap() {
@@ -1030,7 +1213,7 @@
     );
   }
 
-  function completeSurvey() {
+  async function completeSurvey() {
     if (!ensureSpanSelected()) return;
 
     if (state.controlPoints.length < 2) {
@@ -1045,9 +1228,26 @@
       return;
     }
 
+    Swal.fire({
+      title: "กำลังบันทึกภาพแผนที่...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      await captureAndStoreSurveyArtifacts();
+    } catch (error) {
+      console.warn("survey map capture failed", error);
+    }
+
+    Swal.close();
+
     state.phase = "spec";
     state.placeMode = null;
     const appliedCount = applyDefaultSpecs();
+
+    setMapActiveMode(false);
+    collapseMobileToolbar();
 
     if (els.mapStage) els.mapStage.classList.add("is-spec");
     if (els.sidePanel) els.sidePanel.classList.remove("hidden");
@@ -1450,6 +1650,7 @@
     state.pendingCurveSpan = null;
     state.phase = "surveying";
     state.sessionActive = false;
+    state.surveyMeta = null;
     state.attachFiles = [];
     state.routedPaths = [];
     state.routedLegs = [];
@@ -1464,11 +1665,14 @@
     if (els.prePanel) els.prePanel.classList.remove("hidden");
     if (els.mapStage) {
       els.mapStage.classList.add("hidden");
-      els.mapStage.classList.remove("is-spec");
+      els.mapStage.classList.remove("is-spec", "is-active");
     }
     if (els.sidePanel) els.sidePanel.classList.add("hidden");
     if (els.layout) els.layout.classList.remove("is-spec-mode");
     if (els.specActions) els.specActions.classList.add("hidden");
+
+    setMapActiveMode(false);
+    collapseMobileToolbar();
 
     resetDefaultMaterialSelects();
     if (window.AppCore && window.AppCore.clearSurveyFiles) {
@@ -1514,5 +1718,5 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  window.SurveyModule = { onTabOpen, resetSurvey };
+  window.SurveyModule = { onTabOpen, resetSurvey, getSurveyMeta };
 })();

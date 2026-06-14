@@ -96,6 +96,10 @@
     els.t2.classList.toggle("active", n === 2);
     if (els.t3) els.t3.classList.toggle("active", n === 3);
     if (n === 2) fetchHistory();
+    if (n !== 3) {
+      document.body.classList.remove("survey-map-active");
+    }
+
     if (n === 3 && window.SurveyModule) window.SurveyModule.onTabOpen();
   }
 
@@ -807,7 +811,10 @@
       budgets: state.budgets,
       grandTotal: state.budgets.reduce((acc, budget) => acc + budget.total, 0),
       fileList: state.tempFileList,
-      existingImageUrl: state.currentFileUrl
+      existingImageUrl: state.currentFileUrl,
+      surveyMeta: window.SurveyModule && window.SurveyModule.getSurveyMeta
+        ? window.SurveyModule.getSurveyMeta()
+        : null
     };
 
     try {
@@ -887,7 +894,7 @@
               </div>
             </div>
             <div class="history-actions">
-              <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(row[0])}', '${escapeJs(row[2])}', '${escapeJs(row[4] || "")}')">ดู</button>
+              <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(row[0])}', '${escapeJs(row[2])}', '${escapeJs(row[4] || "")}', '${escapeJs(row[5] || "")}')">ดู</button>
               <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(row[0])}', '${escapeJs(row[2])}', '${escapeJs(row[4] || "")}')">แก้ไข</button>
               <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(row[0])}')">ลบ</button>
             </div>
@@ -906,7 +913,7 @@
     });
   }
 
-  async function viewDetail(id, name, imgStr) {
+  async function viewDetail(id, name, imgStr, surveyMetaStr) {
     Swal.fire({
       title: "กำลังโหลด...",
       allowOutsideClick: false,
@@ -915,7 +922,7 @@
 
     try {
       const details = await window.ApiService.getProjectDetails(id);
-      const html = buildDetailHtml(details, imgStr, name);
+      const html = buildDetailHtml(details, imgStr, name, surveyMetaStr);
       Swal.fire({
         title: name,
         html,
@@ -928,19 +935,46 @@
     }
   }
 
-  function buildDetailHtml(details, imgStr, name) {
+  function buildDetailHtml(details, imgStr, name, surveyMetaStr) {
+    let surveyMetaHtml = "";
+    if (surveyMetaStr) {
+      try {
+        const meta = JSON.parse(surveyMetaStr);
+        if (meta && meta.startLat != null) {
+          surveyMetaHtml = `
+            <div class="survey-meta-box">
+              <strong>ข้อมูลเส้นทางสำรวจ</strong><br>
+              จุดเริ่ม (${meta.startLabel || "หมุด 0"}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
+              จุดสิ้นสุด (${meta.endLabel || "-"}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
+              หมุดทั้งหมด: ${meta.poleCount || "-"} | ระยะรวม: ${meta.totalDistanceM || "-"} ม. | Span: ${meta.spanM || "-"} ม.
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.warn("survey meta parse failed", error);
+      }
+    }
+
     const urls = imgStr ? imgStr.split("|") : [];
+    const sortedUrls = [...urls].sort((a, b) => {
+      const aMap = /Survey_Map/i.test(a);
+      const bMap = /Survey_Map/i.test(b);
+      if (aMap && !bMap) return -1;
+      if (!aMap && bMap) return 1;
+      return 0;
+    });
     let mediaHtml = '<div class="media-gallery">';
 
-    if (!urls.length) {
+    if (!sortedUrls.length) {
       mediaHtml += "<p>ไม่มีไฟล์แนบ</p>";
     } else {
-      urls.forEach((url, index) => {
+      sortedUrls.forEach((url, index) => {
         const preview = url.replace("/view", "/preview").replace("thumbnail?sz=w600", "preview");
         const fullUrl = url.replace("thumbnail?sz=w600", "view");
+        const isSurveyMap = /Survey_Map/i.test(url);
         mediaHtml += `
           <div class="media-item">
-            <p style="font-size:10px;">ไฟล์ที่ ${index + 1}</p>
+            <p style="font-size:10px;">${isSurveyMap ? "แผนที่สำรวจ (ปักหมุด)" : `ไฟล์ที่ ${index + 1}`}</p>
             <iframe src="${preview}" width="100%" height="300" style="border:none;border-radius:8px;"></iframe>
             <div style="text-align:right;">
               <a href="${fullUrl}" target="_blank" style="font-size:10px;">เปิดแยก</a>
@@ -954,6 +988,7 @@
     const safePayload = encodeURIComponent(JSON.stringify(details));
 
     return `
+      ${surveyMetaHtml}
       ${mediaHtml}
       <table class="detail-table">
         <thead>
@@ -1203,6 +1238,17 @@
         state.tempFileList.splice(index, 1);
       }
     },
+    addProjectFileFromBase64: (base64, mime, name) => {
+      state.tempFileList.push({
+        base64,
+        type: mime,
+        name,
+        source: "survey"
+      });
+    },
+    getSurveyMeta: () => (window.SurveyModule && window.SurveyModule.getSurveyMeta
+      ? window.SurveyModule.getSurveyMeta()
+      : null),
     clearSurveyFiles: () => {
       state.tempFileList = state.tempFileList.filter(file => file.source !== "survey");
     },
