@@ -960,7 +960,6 @@ input:focus,
 .survey-map-shell {
   position: relative;
   isolation: isolate;
-  contain: layout paint;
   min-height: calc(100vh - 220px);
   height: calc(100vh - 220px);
   max-height: calc(100vh - 220px);
@@ -1098,13 +1097,20 @@ body.survey-map-active {
 }
 
 body.survey-map-active .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   height: 100dvh;
   overflow: hidden;
+  padding-bottom: 0;
 }
 
 body.survey-map-active .site-footer {
   display: none;
+}
+
+body.survey-map-active .hero {
+  flex-shrink: 0;
 }
 
 body.survey-map-active #view3.view:not(.hidden) {
@@ -1113,12 +1119,17 @@ body.survey-map-active #view3.view:not(.hidden) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  margin-top: 8px;
 }
 
 body.survey-map-active .survey-layout {
+  display: flex !important;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  grid-template-columns: unset;
+  align-items: stretch;
 }
 
 body.survey-map-active .survey-map-stage.is-active:not(.is-spec) {
@@ -1130,8 +1141,8 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) {
 
 body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-shell {
   flex: 1;
-  min-height: 0;
-  height: auto;
+  min-height: 280px;
+  height: 100%;
   max-height: none;
 }
 

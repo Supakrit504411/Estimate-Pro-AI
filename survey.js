@@ -221,6 +221,22 @@
     return true;
   }
 
+  function refreshMapSize() {
+    if (!state.map) return;
+    state.map.invalidateSize({ pan: false });
+  }
+
+  function scheduleMapResize() {
+    refreshMapSize();
+    requestAnimationFrame(() => {
+      refreshMapSize();
+      requestAnimationFrame(refreshMapSize);
+    });
+    [120, 350, 700].forEach(ms => {
+      setTimeout(refreshMapSize, ms);
+    });
+  }
+
   async function beginSurveySession() {
     const span = await pickSpanOnStart();
     if (!span) return;
@@ -245,9 +261,7 @@
     collapseMobileToolbar();
 
     if (!state.mapReady) initMap();
-    setTimeout(() => {
-      if (state.map) state.map.invalidateSize();
-    }, 120);
+    scheduleMapResize();
 
     pushHistory();
     renderAll();
@@ -413,7 +427,7 @@
     if (state.sessionActive) {
       setMapActiveMode(state.phase === "surveying");
       if (!state.mapReady) initMap();
-      else state.map.invalidateSize();
+      else scheduleMapResize();
     } else {
       setMapActiveMode(false);
     }
@@ -536,9 +550,10 @@
     if (!state.map || !state.poles.length) return null;
 
     const bounds = L.latLngBounds(state.poles.map(pole => [pole.lat, pole.lng]));
+    scheduleMapResize();
     state.map.fitBounds(bounds, { padding: [50, 50] });
-    await delay(700);
-    state.map.invalidateSize();
+    await delay(900);
+    scheduleMapResize();
 
     const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle].filter(Boolean);
     const prevDisplay = hideEls.map(el => el.style.display);
@@ -1254,9 +1269,7 @@
     if (els.layout) els.layout.classList.add("is-spec-mode");
     if (els.specActions) els.specActions.classList.remove("hidden");
 
-    setTimeout(() => {
-      if (state.map) state.map.invalidateSize();
-    }, 120);
+    scheduleMapResize();
 
     renderAll();
 
