@@ -2,6 +2,8 @@
   const config = window.APP_CONFIG || {};
   const surveyConfig = config.survey || {};
 
+  const presetsApi = window.SurveyPresetsApi || {};
+
   const state = {
     map: null,
     markers: [],
@@ -22,9 +24,12 @@
     historyIndex: -1,
     attachFiles: [],
     surveyMeta: null,
+    voltageType: null,
+    phaseType: null,
+    presetConfig: null,
     defaults: {
-      straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" },
-      curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" }
+      straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false },
+      curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false }
     }
   };
 
@@ -34,7 +39,7 @@
 
   function init() {
     cacheElements();
-    initDefaultMaterialSelects();
+    initSystemSelectors();
     bindEvents();
     updateUiState();
   }
@@ -66,6 +71,15 @@
     els.specActions = document.getElementById("surveySpecActions");
     els.defaultsPanel = document.getElementById("surveyDefaultsPanel");
     els.defaultSelects = document.querySelectorAll("[data-default-group]");
+    els.systemPanel = document.getElementById("surveySystemPanel");
+    els.voltageStep = document.getElementById("surveyVoltageStep");
+    els.phaseStep = document.getElementById("surveyPhaseStep");
+    els.voltageChoices = document.getElementById("surveyVoltageChoices");
+    els.phaseChoices = document.getElementById("surveyPhaseChoices");
+    els.voltageBadge = document.getElementById("surveyVoltageBadge");
+    els.phaseBadge = document.getElementById("surveyPhaseBadge");
+    els.voltageEdit = document.getElementById("surveyVoltageEdit");
+    els.phaseEdit = document.getElementById("surveyPhaseEdit");
     els.fileInput = document.getElementById("surveyFileInput");
     els.attachBtn = document.getElementById("surveyAttachBtn");
     els.attachBtnMap = document.getElementById("surveyAttachBtnMap");
@@ -105,9 +119,26 @@
 
     if (els.defaultSelects) {
       els.defaultSelects.forEach(select => {
-        select.addEventListener("change", handleDefaultSelectChange);
+        if (select.tagName === "SELECT") {
+          select.addEventListener("change", handleDefaultSelectChange);
+        } else if (select.type === "checkbox") {
+          select.addEventListener("change", handleDefaultCheckboxChange);
+        }
       });
     }
+
+    if (els.voltageChoices) {
+      els.voltageChoices.querySelectorAll("[data-voltage]").forEach(btn => {
+        btn.addEventListener("click", () => selectVoltage(btn.dataset.voltage));
+      });
+    }
+    if (els.phaseChoices) {
+      els.phaseChoices.querySelectorAll("[data-phase]").forEach(btn => {
+        btn.addEventListener("click", () => selectPhase(btn.dataset.phase));
+      });
+    }
+    if (els.voltageEdit) els.voltageEdit.addEventListener("click", editVoltageSelection);
+    if (els.phaseEdit) els.phaseEdit.addEventListener("click", editPhaseSelection);
   }
 
   async function handleSurveyFileSelect(event) {
@@ -238,6 +269,16 @@
   }
 
   async function beginSurveySession() {
+    if (!isSystemReady()) {
+      Swal.fire({
+        title: "เลือกระบบก่อน",
+        text: "กรุณาเลือก MV/LV และ 1P/3P ให้ครบก่อนเริ่มสำรวจ",
+        icon: "warning",
+        confirmButtonText: "เข้าใจแล้ว"
+      });
+      return;
+    }
+
     const span = await pickSpanOnStart();
     if (!span) return;
 
@@ -378,25 +419,194 @@
     updateToolbarActiveState();
   }
 
-  function initDefaultMaterialSelects() {
-    const poleCatalog = surveyConfig.poleCatalog || [];
-    const headCatalog = surveyConfig.headCatalog || [];
-    const cableCatalog = surveyConfig.cableCatalog || [];
+  function initSystemSelectors() {
+    updateSystemUi();
+  }
 
-    const configs = [
-      { id: "surveyDefaultStraightPole", catalog: poleCatalog, placeholder: "-- เลือกเสา (ทางตรง) --" },
-      { id: "surveyDefaultStraightHead", catalog: headCatalog, placeholder: "-- เลือกหัวเสา (ทางตรง) --" },
-      { id: "surveyDefaultStraightCable", catalog: cableCatalog, placeholder: "-- เลือกสายไฟ (ทางตรง) --" },
-      { id: "surveyDefaultCurvePole", catalog: poleCatalog, placeholder: "-- เลือกเสา (ทางโค้ง) --" },
-      { id: "surveyDefaultCurveHead", catalog: headCatalog, placeholder: "-- เลือกหัวเสา (ทางโค้ง) --" },
-      { id: "surveyDefaultCurveCable", catalog: cableCatalog, placeholder: "-- เลือกสายไฟ (ทางโค้ง) --" }
-    ];
+  function getPresetConfig() {
+    return state.presetConfig || presetsApi.getConfig(state.voltageType, state.phaseType);
+  }
 
-    configs.forEach(({ id, catalog, placeholder }) => {
-      const select = document.getElementById(id);
-      if (!select) return;
-      select.innerHTML = `<option value="">${placeholder}</option>${renderCatalogOptions(catalog, "")}`;
+  function isSystemReady() {
+    return Boolean(state.voltageType && state.phaseType && getPresetConfig());
+  }
+
+  function selectVoltage(voltage) {
+    state.voltageType = voltage;
+    state.phaseType = null;
+    state.presetConfig = null;
+    collapseVoltageStep(voltage);
+    unlockPhaseStep();
+    hideDefaultsPanel();
+    updateSystemUi();
+    updateUiState();
+  }
+
+  function selectPhase(phase) {
+    if (!state.voltageType) return;
+    state.phaseType = phase;
+    state.presetConfig = presetsApi.getConfig(state.voltageType, phase);
+    collapsePhaseStep(phase);
+    refreshDefaultMaterialSelects();
+    showDefaultsPanel();
+    updateSystemUi();
+    updateUiState();
+  }
+
+  function editVoltageSelection() {
+    state.voltageType = null;
+    state.phaseType = null;
+    state.presetConfig = null;
+    if (els.voltageStep) {
+      els.voltageStep.classList.remove("is-collapsed");
+      els.voltageChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => btn.classList.remove("active"));
+    }
+    if (els.voltageBadge) els.voltageBadge.classList.add("hidden");
+    if (els.voltageEdit) els.voltageEdit.classList.add("hidden");
+    if (els.phaseStep) {
+      els.phaseStep.classList.add("hidden", "is-locked");
+      els.phaseStep.classList.remove("is-collapsed");
+    }
+    if (els.phaseBadge) els.phaseBadge.classList.add("hidden");
+    if (els.phaseEdit) els.phaseEdit.classList.add("hidden");
+    hideDefaultsPanel();
+    updateSystemUi();
+    updateUiState();
+  }
+
+  function editPhaseSelection() {
+    state.phaseType = null;
+    state.presetConfig = null;
+    if (els.phaseStep) {
+      els.phaseStep.classList.remove("is-collapsed", "is-locked");
+      els.phaseChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => btn.classList.remove("active"));
+    }
+    if (els.phaseBadge) els.phaseBadge.classList.add("hidden");
+    if (els.phaseEdit) els.phaseEdit.classList.add("hidden");
+    hideDefaultsPanel();
+    updateSystemUi();
+    updateUiState();
+  }
+
+  function collapseVoltageStep(voltage) {
+    if (!els.voltageStep) return;
+    els.voltageStep.classList.add("is-collapsed");
+    els.voltageChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.voltage === voltage);
     });
+    if (els.voltageBadge) {
+      els.voltageBadge.textContent = voltage.toUpperCase();
+      els.voltageBadge.classList.remove("hidden");
+    }
+    if (els.voltageEdit) els.voltageEdit.classList.remove("hidden");
+  }
+
+  function unlockPhaseStep() {
+    if (!els.phaseStep) return;
+    els.phaseStep.classList.remove("hidden", "is-locked", "is-collapsed");
+    els.phaseChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => btn.classList.remove("active"));
+    if (els.phaseBadge) els.phaseBadge.classList.add("hidden");
+    if (els.phaseEdit) els.phaseEdit.classList.add("hidden");
+  }
+
+  function collapsePhaseStep(phase) {
+    if (!els.phaseStep) return;
+    els.phaseStep.classList.add("is-collapsed");
+    els.phaseStep.classList.remove("is-locked");
+    els.phaseChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.phase === phase);
+    });
+    if (els.phaseBadge) {
+      els.phaseBadge.textContent = phase.toUpperCase();
+      els.phaseBadge.classList.remove("hidden");
+    }
+    if (els.phaseEdit) els.phaseEdit.classList.remove("hidden");
+  }
+
+  function showDefaultsPanel() {
+    if (els.defaultsPanel) els.defaultsPanel.classList.remove("hidden");
+  }
+
+  function hideDefaultsPanel() {
+    if (els.defaultsPanel) els.defaultsPanel.classList.add("hidden");
+  }
+
+  function updateSystemUi() {
+    const config = getPresetConfig();
+    document.querySelectorAll(".survey-ohgw-field").forEach(el => {
+      el.classList.toggle("is-hidden", !config || !config.hasOhgw);
+    });
+  }
+
+  function refreshDefaultMaterialSelects() {
+    const config = getPresetConfig();
+    if (!config) return;
+
+    const poleCatalog = surveyConfig.poleCatalog || [];
+
+    ["straight", "curve"].forEach(group => {
+      const section = config[group];
+      if (!section) return;
+
+      const defs = section.defaults || {};
+      state.defaults[group] = {
+        poleMaterialId: defs.poleMaterialId || "",
+        headMaterialId: defs.headMaterialId || "",
+        cableMaterialId: defs.cableMaterialId || "",
+        ohgwSetId: defs.ohgwSetId || "",
+        ohgwInstall: Boolean(defs.ohgwInstall)
+      };
+
+      fillSelect(
+        document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Pole`),
+        poleCatalog,
+        defs.poleMaterialId,
+        "-- เลือกเสา --",
+        "pole"
+      );
+      fillSelect(
+        document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Head`),
+        presetsApi.getSetOptions(section.headSetIds),
+        defs.headMaterialId,
+        "-- เลือกหัวเสา (ชุด Set) --",
+        "set"
+      );
+      fillSelect(
+        document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Cable`),
+        presetsApi.getCableOptions(config, group),
+        defs.cableMaterialId,
+        "-- เลือกสายไฟ --",
+        "cable"
+      );
+
+      const ohgwSelect = document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Ohgw`);
+      fillSelect(
+        ohgwSelect,
+        presetsApi.getSetOptions(section.ohgwSetIds),
+        defs.ohgwSetId,
+        "-- เลือก OHGW (ชุด Set) --",
+        "set"
+      );
+      if (ohgwSelect) ohgwSelect.disabled = !state.defaults[group].ohgwInstall;
+
+      const ohgwCheck = document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}OhgwInstall`);
+      if (ohgwCheck) ohgwCheck.checked = state.defaults[group].ohgwInstall;
+    });
+  }
+
+  function fillSelect(select, catalog, selectedId, placeholder, kind) {
+    if (!select) return;
+    const options = [{ id: "", name: placeholder }].concat(catalog || []);
+    select.innerHTML = options.map(item => {
+      const label = kind === "set"
+        ? presetsApi.formatSetLabel(item.id ? item : null) || item.name
+        : kind === "cable"
+          ? (item.id ? presetsApi.formatCableLabel(item) : item.name)
+          : (item.id ? `${item.id} — ${item.name}` : item.name);
+      const value = item.id || "";
+      return `<option value="${value}" ${selectedId === value ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    }).join("");
+    select.value = selectedId || "";
   }
 
   function handleDefaultSelectChange(event) {
@@ -407,15 +617,69 @@
     state.defaults[group][field] = select.value;
   }
 
+  function handleDefaultCheckboxChange(event) {
+    const input = event.target;
+    const group = input.dataset.defaultGroup;
+    const field = input.dataset.defaultField;
+    if (!group || !field || !state.defaults[group]) return;
+    state.defaults[group][field] = input.checked;
+    const ohgwSelect = document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Ohgw`);
+    if (ohgwSelect) ohgwSelect.disabled = !input.checked;
+  }
+
   function resetDefaultMaterialSelects() {
-    state.defaults.straight = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" };
-    state.defaults.curve = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "" };
+    state.defaults.straight = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false };
+    state.defaults.curve = { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false };
 
     if (els.defaultSelects) {
-      els.defaultSelects.forEach(select => {
-        select.value = "";
+      els.defaultSelects.forEach(el => {
+        if (el.tagName === "SELECT") el.value = "";
+        if (el.type === "checkbox") el.checked = false;
       });
     }
+  }
+
+  function resetSystemSelection() {
+    state.voltageType = null;
+    state.phaseType = null;
+    state.presetConfig = null;
+    if (els.voltageStep) els.voltageStep.classList.remove("is-collapsed");
+    if (els.phaseStep) {
+      els.phaseStep.classList.add("hidden", "is-locked");
+      els.phaseStep.classList.remove("is-collapsed");
+    }
+    els.voltageChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => btn.classList.remove("active"));
+    els.phaseChoices?.querySelectorAll(".survey-choice-btn").forEach(btn => btn.classList.remove("active"));
+    if (els.voltageBadge) els.voltageBadge.classList.add("hidden");
+    if (els.phaseBadge) els.phaseBadge.classList.add("hidden");
+    if (els.voltageEdit) els.voltageEdit.classList.add("hidden");
+    if (els.phaseEdit) els.phaseEdit.classList.add("hidden");
+    hideDefaultsPanel();
+    updateSystemUi();
+    updateUiState();
+  }
+
+  function getSetLabel(setId) {
+    const setObj = presetsApi.getSet(setId);
+    return setObj ? presetsApi.formatSetLabel(setObj) : setId;
+  }
+
+  function getWireMultiplier() {
+    const config = getPresetConfig();
+    return config?.wireMultiplier || 1;
+  }
+
+  function getSectionCatalogs(sectionKey) {
+    const config = getPresetConfig();
+    if (!config || !config[sectionKey]) {
+      return { headSets: [], cables: [], ohgwSets: [] };
+    }
+    const section = config[sectionKey];
+    return {
+      headSets: presetsApi.getSetOptions(section.headSetIds),
+      cables: presetsApi.getCableOptions(config, sectionKey),
+      ohgwSets: presetsApi.getSetOptions(section.ohgwSetIds)
+    };
   }
 
   function guardSpan(action) {
@@ -480,6 +744,10 @@
       poleCount: state.poles.length,
       totalDistanceM: Math.round(totalDist),
       spanM: state.selectedSpan,
+      voltageType: state.voltageType,
+      phaseType: state.phaseType,
+      systemLabel: getPresetConfig()?.label || "",
+      wireMultiplier: getWireMultiplier(),
       capturedAt: new Date().toISOString()
     };
   }
@@ -635,17 +903,25 @@
   }
 
   async function pickStartHeadType() {
+    const config = getPresetConfig();
+    const setIds = config?.startHeadSetIds || [];
     const options = {};
-    (surveyConfig.startHeadTypes || []).forEach(type => {
-      options[type] = type;
+    presetsApi.getSetOptions(setIds).forEach(setObj => {
+      options[setObj.id] = presetsApi.formatSetLabel(setObj);
     });
 
+    if (!Object.keys(options).length) {
+      Swal.fire("ไม่พบชุดหัวเสา", "กรุณาเลือกระบบ MV/LV ก่อนปักหมุด 0", "warning");
+      return null;
+    }
+
+    const defaultId = state.voltageType === "mv" ? "20111" : "10024";
     const { value } = await Swal.fire({
       title: "หมุด 0 — จุดต่อระบบจำหน่ายเดิม",
-      text: "เลือกประเภทหัวเสา (ไม่ต้องเลือกขนาดเสา)",
+      text: "เลือกชุดหัวเสา (ไม่ต้องเลือกขนาดเสา)",
       input: "select",
       inputOptions: options,
-      inputValue: surveyConfig.startHeadTypes[0],
+      inputValue: options[defaultId] ? defaultId : Object.keys(options)[0],
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
       cancelButtonText: "ยกเลิก"
@@ -760,14 +1036,14 @@
     const point = { lat: event.latlng.lat, lng: event.latlng.lng };
 
     if (state.placeMode === "start") {
-      const headType = await pickStartHeadType();
-      if (!headType) return;
+      const headSetId = await pickStartHeadType();
+      if (!headSetId) return;
       state.controlPoints = [{
         id: makeId("ctrl"),
         lat: point.lat,
         lng: point.lng,
         role: "start",
-        headType
+        headSetId
       }];
       state.placeMode = null;
     } else {
@@ -874,7 +1150,7 @@
       }
 
       const start = state.controlPoints[0];
-      poles.push(makePole(start, "start", start.headType || "", start.id));
+      poles.push(makePole(start, "start", start.headSetId || start.headType || "", start.id));
 
       let i = 1;
       while (i < state.controlPoints.length) {
@@ -1047,8 +1323,8 @@
       poles.push(makePole(pos, "auto", "", null, section));
     });
 
-    const headType = endCtrl.role === "start" ? endCtrl.headType : "";
-    poles.push(makePole(endCtrl, endRole, headType, endCtrl.id, endSection));
+    const headSetId = endCtrl.role === "start" ? (endCtrl.headSetId || endCtrl.headType || "") : "";
+    poles.push(makePole(endCtrl, endRole, headSetId, endCtrl.id, endSection));
   }
 
   function isCurveSource(source) {
@@ -1082,12 +1358,16 @@
         pole.poleMaterialId = defs.poleMaterialId;
         changed = true;
       }
-      if (defs.headMaterialId && !pole.headMaterialId) {
+      if (pole.source !== "start" && defs.headMaterialId && !pole.headMaterialId) {
         pole.headMaterialId = defs.headMaterialId;
         changed = true;
       }
       if (defs.cableMaterialId && !pole.cableMaterialId) {
         pole.cableMaterialId = defs.cableMaterialId;
+        changed = true;
+      }
+      if (getPresetConfig()?.hasOhgw && defs.ohgwInstall && defs.ohgwSetId && !pole.ohgwSetId) {
+        pole.ohgwSetId = defs.ohgwSetId;
         changed = true;
       }
 
@@ -1149,7 +1429,8 @@
     return points[points.length - 1];
   }
 
-  function makePole(point, source, headType = "", ctrlId = null, section = "straight") {
+  function makePole(point, source, headSetId = "", ctrlId = null, section = "straight") {
+    const isStart = source === "start";
     return {
       id: makeId("pole"),
       ctrlId,
@@ -1157,10 +1438,11 @@
       lng: point.lng,
       source,
       section,
-      headType,
+      headSetId: isStart ? headSetId : "",
+      headMaterialId: isStart ? headSetId : "",
       poleMaterialId: "",
-      headMaterialId: "",
       cableMaterialId: "",
+      ohgwSetId: "",
       specFilled: false
     };
   }
@@ -1196,8 +1478,8 @@
       return;
     }
 
-    const headType = await pickStartHeadType();
-    if (!headType) return;
+    const headSetId = await pickStartHeadType();
+    if (!headSetId) return;
 
     Swal.fire({ title: "กำลังดึง GPS...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -1215,7 +1497,7 @@
           lat: point.lat,
           lng: point.lng,
           role: "start",
-          headType
+          headSetId
         }];
         state.placeMode = null;
         rebuildPolesFromControls().then(() => {
@@ -1313,6 +1595,10 @@
     if (els.backBtn) els.backBtn.disabled = !sessionActive || state.historyIndex <= 0;
     if (els.forwardBtn) els.forwardBtn.disabled = !sessionActive || state.historyIndex >= state.history.length - 1;
 
+    if (els.beginBtn) {
+      els.beginBtn.disabled = sessionActive || !isSystemReady();
+    }
+
     if (els.generateBtn) {
       els.generateBtn.disabled = state.phase !== "spec" || !allSpecsFilled();
     }
@@ -1370,7 +1656,7 @@
         draggable: state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId
       }).addTo(state.map);
 
-      marker.bindPopup(`<b>${pole.label}</b><br>${roleText(pole.source)}${pole.headType ? `<br>หัวเสา: ${pole.headType}` : ""}`);
+      marker.bindPopup(`<b>${pole.label}</b><br>${roleText(pole.source)}${pole.headMaterialId ? `<br>หัวเสา: ${escapeHtml(getSetLabel(pole.headMaterialId))}` : ""}`);
 
       if (state.phase === "surveying" && pole.ctrlId) {
         marker.on("click", event => {
@@ -1420,6 +1706,18 @@
     }
   }
 
+  function renderSetOptions(sets, selectedId) {
+    return (sets || []).map(setObj => `
+      <option value="${setObj.id}" ${selectedId === setObj.id ? "selected" : ""}>${escapeHtml(presetsApi.formatSetLabel(setObj))}</option>
+    `).join("");
+  }
+
+  function renderCableOptions(cables, selectedId) {
+    return (cables || []).map(item => `
+      <option value="${item.id}" ${selectedId === item.id ? "selected" : ""}>${escapeHtml(presetsApi.formatCableLabel(item))}</option>
+    `).join("");
+  }
+
   function renderCatalogOptions(catalog, selectedId) {
     return (catalog || []).map(item => `
       <option value="${item.id}" ${selectedId === item.id ? "selected" : ""}>${item.id} — ${item.name}</option>
@@ -1438,24 +1736,28 @@
       els.poleList.innerHTML = state.poles.map(pole => `
         <div class="survey-pole-card ${pole.source === "start" ? "is-start" : ""}">
           <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
-          <div class="survey-pole-meta">${pole.headType ? `หัวเสา: ${pole.headType}` : "รอกรอกรายละเอียดหลังสำรวจเสร็จ"}</div>
+          <div class="survey-pole-meta">${pole.headMaterialId ? `หัวเสา: ${escapeHtml(getSetLabel(pole.headMaterialId))}` : "รอกรอกรายละเอียดหลังสำรวจเสร็จ"}</div>
         </div>
       `).join("");
       return;
     }
 
     const poleCatalog = surveyConfig.poleCatalog || [];
-    const headCatalog = surveyConfig.headCatalog || [];
-    const cableCatalog = surveyConfig.cableCatalog || [];
+    const config = getPresetConfig();
 
     els.poleList.innerHTML = state.poles.map(pole => {
       const isStart = pole.source === "start";
-      const headDefault = pole.headType || "";
+      const sectionKey = isCurvePole(pole) ? "curve" : "straight";
+      const catalogs = getSectionCatalogs(sectionKey);
+      const headSets = isStart
+        ? presetsApi.getSetOptions(config?.startHeadSetIds || [])
+        : catalogs.headSets;
+      const headLabel = pole.headMaterialId ? getSetLabel(pole.headMaterialId) : "";
 
       return `
         <div class="survey-pole-card ${isStart ? "is-start" : ""}" data-pole-id="${pole.id}">
           <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
-          ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${headDefault} (กำหนดตอนปักหมุด 0)</div>` : `
+          ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${escapeHtml(headLabel)} (กำหนดตอนปักหมุด 0)</div>` : `
           <div class="survey-field">
             <label>เสา (รหัสพัสดุ)</label>
             <select data-field="poleMaterialId" data-pole-id="${pole.id}">
@@ -1464,19 +1766,27 @@
             </select>
           </div>`}
           <div class="survey-field">
-            <label>หัวเสา (รหัสพัสดุ)</label>
+            <label>หัวเสา (ชุด Set)</label>
             <select data-field="headMaterialId" data-pole-id="${pole.id}">
-              <option value="">-- เลือกหัวเสา --</option>
-              ${renderCatalogOptions(headCatalog, pole.headMaterialId)}
+              <option value="">-- เลือกหัวเสา (ชุด Set) --</option>
+              ${renderSetOptions(headSets, pole.headMaterialId)}
             </select>
           </div>
           <div class="survey-field">
             <label>สายไฟ (รหัสพัสดุ)</label>
             <select data-field="cableMaterialId" data-pole-id="${pole.id}">
               <option value="">-- เลือกสายไฟ --</option>
-              ${renderCatalogOptions(cableCatalog, pole.cableMaterialId)}
+              ${renderCableOptions(catalogs.cables, pole.cableMaterialId)}
             </select>
           </div>
+          ${config?.hasOhgw ? `
+          <div class="survey-field">
+            <label>OHGW (ชุด Set)</label>
+            <select data-field="ohgwSetId" data-pole-id="${pole.id}">
+              <option value="">-- ไม่ติดตั้ง --</option>
+              ${renderSetOptions(catalogs.ohgwSets, pole.ohgwSetId)}
+            </select>
+          </div>` : ""}
         </div>
       `;
     }).join("");
@@ -1558,37 +1868,47 @@
     `;
   }
 
+  function addSetToCounts(counts, setId, multiplier = 1) {
+    const setObj = presetsApi.getSet(setId);
+    if (!setObj) return;
+    setObj.items.forEach(item => {
+      const key = `mat:${item.id}`;
+      counts[key] = (counts[key] || 0) + (item.qty * multiplier);
+    });
+  }
+
   function buildBomLines() {
     const counts = {};
+    const wireMult = getWireMultiplier();
 
     state.poles.forEach((pole, index) => {
       if (pole.source !== "start" && pole.poleMaterialId) {
-        const key = `pole:${pole.poleMaterialId}`;
+        const key = `mat:${pole.poleMaterialId}`;
         counts[key] = (counts[key] || 0) + 1;
       }
       if (pole.headMaterialId) {
-        const key = `head:${pole.headMaterialId}`;
-        counts[key] = (counts[key] || 0) + 1;
+        addSetToCounts(counts, pole.headMaterialId, 1);
       }
       if (index > 0 && pole.cableMaterialId) {
         const span = distanceMeters(state.poles[index - 1], pole);
         const key = `cable:${pole.cableMaterialId}`;
-        counts[key] = (counts[key] || 0) + span;
+        counts[key] = (counts[key] || 0) + (span * wireMult);
+      }
+      if (pole.ohgwSetId) {
+        addSetToCounts(counts, pole.ohgwSetId, 1);
       }
     });
 
     const lines = [];
     Object.entries(counts).forEach(([key, qty]) => {
-      const [type, id] = key.split(":");
-      const catalog = type === "pole" ? surveyConfig.poleCatalog
-        : type === "head" ? surveyConfig.headCatalog
-          : surveyConfig.cableCatalog;
-      const item = (catalog || []).find(c => c.id === id);
+      const [, id] = key.split(":");
+      const item = findMaterialById(id);
+      const isCable = key.startsWith("cable:");
       lines.push({
-        type,
+        type: isCable ? "cable" : "mat",
         materialId: id,
-        label: item ? `${id} ${item.name}` : id,
-        qty: type === "cable" ? Math.ceil(qty) : qty
+        label: item ? `${id} ${item.name || ""}`.trim() : id,
+        qty: isCable ? Math.ceil(qty) : (Math.round(qty * 100) / 100)
       });
     });
     return lines;
@@ -1688,6 +2008,7 @@
     collapseMobileToolbar();
 
     resetDefaultMaterialSelects();
+    resetSystemSelection();
     if (window.AppCore && window.AppCore.clearSurveyFiles) {
       window.AppCore.clearSurveyFiles();
     }

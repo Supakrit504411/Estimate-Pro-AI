@@ -1,0 +1,679 @@
+/* eslint-disable no-console */
+const fs = require("fs");
+const path = require("path");
+
+function set(id, name, items) {
+  return {
+    id,
+    name,
+    items: items.map(([mid, mname, unit, qty]) => ({
+      id: mid,
+      name: mname,
+      unit,
+      qty: Number(qty)
+    }))
+  };
+}
+
+const sets = {};
+
+// --- MV 1P straight heads ---
+sets["20101"] = set("20101", "X-ARM-C, 1-P, SP 0-5 * C", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 1],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.35],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 2],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 5],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 2],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200001", "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 2]
+]);
+sets["20131"] = set("20131", "A-ARM-C, 1-P, SP 0-5 * C", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 1],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.3],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 1],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 4],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 2],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200004", "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 2]
+]);
+
+// MV 1P curve heads
+sets["20102"] = set("20102", "X-ARM-C, 1-P, DP 5-30 * C", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 2],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.65],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 2],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010110206", "BOLT,MACHINE M.16x400 mm.", "ชุด", 1],
+  ["1010120001", "BOLT,DOUBLE ARMING,M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 13],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 4],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200001", "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 2],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 4]
+]);
+sets["20132"] = set("20132", "A-ARM-C, 1-P, DP 5-30 * C", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 2],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.5],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 1],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010110206", "BOLT,MACHINE M.16x400 mm.", "ชุด", 1],
+  ["1010120001", "BOLT,DOUBLE ARMING,M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 12],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 4],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200004", "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 4]
+]);
+
+// MV 1P OHGW straight
+sets["23085"] = set("23085", "OHGW DEADEND GUY WITH DEADEND POLE, GY-28B, SIZE 95 SQ.MM., ON 12.2 M. POLE (ASSEMBLY NO. 8459, 8410)", [
+  ["1000040003", "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.", "ชิ้น", 1],
+  ["1010100004", "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404", "ม.", 18],
+  ["1010100006", "WIRE,STEEL STRANDED 95 sq.mm.TIS.404", "ม.", 17],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1010210003", "ROD,ANCHOR,DOUBLE STRAND EYE,M.20, 2,500 mm.LONG", "ชุด", 1],
+  ["1010210201", "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16x250 mm.", "ชุด", 1],
+  ["1010210300", "ANGLE GUY ATTACHMENT 30 DEGREE.", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 6],
+  ["1010230001", "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)", "ชุด", 4],
+  ["1030030103", "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280", "ชิ้น", 4]
+]);
+sets["25251"] = set("25251", "OVERHEAD GROUND WIRE, 0-5 DEGREE, ON 12.20 M. AND 14 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010010003", "STEEL ANGLE,OVERHEAD GROUND WIRE BAYONET 65x65x6 MM. 2,250 MM. LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+sets["25263"] = set("25263", "OVERHEAD GROUND WIRE, 0-5 DEGREE, ON 12 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010010003", "STEEL ANGLE,OVERHEAD GROUND WIRE BAYONET 65x65x6 MM. 2,250 MM. LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+sets["25264"] = set("25264", "OVERHEAD GROUND WIRE, 0-5 DEGREE, ON 14.3 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010010003", "STEEL ANGLE,OVERHEAD GROUND WIRE BAYONET 65x65x6 MM. 2,250 MM. LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+
+// MV 1P OHGW curve + MV 3P OHGW
+sets["25262"] = set("25262", "OVERHEAD GROUND WIRE, 5-30 DEGREE, ON 12.20 M. AND 14 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010000100", "STEEL CHANNEL, 100x50x5 mm. 2,250 MM.LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+sets["25265"] = set("25265", "OVERHEAD GROUND WIRE, 5-30 DEGREE, ON 12 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010000100", "STEEL CHANNEL, 100x50x5 mm. 2,250 MM.LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+sets["25266"] = set("25266", "OVERHEAD GROUND WIRE, 5-30 DEGREE, ON 14.3 M. POLE (ASSEMBLY NO.2425)", [
+  ["1010000100", "STEEL CHANNEL, 100x50x5 mm. 2,250 MM.LONG", "ชิ้น", 1],
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 2.4],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1010230012", "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.", "ชุด", 2],
+  ["1010230205", "GROUND WIRE CLAMP,J.1152", "ชุด", 1]
+]);
+
+// MV 3P heads straight
+sets["20520"] = set("20520", "SAC ON STEEL BRACKET CORNER, 22 KV., 0-30 DEGREE, 1 CIRCUIT, ON 12 M.,12.20 M. AND 14 M. POLE (ASSEMBLY NO.2301B)", [
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 0.6],
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 2],
+  ["1020440112", "BLACKET, FOR AERIAL CABLE CORNER SUPPORT, 22 KV. AND 33 KV. DWG.NO.SA4-015/44007", "ชิ้น", 1],
+  ["1030010002", "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST", "ชิ้น", 3]
+]);
+sets["20521"] = set("20521", "SAC ON STEEL BRACKET CORNER, 22 KV., 0-30 DEGREE, 1 CIRCUIT, ON 14.3 M. POLE (ASSEMBLY NO.2301B)", [
+  ["1010100002", "WIRE,STEEL STRANDED 25 sq.mm.TIS.404", "ม.", 0.6],
+  ["1010110206", "BOLT,MACHINE M.16x400 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 2],
+  ["1020440112", "BLACKET, FOR AERIAL CABLE CORNER SUPPORT, 22 KV. AND 33 KV. DWG.NO.SA4-015/44007", "ชิ้น", 1],
+  ["1030010002", "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST", "ชิ้น", 3]
+]);
+sets["20201"] = set("20201", "X-ARM-C, 3-P, SP 0-5 (ASSEMBLY NO.2802/A)", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 1],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.35],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 2],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 5],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 3],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200001", "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 3]
+]);
+sets["20231"] = set("20231", "A-ARM-C, 3-P, SP 0-5 (ASSEMBLY NO.2803/A)", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 1],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.3],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 1],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 4],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 3],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200004", "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 1],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 3]
+]);
+
+// MV 3P curve heads
+sets["20202"] = set("20202", "X-ARM-C, 3-P, DP 5-30 (ASSEMBLY NO. 2802/B)", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 2],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.65],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 2],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010110206", "BOLT,MACHINE M.16x400 mm.", "ชุด", 1],
+  ["1010120001", "BOLT,DOUBLE ARMING,M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 13],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 6],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200001", "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.", "ชิ้น", 2],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 2],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 6]
+]);
+sets["20232"] = set("20232", "A-ARM-C, 3-P, DP 5-30 (ASSEMBLY NO.2803/B)", [
+  ["1000110001", "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.", "ชิ้น", 2],
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.5],
+  ["1010110200", "BOLT,MACHINE M.16x130 mm.", "ชุด", 1],
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010110206", "BOLT,MACHINE M.16x400 mm.", "ชุด", 1],
+  ["1010120001", "BOLT,DOUBLE ARMING,M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 12],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 6],
+  ["1010180301", "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259", "ชิ้น", 1],
+  ["1010200004", "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 2],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 6]
+]);
+
+// MV start heads
+sets["20111"] = set("20111", "X-ARM-C, 1-P, DEAD END CONNECTION", [
+  ["1010180001", "NUT,EYE M.16 DIN 582", "ชิ้น", 2],
+  ["1030010101", "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST", "ชิ้น", 2],
+  ["1030020000", "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354", "ชิ้น", 6]
+]);
+sets["20246"] = set("20246", "X-ARM-C, 3-P, 1 CIRCUIT, DEAD END CONNECTION FOR SAC (ASSEMBLY NO.2319)", [
+  ["1010100000", "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71", "กก.", 0.4],
+  ["1010180001", "NUT,EYE M.16 DIN 582", "ชิ้น", 4],
+  ["1010180201", "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.", "ชิ้น", 6],
+  ["1010210304", "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.", "ชิ้น", 1],
+  ["1010230000", "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)", "ชุด", 4],
+  ["1030010002", "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST", "ชิ้น", 6],
+  ["1030020000", "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354", "ชิ้น", 9]
+]);
+
+// LV 1P/3P rack sets - helper for rack pattern
+function lvRack(id, name, bolt, boltQty, tieKg, insQty, rackId, rackName) {
+  return set(id, name, [
+    [bolt, "BOLT,MACHINE " + (bolt.includes("170") ? "M.16x170 mm." : bolt.includes("250") ? "M.16x250 mm." : bolt.includes("300") ? "M.16x300 mm." : bolt.includes("350") ? "M.16x350 mm." : "M.16x450 mm."), "ชุด", boltQty],
+    ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", boltQty],
+    ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", tieKg],
+    ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", insQty],
+    [rackId, rackName, "ชิ้น", 1]
+  ]);
+}
+
+// LV sets - defined explicitly per prompt
+sets["10021"] = set("10021", "RACK 2 INST. ON LT. POLE, 0-5 DEGREE", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.13],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10031"] = set("10031", "CLEVIS, FLAT STEEL INST. ON LT. POLE, INSULATOR TANGENT", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.07],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10121"] = set("10121", "RACK 2 INST. UNDER HT. (12 M.), 0-5 DEGREE", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.13],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10131"] = set("10131", "CLEVIS, FLAT STEEL INST. UNDER HT. (12 M.), INSULATOR TANGENT", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.07],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10421"] = set("10421", "RACK 2 INST. UNDER HT. (12.20 M.), 0-5 DEGREE", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.13],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10431"] = set("10431", "CLEVIS, FLAT STEEL INST. UNDER HT. (12.20 M.), INSULATOR TANGENT", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.07],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10321"] = set("10321", "RACK 2 INST. UNDER HT. (14.30 M.), 0-5 DEGREE", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.13],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10331"] = set("10331", "CLEVIS, FLAT STEEL INST. UNDER HT. (14.30 M.), INSULATOR TANGENT", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.07],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10521"] = set("10521", "RACK 2 INST. UNDER HT. (22 M.), 0-5 DEGREE", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.13],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10531"] = set("10531", "CLEVIS, FLAT STEEL INST. UNDER HT. (22 M.), INSULATOR TANGENT", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.07],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+
+// LV 3P rack 4
+sets["10001"] = set("10001", "RACK 4 INST. ON LT. POLE, 0-5 DEGREE", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.25],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10101"] = set("10101", "RACK 4 INST. UNDER HT. (12 M.), 0-5 DEGREE", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.25],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10401"] = set("10401", "RACK 4 INST. UNDER HT. (12.20 M.), 0-5 DEGREE", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.25],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10301"] = set("10301", "RACK 4 INST. UNDER HT. (14.30 M.), 0-5 DEGREE", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.25],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10501"] = set("10501", "RACK 4 INST. UNDER HT. (22 M.), 0-5 DEGREE", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020200002", "TIE WIRE,AL 4 mm.", "กก.", 0.25],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+
+// LV start DE sets
+sets["10004"] = set("10004", "RACK 4 INST. ON LT. POLE, DE 50-70 SQ.MM.", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 3],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 3],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.12],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 4],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10024"] = set("10024", "RACK 2 INST. ON LT. POLE, DE 50-70 SQ.MM.", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 1],
+  ["1010110202", "BOLT,MACHINE M.16x200 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.06],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 2],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10033"] = set("10033", "CLEVIS, FLAT STEEL INST. ON LT. POLE, INSULATOR DE 50-70 SQ.MM.", [
+  ["1010110201", "BOLT,MACHINE M.16x170 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.03],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 1],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10104"] = set("10104", "RACK 4 INST. UNDER HT. (12 M.), DE 50-70 SQ.MM.", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 4],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 3],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.12],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 4],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10124"] = set("10124", "RACK 2 INST. UNDER HT. (12 M.), DE 50-70 SQ.MM.", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 2],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.06],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 2],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10133"] = set("10133", "CLEVIS, FLAT STEEL INST. UNDER HT. (12 M.), INSULATOR DE 50-70 SQ.MM.", [
+  ["1010110203", "BOLT,MACHINE M.16x250 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020180001", "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386", "ม้วน", 0.03],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 1],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10404"] = set("10404", "RACK 4 INST. UNDER HT. (12.20 M.), DE 50-70 SQ.MM.", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 4],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 3],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 4],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10424"] = set("10424", "RACK 2 INST. UNDER HT. (12.20 M.), DE 50-70 SQ.MM.", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 2],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10433"] = set("10433", "CLEVIS, FLAT STEEL INST. UNDER HT. (12.20 M.), INSULATOR DE 50-70 SQ.MM.", [
+  ["1010110204", "BOLT,MACHINE M.16x300 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 1],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10304"] = set("10304", "RACK 4 INST. UNDER HT. (14.30 M.), DE 50-70 SQ.MM.", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 4],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 3],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 4],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10324"] = set("10324", "RACK 2 INST. UNDER HT. (14.30 M.), DE 50-70 SQ.MM.", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 2],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10333"] = set("10333", "CLEVIS, FLAT STEEL INST. UNDER HT. (14.30 M.), INSULATOR DE 50-70 SQ.MM.", [
+  ["1010110205", "BOLT,MACHINE M.16x350 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 1],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+sets["10504"] = set("10504", "RACK 4 INST. UNDER HT. (22 M.), DE 50-70 SQ.MM.", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 4],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 3],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 4],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 4],
+  ["1030130002", "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")", "ชิ้น", 1]
+]);
+sets["10524"] = set("10524", "RACK 2 INST. UNDER HT. (22 M.), DE 50-70 SQ.MM.", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 2],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 2],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 2],
+  ["1030130000", "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")", "ชิ้น", 1]
+]);
+sets["10533"] = set("10533", "CLEVIS, FLAT STEEL INST. UNDER HT. (22 M.), INSULATOR DE 50-70 SQ.MM.", [
+  ["1010110207", "BOLT,MACHINE M.16x450 mm.", "ชุด", 1],
+  ["1010180100", "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258", "ชิ้น", 1],
+  ["1020260301", "PREFORMED D/E, AW 50 SQ.MM.", "ชิ้น", 1],
+  ["1030030000", "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227", "ชิ้น", 1],
+  ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
+]);
+
+const mvCables = [
+  ["1020010000", "CONDUCTOR,AL.,BARE 25 SQ.MM.TIS.85"],
+  ["1020010001", "CONDUCTOR,AL,BARE 35 sq.mm.TIS.85"],
+  ["1020010002", "CONDUCTOR,AL,BARE 50/7 sq.mm.TIS.85"],
+  ["1020010003", "CONDUCTOR,AL.BARE 70 SQ.MM.TIS.85"],
+  ["1020010004", "CONDUCTOR,AL,BARE 95 sq.mm.TIS.85"],
+  ["1020010005", "CONDUCTOR,AL,BARE 120 sq.mm.TIS.85"],
+  ["1020010007", "CONDUCTOR,AL,BARE 185 sq.mm.TIS.85"],
+  ["1020010008", "CONDUCTOR,AL.BARE 240 SQ.MM. TIS.85"],
+  ["1020010009", "CONDUCTOR,AL,BARE,400 SQ.MM.TIS.85"],
+  ["1020010010", "CONDUCTOR,AL.BARE 625 SQ.MM. TIS.85"],
+  ["1020020001", "CONDUCTOR,ACSR 35/6 sq.mm.TIS.86"],
+  ["1020020002", "CONDUCTOR,ACSR 50/8 sq.mm.TIS.86"],
+  ["1020020003", "CONDUCTOR,ACSR 70/12 SQ.MM.TIS.85"],
+  ["1020020004", "CONDUCTOR,ACSR 95/15 sq.mm.TIS.86"],
+  ["1020020005", "CONDUCTOR,ACSR 120/20 sq.mm.TIS.86"],
+  ["1020020007", "CONDUCTOR,ACSR 185/30 sq.mm.TIS.86"],
+  ["1020020008", "CONDUCTOR, ACSR 380/50 SQ.MM. TIS.86"],
+  ["1020030001", "CONDUCTOR,AL-ALLOY 35 sq.mm.TIS.725"],
+  ["1020030002", "CONDUCTOR,AL-ALLOY 50/7 sq.mm.TIS.725"],
+  ["1020030003", "CONDUCTOR,AL-ALLOY 70 SQ.MM.TIS.725"],
+  ["1020030004", "CONDUCTOR,AL-ALLOY 95 sq.mm.TIS.725"],
+  ["1020030005", "CONDUCTOR,ALUMINIUM-ALLOY 120 SQ.MM.TIS.725"],
+  ["1020030007", "CONDUCTOR,ALUMINIUM-ALLOY 185 SQ.MM. TIS.725"],
+  ["1020040000", "CABLE,UG,CU 22 KV. 1X35 SQ.MM."],
+  ["1020040001", "CABLE,UNDER GROUND,CU.22 KV. 1X50 SQ.MM."],
+  ["1020040003", "CABLE,UG,CU 22 KV. 1X95 SQ.MM."],
+  ["1020040006", "CABLE, UNDERGROUND, CU 22KV. 1X185 SQ.MM."],
+  ["1020040007", "CABLE,UNDER GROUND,CU.22 KV. 1X240 SQ.MM."],
+  ["1020040008", "CABLE,UNDER GROUND,CU.22 KV. 1X500 SQ.MM."],
+  ["1020040009", "CABLE, UNDER GROUND, CU. 22 KV. 1X400 SQ.MM."],
+  ["1020040101", "CABLE,UNDER GROUND,CU.33 KV. 1X50 SQ.MM."],
+  ["1020040107", "CABLE,UNDER GROUND,CU.33 KV. 1X240 SQ.MM."],
+  ["1020040108", "CABLE, UNDER GROUND, CU. 33 KV. 1X400 SQ.MM."],
+  ["1020040109", "CABLE,UNDERGROUD,CU 33 KV. 1x500 SQ.MM."],
+  ["1020040200", "CABLE UNDERGROUND CU 115 KV. 1X800 SQ.MM."],
+  ["1020040301", "CABLE,UNDERGROUND CV,0.6/1 KV 1X50 SQ.MM"],
+  ["1020040303", "CABLE,UNDERGROUND CV,0.6/1 KV 1X95 SQ.MM"],
+  ["1020040306", "CABLE ,UNDERGROUND CV ,0.6/1 KV 1X185 SQ.MM."],
+  ["1020040310", "CABLE,UG,CV,0.6/1 KV.1X16 SQ.MM"],
+  ["1020050000", "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm."],
+  ["1020050001", "CABLE,AERIAL,AL 22 kV. 1x95 sq.mm."],
+  ["1020050002", "CABLE,AERIAL,AL 22 kV. 1x120 sq.mm."],
+  ["1020050003", "CABLE,AERIAL,AL 22 KV. 1X150 SQ.MM."],
+  ["1020050004", "CABLE,AERIAL,AL 22 kV. 1x185 sq.mm."],
+  ["1020050005", "CABLE,AERIAL,AL 22 kV. 1x240 sq.mm."],
+  ["1020050100", "CABLE,AERIAL,AL 33 kV. 1x50 sq.mm."],
+  ["1020050101", "CABLE,AERIAL,AL 33 kV. 1x95 sq.mm."],
+  ["1020050102", "CABLE,AERIAL,AL 33 kV. 1x120 sq.mm."],
+  ["1020050103", "CABLE,AERIAL,AL 33 KV. 1X150 SQ.MM."],
+  ["1020050104", "CABLE,AERIAL,AL 33 kV. 1x185 sq.mm."],
+  ["1020050105", "CABLE,AERIAL,AL 33 kV. 1x240 sq.mm."]
+].map(([id, name]) => ({ id, name }));
+
+const lvCables = [
+  ["1020010000", "CONDUCTOR,AL.,BARE 25 SQ.MM.TIS.85"],
+  ["1020010001", "CONDUCTOR,AL,BARE 35 sq.mm.TIS.85"],
+  ["1020010002", "CONDUCTOR,AL,BARE 50/7 sq.mm.TIS.85"],
+  ["1020010003", "CONDUCTOR,AL.BARE 70 SQ.MM.TIS.85"],
+  ["1020010004", "CONDUCTOR,AL,BARE 95 sq.mm.TIS.85"],
+  ["1020010005", "CONDUCTOR,AL,BARE 120 sq.mm.TIS.85"],
+  ["1020010007", "CONDUCTOR,AL,BARE 185 sq.mm.TIS.85"],
+  ["1020010008", "CONDUCTOR,AL.BARE 240 SQ.MM. TIS.85"],
+  ["1020010009", "CONDUCTOR,AL,BARE,400 SQ.MM.TIS.85"],
+  ["1020010010", "CONDUCTOR,AL.BARE 625 SQ.MM. TIS.85"],
+  ["1020070000", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 25 DQ.MM. TIS.293"],
+  ["1020070001", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 35 SQ.MM.TIS.293"],
+  ["1020070002", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 50 SQ.MM. TIS.293"],
+  ["1020070003", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 70 SQ.MM. TIS.293"],
+  ["1020070004", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 95 SQ.MM. TIS.293"],
+  ["1020070005", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 120 SQ.MM.TIS.293"],
+  ["1020070006", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 150 SQ.MM. TIS.293"],
+  ["1020070007", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 185 SQ.MM. TIS.293"],
+  ["1020070008", "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 240 SQ.MM. TIS.293"]
+].map(([id, name]) => ({ id, name }));
+
+function section(headSetIds, cableIds, ohgwSetIds, defaults) {
+  return { headSetIds, cableIds, ohgwSetIds, defaults };
+}
+
+const configs = {
+  mv1p: {
+    key: "mv1p",
+    label: "MV 1P",
+    voltage: "mv",
+    phase: "1p",
+    wireMultiplier: 2,
+    hasOhgw: true,
+    poleDefault: "1000010012",
+    startHeadSetIds: ["20111", "20246"],
+    straight: section(
+      ["20101", "20131"],
+      mvCables.map(c => c.id),
+      ["23085", "25251", "25263", "25264"],
+      { poleMaterialId: "1000010012", headMaterialId: "20101", cableMaterialId: "1020050000", ohgwSetId: "25263", ohgwInstall: true }
+    ),
+    curve: section(
+      ["20102", "20132"],
+      mvCables.map(c => c.id),
+      ["25262", "25265", "25266"],
+      { poleMaterialId: "1000010012", headMaterialId: "20102", cableMaterialId: "1020050000", ohgwSetId: "25262", ohgwInstall: true }
+    )
+  },
+  mv3p: {
+    key: "mv3p",
+    label: "MV 3P",
+    voltage: "mv",
+    phase: "3p",
+    wireMultiplier: 3,
+    hasOhgw: true,
+    poleDefault: "1000010012",
+    startHeadSetIds: ["20111", "20246"],
+    straight: section(
+      ["20520", "20521", "20201", "20231"],
+      mvCables.map(c => c.id),
+      ["25262", "25265", "25266"],
+      { poleMaterialId: "1000010012", headMaterialId: "20201", cableMaterialId: "1020050000", ohgwSetId: "25262", ohgwInstall: true }
+    ),
+    curve: section(
+      ["20202", "20232", "20520", "20521"],
+      mvCables.map(c => c.id),
+      ["25262", "25265", "25266"],
+      { poleMaterialId: "1000010012", headMaterialId: "20202", cableMaterialId: "1020050000", ohgwSetId: "25262", ohgwInstall: true }
+    )
+  },
+  lv1p: {
+    key: "lv1p",
+    label: "LV 1P",
+    voltage: "lv",
+    phase: "1p",
+    wireMultiplier: 2,
+    hasOhgw: false,
+    poleDefault: "1000010001",
+    startHeadSetIds: ["10004", "10024", "10033", "10104", "10124", "10133", "10404", "10424", "10433", "10304", "10324", "10333", "10504", "10524", "10533"],
+    straight: section(
+      ["10021", "10031", "10121", "10131", "10421", "10431", "10321", "10331", "10521", "10531"],
+      lvCables.map(c => c.id),
+      [],
+      { poleMaterialId: "1000010001", headMaterialId: "10021", cableMaterialId: "1020070002", ohgwSetId: "", ohgwInstall: false }
+    ),
+    curve: section(
+      ["10021", "10031", "10121", "10131", "10421", "10431", "10321", "10331", "10521", "10531"],
+      lvCables.map(c => c.id),
+      [],
+      { poleMaterialId: "1000010001", headMaterialId: "10021", cableMaterialId: "1020070002", ohgwSetId: "", ohgwInstall: false }
+    )
+  },
+  lv3p: {
+    key: "lv3p",
+    label: "LV 3P",
+    voltage: "lv",
+    phase: "3p",
+    wireMultiplier: 4,
+    hasOhgw: false,
+    poleDefault: "1000010001",
+    startHeadSetIds: ["10004", "10024", "10033", "10104", "10124", "10133", "10404", "10424", "10433", "10304", "10324", "10333", "10504", "10524", "10533"],
+    straight: section(
+      ["10001", "10031", "10101", "10131", "10401", "10431", "10301", "10331", "10501", "10531"],
+      lvCables.map(c => c.id),
+      [],
+      { poleMaterialId: "1000010001", headMaterialId: "10001", cableMaterialId: "1020070002", ohgwSetId: "", ohgwInstall: false }
+    ),
+    curve: section(
+      ["10001", "10031", "10101", "10131", "10401", "10431", "10301", "10331", "10501", "10531"],
+      lvCables.map(c => c.id),
+      [],
+      { poleMaterialId: "1000010001", headMaterialId: "10001", cableMaterialId: "1020070002", ohgwSetId: "", ohgwInstall: false }
+    )
+  }
+};
+
+const output = `/* Auto-generated survey presets — Prompt 2026-06-19 */
+window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables }, null, 2)};
+
+window.SurveyPresetsApi = {
+  getConfigKey(voltage, phase) {
+    if (!voltage || !phase) return null;
+    return \`\${voltage}\${phase}\`;
+  },
+  getConfig(voltage, phase) {
+    const key = this.getConfigKey(voltage, phase);
+    return key ? window.SURVEY_PRESETS.configs[key] || null : null;
+  },
+  getSet(setId) {
+    return window.SURVEY_PRESETS.sets[String(setId)] || null;
+  },
+  getSetOptions(setIds) {
+    return (setIds || []).map(id => window.SURVEY_PRESETS.sets[id]).filter(Boolean);
+  },
+  getCableOptions(config, sectionKey) {
+    if (!config) return [];
+    const ids = config[sectionKey]?.cableIds || [];
+    const pool = config.voltage === "lv" ? window.SURVEY_PRESETS.lvCables : window.SURVEY_PRESETS.mvCables;
+    return pool.filter(c => ids.includes(c.id));
+  },
+  formatSetLabel(setObj) {
+    return setObj ? \`\${setObj.id}\\t\${setObj.name}\` : "";
+  },
+  formatCableLabel(item) {
+    return item ? \`\${item.id}\\t\${item.name}\` : "";
+  }
+};
+`;
+
+const outPath = path.join(__dirname, "..", "survey-presets.js");
+fs.writeFileSync(outPath, output, "utf8");
+console.log("Wrote", outPath, "sets:", Object.keys(sets).length);

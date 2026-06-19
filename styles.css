@@ -1358,6 +1358,121 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   background: rgba(255, 255, 255, 0.06);
 }
 
+.survey-system-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.survey-system-step {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.survey-system-step.is-collapsed .survey-choice-row {
+  display: none;
+}
+
+.survey-system-step.is-locked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.survey-system-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.survey-system-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #03111f;
+  background: linear-gradient(135deg, var(--gold), var(--primary-soft));
+}
+
+.survey-system-step-title {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.survey-system-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(113, 232, 255, 0.12);
+  border: 1px solid rgba(113, 232, 255, 0.25);
+  color: var(--primary-soft);
+}
+
+.survey-system-edit {
+  border: none;
+  background: transparent;
+  color: var(--primary-soft);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.survey-choice-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.survey-choice-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 12px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.survey-choice-btn.active {
+  color: #03111f;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--gold), var(--primary-soft));
+}
+
+.survey-ohgw-row {
+  display: grid;
+  gap: 8px;
+}
+
+.survey-ohgw-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.survey-ohgw-check input {
+  width: 16px;
+  height: 16px;
+}
+
+.survey-ohgw-field.is-hidden {
+  display: none;
+}
+
 .survey-defaults-panel {
   margin-bottom: 12px;
   padding: 12px;

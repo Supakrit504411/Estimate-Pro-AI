@@ -138,7 +138,35 @@
             <span class="mini-tag">Span Map</span>
           </div>
 
-          <div id="surveyDefaultsPanel" class="survey-defaults-panel">
+          <div id="surveySystemPanel" class="survey-system-panel">
+            <div id="surveyVoltageStep" class="survey-system-step">
+              <div class="survey-system-step-head">
+                <span class="survey-system-step-num">1</span>
+                <span class="survey-system-step-title">เลือกระบบแรงดัน</span>
+                <span id="surveyVoltageBadge" class="survey-system-badge hidden"></span>
+                <button id="surveyVoltageEdit" class="survey-system-edit hidden" type="button">แก้ไข</button>
+              </div>
+              <div id="surveyVoltageChoices" class="survey-choice-row">
+                <button class="survey-choice-btn" type="button" data-voltage="mv">MV</button>
+                <button class="survey-choice-btn" type="button" data-voltage="lv">LV</button>
+              </div>
+            </div>
+
+            <div id="surveyPhaseStep" class="survey-system-step is-locked hidden">
+              <div class="survey-system-step-head">
+                <span class="survey-system-step-num">2</span>
+                <span class="survey-system-step-title">เลือกระบบเฟส</span>
+                <span id="surveyPhaseBadge" class="survey-system-badge hidden"></span>
+                <button id="surveyPhaseEdit" class="survey-system-edit hidden" type="button">แก้ไข</button>
+              </div>
+              <div id="surveyPhaseChoices" class="survey-choice-row">
+                <button class="survey-choice-btn" type="button" data-phase="1p">1P</button>
+                <button class="survey-choice-btn" type="button" data-phase="3p">3P</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="surveyDefaultsPanel" class="survey-defaults-panel hidden">
             <div class="survey-defaults-head">
               <span class="survey-defaults-title">ค่า Default พัสดุ</span>
               <span class="optional-tag">ไม่บังคับ</span>
@@ -159,6 +187,16 @@
                   <label for="surveyDefaultStraightCable">สายไฟ (รหัสพัสดุ)</label>
                   <select id="surveyDefaultStraightCable" data-default-group="straight" data-default-field="cableMaterialId"></select>
                 </div>
+                <div class="survey-field survey-ohgw-field" data-ohgw-group="straight">
+                  <label for="surveyDefaultStraightOhgw">OHGW (ชุด Set)</label>
+                  <div class="survey-ohgw-row">
+                    <label class="survey-ohgw-check">
+                      <input type="checkbox" id="surveyDefaultStraightOhgwInstall" data-default-group="straight" data-default-field="ohgwInstall" checked>
+                      <span>ติดตั้ง</span>
+                    </label>
+                    <select id="surveyDefaultStraightOhgw" data-default-group="straight" data-default-field="ohgwSetId"></select>
+                  </div>
+                </div>
               </div>
               <div class="survey-defaults-group is-curve">
                 <h3 class="survey-defaults-label">ทางโค้ง</h3>
@@ -173,6 +211,16 @@
                 <div class="survey-field">
                   <label for="surveyDefaultCurveCable">สายไฟ (รหัสพัสดุ)</label>
                   <select id="surveyDefaultCurveCable" data-default-group="curve" data-default-field="cableMaterialId"></select>
+                </div>
+                <div class="survey-field survey-ohgw-field" data-ohgw-group="curve">
+                  <label for="surveyDefaultCurveOhgw">OHGW (ชุด Set)</label>
+                  <div class="survey-ohgw-row">
+                    <label class="survey-ohgw-check">
+                      <input type="checkbox" id="surveyDefaultCurveOhgwInstall" data-default-group="curve" data-default-field="ohgwInstall" checked>
+                      <span>ติดตั้ง</span>
+                    </label>
+                    <select id="surveyDefaultCurveOhgw" data-default-group="curve" data-default-field="ohgwSetId"></select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -274,6 +322,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="./config.js"></script>
+  <script src="./survey-presets.js"></script>
   <script src="./services.js"></script>
   <script src="./app.js"></script>
   <script src="./survey.js"></script>
