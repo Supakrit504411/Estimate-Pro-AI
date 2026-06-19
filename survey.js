@@ -1339,12 +1339,34 @@
     return isCurvePole(pole) ? state.defaults.curve : state.defaults.straight;
   }
 
+  function getSpecialPoleKind(pole) {
+    if (pole.source === "end") return "end";
+    if (pole.source === "curve_in" || pole.source === "curve_out") return "curve";
+    return null;
+  }
+
+  function getSpecialPoleRule(kind) {
+    const key = presetsApi.getConfigKey(state.voltageType, state.phaseType);
+    return kind ? presetsApi.getSpecialPoleRule(key, kind) : null;
+  }
+
+  function getSpecialPoleRulesRoot() {
+    const key = presetsApi.getConfigKey(state.voltageType, state.phaseType);
+    return presetsApi.getSpecialPoleRules(key);
+  }
+
   function markPoleSpecFilled(pole) {
     if (pole.source === "start") {
       pole.specFilled = Boolean(pole.headMaterialId && pole.cableMaterialId);
       return;
     }
-    pole.specFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
+    const specialKind = getSpecialPoleKind(pole);
+    const baseFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
+    if (specialKind) {
+      pole.specFilled = baseFilled && Boolean(pole.guySetId);
+      return;
+    }
+    pole.specFilled = baseFilled;
   }
 
   function applyDefaultSpecs() {
@@ -1371,6 +1393,57 @@
         changed = true;
       }
 
+      if (changed) appliedCount += 1;
+      markPoleSpecFilled(pole);
+    });
+
+    return appliedCount;
+  }
+
+  function applySpecialPoleSpecs() {
+    let appliedCount = 0;
+
+    state.poles.forEach(pole => {
+      const kind = getSpecialPoleKind(pole);
+      const rule = getSpecialPoleRule(kind);
+      if (!rule) return;
+
+      let changed = false;
+
+      if (rule.headDefault) {
+        pole.headMaterialId = rule.headDefault;
+        changed = true;
+      }
+      if (rule.ohgwDefault && getPresetConfig()?.hasOhgw) {
+        pole.ohgwSetId = rule.ohgwDefault;
+        changed = true;
+      }
+      if (rule.guyDefault && !pole.guySetId) {
+        pole.guySetId = rule.guyDefault;
+        changed = true;
+      }
+      if (rule.concrete) {
+        pole.concreteMaterialId = rule.concrete.materialId;
+        pole.concreteQty = rule.concrete.qty;
+        changed = true;
+      }
+      if (kind === "end") {
+        if (rule.groundingSetId) {
+          pole.groundingSetId = rule.groundingSetId;
+          changed = true;
+        }
+        if (rule.surgeSetId) {
+          pole.surgeSetId = rule.surgeSetId;
+          changed = true;
+        }
+        if (rule.surgeArresterId) {
+          pole.surgeArresterId = rule.surgeArresterId;
+          pole.surgeArresterQty = rule.surgeArresterQty || 0;
+          changed = true;
+        }
+      }
+
+      pole.specialKind = kind;
       if (changed) appliedCount += 1;
       markPoleSpecFilled(pole);
     });
@@ -1443,6 +1516,14 @@
       poleMaterialId: "",
       cableMaterialId: "",
       ohgwSetId: "",
+      guySetId: "",
+      concreteMaterialId: "",
+      concreteQty: 0,
+      groundingSetId: "",
+      surgeSetId: "",
+      surgeArresterId: "",
+      surgeArresterQty: 0,
+      specialKind: "",
       specFilled: false
     };
   }
@@ -1542,6 +1623,7 @@
     state.phase = "spec";
     state.placeMode = null;
     const appliedCount = applyDefaultSpecs();
+    applySpecialPoleSpecs();
 
     setMapActiveMode(false);
     collapseMobileToolbar();
@@ -1618,12 +1700,7 @@
   }
 
   function allSpecsFilled() {
-    return state.poles.length > 0 && state.poles.every(pole => {
-      if (pole.source === "start") {
-        return pole.headMaterialId && pole.cableMaterialId;
-      }
-      return pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId;
-    });
+    return state.poles.length > 0 && state.poles.every(pole => pole.specFilled);
   }
 
   function createNumberIcon(number, source) {
@@ -1747,16 +1824,38 @@
 
     els.poleList.innerHTML = state.poles.map(pole => {
       const isStart = pole.source === "start";
+      const specialKind = getSpecialPoleKind(pole);
+      const specialRule = getSpecialPoleRule(specialKind);
       const sectionKey = isCurvePole(pole) ? "curve" : "straight";
       const catalogs = getSectionCatalogs(sectionKey);
       const headSets = isStart
         ? presetsApi.getSetOptions(config?.startHeadSetIds || [])
-        : catalogs.headSets;
+        : specialRule
+          ? presetsApi.getSetOptions(specialRule.headSetIds || [])
+          : catalogs.headSets;
+      const ohgwSets = specialRule && config?.hasOhgw
+        ? presetsApi.getSetOptions(specialRule.ohgwSetIds || [])
+        : catalogs.ohgwSets;
+      const guySets = specialRule ? presetsApi.getSetOptions(specialRule.guySetIds || []) : [];
       const headLabel = pole.headMaterialId ? getSetLabel(pole.headMaterialId) : "";
+      const autoNotes = [];
+
+      if (specialRule?.concrete?.materialId) {
+        autoNotes.push(`คอนกรีต ${specialRule.concrete.materialId} × ${specialRule.concrete.qty}`);
+      }
+      if (specialKind === "end" && specialRule?.groundingSetId) {
+        autoNotes.push(`Grounding SET ${specialRule.groundingSetId}`);
+      }
+      if (specialKind === "end" && specialRule?.surgeSetId) {
+        autoNotes.push(`Surge SET ${specialRule.surgeSetId}`);
+      }
+      if (specialKind === "end" && specialRule?.surgeArresterId) {
+        autoNotes.push(`Surge ${specialRule.surgeArresterId} × ${specialRule.surgeArresterQty}`);
+      }
 
       return `
-        <div class="survey-pole-card ${isStart ? "is-start" : ""}" data-pole-id="${pole.id}">
-          <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
+        <div class="survey-pole-card ${isStart ? "is-start" : ""} ${specialKind ? "is-special" : ""}" data-pole-id="${pole.id}">
+          <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}${specialKind ? ` <span class="survey-tag">${specialKind === "end" ? "เสาต้นสุดท้าย" : "เสาโค้ง"}</span>` : ""}</div>
           ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${escapeHtml(headLabel)} (กำหนดตอนปักหมุด 0)</div>` : `
           <div class="survey-field">
             <label>เสา (รหัสพัสดุ)</label>
@@ -1772,6 +1871,14 @@
               ${renderSetOptions(headSets, pole.headMaterialId)}
             </select>
           </div>
+          ${specialRule ? `
+          <div class="survey-field">
+            <label>Guy (ชุด Set)</label>
+            <select data-field="guySetId" data-pole-id="${pole.id}">
+              <option value="">-- เลือก Guy --</option>
+              ${renderSetOptions(guySets, pole.guySetId)}
+            </select>
+          </div>` : ""}
           <div class="survey-field">
             <label>สายไฟ (รหัสพัสดุ)</label>
             <select data-field="cableMaterialId" data-pole-id="${pole.id}">
@@ -1784,9 +1891,10 @@
             <label>OHGW (ชุด Set)</label>
             <select data-field="ohgwSetId" data-pole-id="${pole.id}">
               <option value="">-- ไม่ติดตั้ง --</option>
-              ${renderSetOptions(catalogs.ohgwSets, pole.ohgwSetId)}
+              ${renderSetOptions(ohgwSets, pole.ohgwSetId)}
             </select>
           </div>` : ""}
+          ${autoNotes.length ? `<div class="survey-pole-meta survey-auto-spec">${autoNotes.map(n => escapeHtml(n)).join(" · ")}</div>` : ""}
         </div>
       `;
     }).join("");
@@ -1877,14 +1985,38 @@
     });
   }
 
+  function addMaterialToCounts(counts, materialId, qty) {
+    if (!materialId || !qty) return;
+    const key = `mat:${materialId}`;
+    counts[key] = (counts[key] || 0) + qty;
+  }
+
+  function addLvIntervalSurges(counts) {
+    const rules = getSpecialPoleRulesRoot();
+    const intervalM = rules?.surgeIntervalM;
+    const setId = rules?.intervalSurgeSetId;
+    if (!intervalM || !setId) return;
+
+    let traveled = 0;
+    let nextAt = intervalM;
+
+    for (let i = 1; i < state.poles.length; i++) {
+      const seg = distanceMeters(state.poles[i - 1], state.poles[i]);
+      while (traveled + seg >= nextAt) {
+        addSetToCounts(counts, setId, 1);
+        nextAt += intervalM;
+      }
+      traveled += seg;
+    }
+  }
+
   function buildBomLines() {
     const counts = {};
     const wireMult = getWireMultiplier();
 
     state.poles.forEach((pole, index) => {
       if (pole.source !== "start" && pole.poleMaterialId) {
-        const key = `mat:${pole.poleMaterialId}`;
-        counts[key] = (counts[key] || 0) + 1;
+        addMaterialToCounts(counts, pole.poleMaterialId, 1);
       }
       if (pole.headMaterialId) {
         addSetToCounts(counts, pole.headMaterialId, 1);
@@ -1897,7 +2029,24 @@
       if (pole.ohgwSetId) {
         addSetToCounts(counts, pole.ohgwSetId, 1);
       }
+      if (pole.guySetId) {
+        addSetToCounts(counts, pole.guySetId, 1);
+      }
+      if (pole.concreteMaterialId && pole.concreteQty) {
+        addMaterialToCounts(counts, pole.concreteMaterialId, pole.concreteQty);
+      }
+      if (pole.groundingSetId) {
+        addSetToCounts(counts, pole.groundingSetId, 1);
+      }
+      if (pole.surgeSetId) {
+        addSetToCounts(counts, pole.surgeSetId, 1);
+      }
+      if (pole.surgeArresterId && pole.surgeArresterQty) {
+        addMaterialToCounts(counts, pole.surgeArresterId, pole.surgeArresterQty);
+      }
     });
+
+    addLvIntervalSurges(counts);
 
     const lines = [];
     Object.entries(counts).forEach(([key, qty]) => {

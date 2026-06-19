@@ -1310,6 +1310,28 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   background: rgba(245, 201, 106, 0.08);
 }
 
+.survey-pole-card.is-special {
+  border-color: rgba(113, 232, 255, 0.28);
+  background: rgba(113, 232, 255, 0.06);
+}
+
+.survey-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #71e8ff;
+  background: rgba(113, 232, 255, 0.12);
+}
+
+.survey-auto-spec {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
 .survey-pole-title {
   font-weight: 700;
   margin-bottom: 8px;

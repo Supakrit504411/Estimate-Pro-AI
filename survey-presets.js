@@ -1,4 +1,4 @@
-/* Auto-generated survey presets — Prompt 2026-06-19 */
+/* Auto-generated survey presets — Prompt 2026-06-19 + GUY/SURGE/GROUND */
 window.SURVEY_PRESETS = {
   "sets": {
     "10001": {
@@ -244,6 +244,132 @@ window.SURVEY_PRESETS = {
           "name": "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227",
           "unit": "ชิ้น",
           "qty": 1
+        }
+      ]
+    },
+    "10052": {
+      "id": "10052",
+      "name": "RACK 4 INST. ON LT. POLE, DDE 50-70 SQ.MM.",
+      "items": [
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 0.8
+        },
+        {
+          "id": "1020260301",
+          "name": "PREFORMED D/E, AW 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1020320012",
+          "name": "H-CONNCTOR,MAIN AL 50-95,TAP AL/CU 50-95",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1030030000",
+          "name": "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1030130002",
+          "name": "RACK,SECONDARY,MEDIUM PRESSED STEEL 4X200 mm.(4x8\")",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "10062": {
+      "id": "10062",
+      "name": "RACK 2 INST. ON LT. POLE, DDE 50-70 SQ.MM.",
+      "items": [
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 0.4
+        },
+        {
+          "id": "1020260301",
+          "name": "PREFORMED D/E, AW 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1020320012",
+          "name": "H-CONNCTOR,MAIN AL 50-95,TAP AL/CU 50-95",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1030030000",
+          "name": "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1030130000",
+          "name": "RACK,SECONDARY,MEDIUM PRESSED STEEL 2X200 mm.(2x8\")",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "10072": {
+      "id": "10072",
+      "name": "CLEVIS, FLAT STEEL INST. ON LT. POLE, INSULATOR DDE 50-70 SQ.MM.",
+      "items": [
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 0.2
+        },
+        {
+          "id": "1020260301",
+          "name": "PREFORMED D/E, AW 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020320012",
+          "name": "H-CONNCTOR,MAIN AL 50-95,TAP AL/CU 50-95",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1030030000",
+          "name": "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1030130100",
+          "name": "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227",
+          "unit": "ชิ้น",
+          "qty": 2
         }
       ]
     },
@@ -1129,6 +1255,324 @@ window.SURVEY_PRESETS = {
         }
       ]
     },
+    "13004": {
+      "id": "13004",
+      "name": "ANCHOR GUY, GY-02, 95 SQ.MM. INSTALL WITH RACK",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 12
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210300",
+          "name": "ANGLE GUY ATTACHMENT 30 DEGREE.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
+    "13014": {
+      "id": "13014",
+      "name": "ANCHOR GUY, GY-02, 95 SQ.MM. INSTALL WITHOUT RACK ON LT. POLE",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 12
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210300",
+          "name": "ANGLE GUY ATTACHMENT 30 DEGREE.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
+    "13034": {
+      "id": "13034",
+      "name": "ANCHOR GUY, GY-02, 95 SQ.MM. INSTALL WITHOUT RACK ON 12 M. POLE",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 12
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210300",
+          "name": "ANGLE GUY ATTACHMENT 30 DEGREE.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
+    "13054": {
+      "id": "13054",
+      "name": "ANCHOR GUY, GY-02, 95 SQ.MM. INSTALL WITHOUT RACK ON 14 M. POLE",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 12
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210300",
+          "name": "ANGLE GUY ATTACHMENT 30 DEGREE.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
+    "14001": {
+      "id": "14001",
+      "name": "LT. LIGHTNING ARRESTER, FOR 2 W (ASSEMBLY NO.0402)",
+      "items": [
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 21
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 0.4
+        },
+        {
+          "id": "1020320012",
+          "name": "H-CONNCTOR,MAIN AL 50-95,TAP AL/CU 50-95",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1040000300",
+          "name": "LIGHTNING ARRESTER 250-500 V. 2.5-5.0 kA.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ]
+    },
+    "14003": {
+      "id": "14003",
+      "name": "LT. LIGHTNING ARRESTER, FOR 3 ph 4 W (ASSEMBLY NO.0402)",
+      "items": [
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 21
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 0.8
+        },
+        {
+          "id": "1020320012",
+          "name": "H-CONNCTOR,MAIN AL 50-95,TAP AL/CU 50-95",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1040000300",
+          "name": "LIGHTNING ARRESTER 250-500 V. 2.5-5.0 kA.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ]
+    },
     "20101": {
       "id": "20101",
       "name": "X-ARM-C, 1-P, SP 0-5 * C",
@@ -1276,6 +1720,132 @@ window.SURVEY_PRESETS = {
           "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
           "unit": "ชิ้น",
           "qty": 4
+        }
+      ]
+    },
+    "20103": {
+      "id": "20103",
+      "name": "X-ARM-C, 1-P, DDE",
+      "items": [
+        {
+          "id": "1000110003",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,000",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 0.8
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180001",
+          "name": "NUT,EYE M.16 DIN 582",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 13
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030010002",
+          "name": "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 12
+        }
+      ]
+    },
+    "20106": {
+      "id": "20106",
+      "name": "X-ARM-C, 1-P, DE",
+      "items": [
+        {
+          "id": "1000110003",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,000",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 14
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 6
         }
       ]
     },
@@ -1453,6 +2023,120 @@ window.SURVEY_PRESETS = {
         }
       ]
     },
+    "20134": {
+      "id": "20134",
+      "name": "A-ARM-C, 1-P, DE",
+      "items": [
+        {
+          "id": "1000110003",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,000",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 10
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ]
+    },
+    "20137": {
+      "id": "20137",
+      "name": "A-ARM-C, 1-P, DDE",
+      "items": [
+        {
+          "id": "1000110003",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,000",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 0.35
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180001",
+          "name": "NUT,EYE M.16 DIN 582",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 13
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 12
+        }
+      ]
+    },
     "20201": {
       "id": "20201",
       "name": "X-ARM-C, 3-P, SP 0-5 (ASSEMBLY NO.2802/A)",
@@ -1600,6 +2284,72 @@ window.SURVEY_PRESETS = {
           "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
           "unit": "ชิ้น",
           "qty": 6
+        }
+      ]
+    },
+    "20213": {
+      "id": "20213",
+      "name": "X-ARM-C, 3-P, DE FOR AERIAL CABLE 22 kV",
+      "items": [
+        {
+          "id": "1000110004",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,50",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 18
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 7
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 9
         }
       ]
     },
@@ -1753,6 +2503,138 @@ window.SURVEY_PRESETS = {
         }
       ]
     },
+    "20234": {
+      "id": "20234",
+      "name": "A-ARM-C, 3-P, DE",
+      "items": [
+        {
+          "id": "1000110003",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,000",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 14
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 9
+        }
+      ]
+    },
+    "20239": {
+      "id": "20239",
+      "name": "X-ARM-C, 3-P, 1 CIRCUIT, DDE FOR SAC (12.20 M.) (ON INSULATORS) (ASSEMBLY NO.2319)",
+      "items": [
+        {
+          "id": "1000110004",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,50",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 1.1
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110208",
+          "name": "BOLT,MACHINE M.16x500 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130002",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x500 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180001",
+          "name": "NUT,EYE M.16 DIN 582",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 20
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1030010002",
+          "name": "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 18
+        }
+      ]
+    },
     "20246": {
       "id": "20246",
       "name": "X-ARM-C, 3-P, 1 CIRCUIT, DEAD END CONNECTION FOR SAC (ASSEMBLY NO.2319)",
@@ -1798,6 +2680,138 @@ window.SURVEY_PRESETS = {
           "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
           "unit": "ชิ้น",
           "qty": 9
+        }
+      ]
+    },
+    "20247": {
+      "id": "20247",
+      "name": "A-ARM-C, 3-P, 1 CIRCUIT, DDE FOR SAC (12 M.) (ON INSULATORS) (ASSEMBLY NO.2319)",
+      "items": [
+        {
+          "id": "1000110004",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN(FOR DEAD-ENDING) 120X120X2,50",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 1.1
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110207",
+          "name": "BOLT,MACHINE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010130001",
+          "name": "BOLT,DOUBLE ARMING,ROUND EYE M.16x450 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010180001",
+          "name": "NUT,EYE M.16 DIN 582",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 20
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1030010002",
+          "name": "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1030020000",
+          "name": "INSULATOR,SUSPENSION TYPE A (CLASS 52-1)TIS.354",
+          "unit": "ชิ้น",
+          "qty": 18
+        }
+      ]
+    },
+    "20509": {
+      "id": "20509",
+      "name": "HT. GROUNDING CONNECTION",
+      "items": [
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 25
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1020200000",
+          "name": "TAPE,ARMOR,AL 1x10 mm.",
+          "unit": "กก.",
+          "qty": 0.2
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
         }
       ]
     },
@@ -1882,6 +2896,180 @@ window.SURVEY_PRESETS = {
           "name": "INSULATOR,LINE-POST TYPE, 22 kV.CLASS 57-2L POWER ARC TEST",
           "unit": "ชิ้น",
           "qty": 3
+        }
+      ]
+    },
+    "23007": {
+      "id": "23007",
+      "name": "DEADEND GUY, GY-22, SIZE 95 SQ.MM., ON 12.2 M. POLE (ASSEMBLY NO. 8452, 8408, 8409)",
+      "items": [
+        {
+          "id": "1000040003",
+          "name": "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 17
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210201",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "23008": {
+      "id": "23008",
+      "name": "DEADEND GUY AND SIDE GUY, GY-22, SIZE 95 SQ.MM., ON 14.3 M. POLE (ASSEMBLY NO. 8452, 8408, 8409)",
+      "items": [
+        {
+          "id": "1000040003",
+          "name": "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 19
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210202",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16X350 MM.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "23084": {
+      "id": "23084",
+      "name": "OHGW DEADEND GUY WITH DEADEND POLE, GY-28B, SIZE 95 SQ.MM., ON 14.3 M. POLE (ASSEMBLY NO. 8459, 8410)",
+      "items": [
+        {
+          "id": "1000040003",
+          "name": "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 21
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 19
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210003",
+          "name": "ROD,ANCHOR,DOUBLE STRAND EYE,M.20, 2,500 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210202",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16X350 MM.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210300",
+          "name": "ANGLE GUY ATTACHMENT 30 DEGREE.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 6
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 4
         }
       ]
     },
@@ -1996,6 +3184,120 @@ window.SURVEY_PRESETS = {
           "name": "GROUND WIRE CLAMP,J.1152",
           "unit": "ชุด",
           "qty": 1
+        }
+      ]
+    },
+    "25256": {
+      "id": "25256",
+      "name": "OVERHEAD GROUND WIRE DE. II (12,14,16 M.)(ASSEMBLY NO.2428)",
+      "items": [
+        {
+          "id": "1010000100",
+          "name": "STEEL CHANNEL, 100x50x5 mm. 2,250 MM.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100002",
+          "name": "WIRE,STEEL STRANDED 25 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 2.5
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010140001",
+          "name": "BOLT, ROUNG EYE M 16X200 MM.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230012",
+          "name": "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.",
+          "unit": "ชุด",
+          "qty": 2
+        }
+      ]
+    },
+    "25258": {
+      "id": "25258",
+      "name": "OVERHEAD GROUND WIRE DDE. II (12,14,16 M.)(ASSEMBLY NO.2427)",
+      "items": [
+        {
+          "id": "1010000100",
+          "name": "STEEL CHANNEL, 100x50x5 mm. 2,250 MM.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100002",
+          "name": "WIRE,STEEL STRANDED 25 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 2.5
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010140001",
+          "name": "BOLT, ROUNG EYE M 16X200 MM.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180001",
+          "name": "NUT,EYE M.16 DIN 582",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230012",
+          "name": "CLAMP, DOUBLE BOLTS, ST. WIRE 25 SQ.MM.",
+          "unit": "ชุด",
+          "qty": 4
         }
       ]
     },
@@ -3064,7 +4366,189 @@ window.SURVEY_PRESETS = {
       "id": "1020070008",
       "name": "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 240 SQ.MM. TIS.293"
     }
-  ]
+  ],
+  "specialPoleRules": {
+    "mv1p": {
+      "end": {
+        "guySetIds": [
+          "23085",
+          "23007",
+          "23008",
+          "23084"
+        ],
+        "guyDefault": "23007",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 1
+        },
+        "headSetIds": [
+          "20106",
+          "20134"
+        ],
+        "headDefault": "20106",
+        "ohgwSetIds": [
+          "25256"
+        ],
+        "ohgwDefault": "25256",
+        "groundingSetId": "20509",
+        "surgeArresterId": "1040000000",
+        "surgeArresterQty": 2
+      },
+      "curve": {
+        "guySetIds": [
+          "23085",
+          "23007",
+          "23008",
+          "23084"
+        ],
+        "guyDefault": "23007",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 1
+        },
+        "headSetIds": [
+          "20103",
+          "20137"
+        ],
+        "headDefault": "20103",
+        "ohgwSetIds": [
+          "25258"
+        ],
+        "ohgwDefault": "25258"
+      }
+    },
+    "mv3p": {
+      "end": {
+        "guySetIds": [
+          "23085",
+          "23007",
+          "23008",
+          "23084"
+        ],
+        "guyDefault": "23007",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 1
+        },
+        "headSetIds": [
+          "20213",
+          "20234"
+        ],
+        "headDefault": "20213",
+        "ohgwSetIds": [
+          "25256"
+        ],
+        "ohgwDefault": "25256",
+        "groundingSetId": "20509",
+        "surgeArresterId": "1040000000",
+        "surgeArresterQty": 3
+      },
+      "curve": {
+        "guySetIds": [
+          "23085",
+          "23007",
+          "23008",
+          "23084"
+        ],
+        "guyDefault": "23007",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 1
+        },
+        "headSetIds": [
+          "20239",
+          "20247"
+        ],
+        "headDefault": "20239",
+        "ohgwSetIds": [
+          "25258"
+        ],
+        "ohgwDefault": "25258"
+      }
+    },
+    "lv1p": {
+      "end": {
+        "guySetIds": [
+          "13004",
+          "13014",
+          "13034",
+          "13054"
+        ],
+        "guyDefault": "13014",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 0.6
+        },
+        "headSetIds": [
+          "10024",
+          "10033"
+        ],
+        "headDefault": "10024",
+        "surgeSetId": "14001"
+      },
+      "curve": {
+        "guySetIds": [
+          "13004",
+          "13014",
+          "13034",
+          "13054"
+        ],
+        "guyDefault": "13014",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 0.6
+        },
+        "headSetIds": [
+          "10062",
+          "10072"
+        ],
+        "headDefault": "10062"
+      },
+      "surgeIntervalM": 400,
+      "intervalSurgeSetId": "14001"
+    },
+    "lv3p": {
+      "end": {
+        "guySetIds": [
+          "13004",
+          "13014",
+          "13034",
+          "13054"
+        ],
+        "guyDefault": "13014",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 0.6
+        },
+        "headSetIds": [
+          "10004",
+          "10033"
+        ],
+        "headDefault": "10004",
+        "surgeSetId": "14003"
+      },
+      "curve": {
+        "guySetIds": [
+          "13004",
+          "13014",
+          "13034",
+          "13054"
+        ],
+        "guyDefault": "13014",
+        "concrete": {
+          "materialId": "9090010025",
+          "qty": 0.6
+        },
+        "headSetIds": [
+          "10052",
+          "10072"
+        ],
+        "headDefault": "10052"
+      },
+      "surgeIntervalM": 400,
+      "intervalSurgeSetId": "14003"
+    }
+  }
 };
 
 window.SurveyPresetsApi = {
@@ -3093,5 +4577,12 @@ window.SurveyPresetsApi = {
   },
   formatCableLabel(item) {
     return item ? `${item.id}\t${item.name}` : "";
+  },
+  getSpecialPoleRules(configKey) {
+    return window.SURVEY_PRESETS.specialPoleRules?.[configKey] || null;
+  },
+  getSpecialPoleRule(configKey, kind) {
+    const rules = this.getSpecialPoleRules(configKey);
+    return rules?.[kind] || null;
   }
 };

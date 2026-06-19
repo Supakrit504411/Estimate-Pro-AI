@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const fs = require("fs");
 const path = require("path");
+const { specialSets, specialPoleRules } = require("./special-pole-data");
 
 function set(id, name, items) {
   return {
@@ -641,8 +642,10 @@ const configs = {
   }
 };
 
-const output = `/* Auto-generated survey presets — Prompt 2026-06-19 */
-window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables }, null, 2)};
+Object.assign(sets, specialSets);
+
+const output = `/* Auto-generated survey presets — Prompt 2026-06-19 + GUY/SURGE/GROUND */
+window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables, specialPoleRules }, null, 2)};
 
 window.SurveyPresetsApi = {
   getConfigKey(voltage, phase) {
@@ -670,6 +673,13 @@ window.SurveyPresetsApi = {
   },
   formatCableLabel(item) {
     return item ? \`\${item.id}\\t\${item.name}\` : "";
+  },
+  getSpecialPoleRules(configKey) {
+    return window.SURVEY_PRESETS.specialPoleRules?.[configKey] || null;
+  },
+  getSpecialPoleRule(configKey, kind) {
+    const rules = this.getSpecialPoleRules(configKey);
+    return rules?.[kind] || null;
   }
 };
 `;
