@@ -302,6 +302,39 @@
     return window.PriceQuoteEngine.mergePoleIntent(intent, result.value);
   }
 
+  function formatPriceAskSource(parseSource) {
+    if (parseSource === "faq") return "คู่มือ";
+    if (parseSource === "gemini-lite") return "AI 3.1 Lite";
+    if (parseSource === "gemini") return "AI 2.5";
+    return "ระบบ";
+  }
+
+  function renderBudgetVerdictBundle(bundle) {
+    if (!bundle) return "";
+    if (bundle.type === "budget_capacity" && bundle.targetDistanceM) {
+      const cls = bundle.budgetVerdict === "short" ? " price-ask-verdict-short" : " price-ask-verdict-ok";
+      if (bundle.budgetVerdict === "enough") {
+        return `<div class="price-ask-bundle${cls}">✓ งบพอ: ระยะ ${bundle.targetDistanceM} ม. (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · เหลือ ~${Math.round(bundle.budgetDelta).toLocaleString()} บาท</div>`;
+      }
+      const maxNote = bundle.maxDistanceM
+        ? ` · ขยายได้สูงสุด ~${bundle.maxDistanceM} ม.`
+        : "";
+      return `<div class="price-ask-bundle${cls}">✗ งบไม่พอ: ระยะ ${bundle.targetDistanceM} ม. (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · ขาด ~${Math.round(-bundle.budgetDelta).toLocaleString()} บาท${maxNote}</div>`;
+    }
+    if (bundle.type === "budget_capacity") {
+      return `<div class="price-ask-bundle">งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → ขยายได้ ~${bundle.maxDistanceM} ม. · ${bundle.poleCount} ต้น</div>`;
+    }
+    if (bundle.type === "tr_budget_check") {
+      const cls = bundle.budgetVerdict === "short" ? " price-ask-verdict-short" : " price-ask-verdict-ok";
+      const label = `หม้อแปลง ${bundle.kva} kVA ${String(bundle.phase || "").toUpperCase()}`;
+      if (bundle.budgetVerdict === "enough") {
+        return `<div class="price-ask-bundle${cls}">✓ งบพอ: ${label} (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · เหลือ ~${Math.round(bundle.budgetDelta).toLocaleString()} บาท</div>`;
+      }
+      return `<div class="price-ask-bundle${cls}">✗ งบไม่พอ: ${label} (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · ขาด ~${Math.round(-bundle.budgetDelta).toLocaleString()} บาท</div>`;
+    }
+    return "";
+  }
+
   function renderPriceAskResult(quote, parseSource) {
     if (!els.priceAskResult) return;
 
@@ -311,6 +344,9 @@
         : "";
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
+          <div class="price-ask-summary-top">
+            <span class="price-ask-source">${formatPriceAskSource(parseSource)} · งบ ${escapeHtml(quote.intent?.budgetType || els.priceAskBudget?.value || "01.1")}</span>
+          </div>
           <strong>ยังประมาณราคาไม่ได้</strong>
           <p>${escapeHtml(quote.question || quote.error || "ลองระบุ kVA / รหัสพัสดุ / ประเภทงานให้ชัดขึ้น")}</p>
           ${clarifyHint}
@@ -319,15 +355,14 @@
       return;
     }
 
-    const bundleNote = quote.bundle?.trSetName
+    const bundleNote = renderBudgetVerdictBundle(quote.bundle)
+      || (quote.bundle?.trSetName
       ? `<div class="price-ask-bundle">ชุดติดตั้ง: ${escapeHtml(quote.bundle.trSetId)} — ${escapeHtml(quote.bundle.trSetName)}${
           quote.bundle.poleMaterialId
             ? ` · เสา ${escapeHtml(quote.bundle.poleMaterialId)} × ${quote.bundle.poleQty || 1} ต้น (12.20 ม.)`
             : ""
         }</div>`
-      : (quote.bundle?.type === "budget_capacity"
-        ? `<div class="price-ask-bundle">งบ ${Number(quote.bundle.budgetBaht).toLocaleString()} บาท → ขยายได้ ~${quote.bundle.maxDistanceM} ม. · ${quote.bundle.poleCount} ต้น</div>`
-        : (quote.bundle?.type === "pole_run"
+      : (quote.bundle?.type === "pole_run"
         ? `<div class="price-ask-bundle">${
             quote.bundle.distanceM
               ? `ระยะ ${quote.bundle.distanceM} ม. · ${quote.bundle.poleCount} ต้น (${quote.bundle.straightCount} ตรง${quote.bundle.curveCount ? ` + ${quote.bundle.curveCount} โค้ง` : ""} + ${quote.bundle.endCount} ปลายทาง)`
@@ -355,7 +390,7 @@
     els.priceAskResult.innerHTML = `
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
-          <span class="price-ask-source">${parseSource === "faq" ? "คู่มือ" : parseSource === "gemini-lite" ? "AI 3.1 Lite" : parseSource === "gemini" ? "AI 2.5" : "ระบบ"} · งบ ${escapeHtml(quote.budgetType)}</span>
+          <span class="price-ask-source">${formatPriceAskSource(parseSource)} · งบ ${escapeHtml(quote.budgetType)}</span>
           <span class="price-ask-total">${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
         </div>
         <p class="price-ask-query">${escapeHtml(quote.query || "")}</p>

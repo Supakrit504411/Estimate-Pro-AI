@@ -290,6 +290,178 @@
     return m ? Number(m[1]) : null;
   }
 
+  const TR_BUDGET_PRESETS = [
+    {
+      kva: 30,
+      phase: "1p",
+      installType: "single_pole",
+      transformerId: "1050000011",
+      trSetId: "40201",
+      poleMaterialId: "1000010012",
+      poleQty: 1
+    },
+    {
+      kva: 50,
+      phase: "3p",
+      installType: "single_pole",
+      transformerId: "1050010066",
+      trSetId: "40205",
+      poleMaterialId: "1000010012",
+      poleQty: 1
+    },
+    {
+      kva: 100,
+      phase: "3p",
+      installType: "single_pole",
+      transformerId: "1050010067",
+      trSetId: "40205",
+      poleMaterialId: "1000010012",
+      poleQty: 1
+    }
+  ];
+
+  function parseBudgetBahtFromQuery(query) {
+    return window.PriceQuotePole?.parseBudgetBaht?.(query) ?? null;
+  }
+
+  function isTrBudgetQuery(query) {
+    const text = normalizeText(query);
+    if (!parseBudgetBahtFromQuery(query)) return false;
+    if (!window.PriceQuotePole?.isTransformerBudgetQuery?.(text)) return false;
+    return /มีเงิน|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้ไหม|ทำได้/.test(text);
+  }
+
+  function parseTrBudgetQuery(query, budgetType = "01.1") {
+    if (!isTrBudgetQuery(query)) return null;
+
+    const text = normalizeText(query);
+    const budgetBaht = parseBudgetBahtFromQuery(query);
+    const kva = extractKvaFromQuery(query);
+    const phase = /1p|1 p|single|เฟสเดียว|1\s*เฟส/.test(text)
+      ? "1p"
+      : (/3p|3 p|three|3\s*เฟส/.test(text) ? "3p" : null);
+
+    return {
+      intent: "tr_budget_check",
+      budgetType,
+      budgetBaht,
+      kva,
+      phase,
+      includeTrSet: true,
+      installType: "single_pole",
+      summary: query,
+      needsClarification: false,
+      source: "local"
+    };
+  }
+
+  function buildTrBudgetQuote(intent, master) {
+    const budgetBaht = Number(intent.budgetBaht);
+    const budgetType = BUDGET_TYPES.includes(intent.budgetType) ? intent.budgetType : "01.1";
+    if (!budgetBaht || budgetBaht <= 0) {
+      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 50,000 บาท" };
+    }
+
+    let candidates = TR_BUDGET_PRESETS.map(preset => ({ ...preset }));
+    if (intent.phase) {
+      candidates = candidates.filter(item => item.phase === intent.phase);
+    }
+    if (intent.kva) {
+      const series = detectTransformerSeries(intent.summary || "");
+      const transformer = findTransformerByKva(intent.kva, intent.phase || "3p", series);
+      candidates = [{
+        kva: intent.kva,
+        phase: intent.phase || transformer?.phase || (intent.kva >= 50 ? "3p" : "1p"),
+        installType: intent.installType || "single_pole",
+        transformerId: transformer?.id || intent.transformerId || null,
+        trSetId: intent.trSetId || resolveDefaultTrSetId(
+          intent.installType || "single_pole",
+          intent.phase || "3p",
+          intent.kva
+        ),
+        poleMaterialId: intent.poleMaterialId || "1000010012",
+        poleQty: Number(intent.poleQty) || 1
+      }];
+    }
+
+    const priced = candidates.map(preset => {
+      const trIntent = {
+        ...intent,
+        ...preset,
+        intent: "tr_install",
+        includeTrSet: true,
+        budgetType
+      };
+      const trResult = buildTrInstallLines(trIntent, master);
+      if (trResult.error || !trResult.lines?.length) return null;
+      const totals = calculateQuoteTotal(trResult.lines, budgetType);
+      return {
+        ...preset,
+        trResult,
+        lines: trResult.lines,
+        total: totals.total
+      };
+    }).filter(Boolean).sort((a, b) => a.total - b.total);
+
+    if (!priced.length) {
+      return { error: "ไม่พบรายการหม้อแปลงที่คำนวณได้ — ลองระบุ kVA เช่น 50 kVA" };
+    }
+
+    const fitting = priced.filter(item => item.total <= budgetBaht);
+    const cheapest = priced[0];
+    const bestFit = fitting.length ? fitting[fitting.length - 1] : null;
+    const selected = intent.kva ? priced.find(item => item.kva === intent.kva) || priced[0] : (bestFit || cheapest);
+    const budgetDelta = budgetBaht - selected.total;
+    const enough = budgetDelta >= 0;
+    const label = `หม้อแปลง ${selected.kva} kVA ${selected.phase.toUpperCase()}`;
+
+    let verdict;
+    if (intent.kva) {
+      verdict = enough
+        ? `✓ งบพอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — เหลือ buffer ~${Math.round(budgetDelta).toLocaleString()} บาท`
+        : `✗ งบไม่พอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — ขาด ~${Math.round(-budgetDelta).toLocaleString()} บาท`;
+    } else if (bestFit) {
+      verdict = `✓ งบพอ — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} ประมาณ ${Math.round(bestFit.total).toLocaleString()} บาท` +
+        (fitting.length > 1 ? ` (ขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ~${Math.round(cheapest.total).toLocaleString()} บาท)` : "");
+    } else {
+      verdict = `✗ งบไม่พอ — ติดตั้งขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ประมาณ ${Math.round(cheapest.total).toLocaleString()} บาท — ขาด ~${Math.round(cheapest.total - budgetBaht).toLocaleString()} บาท`;
+    }
+
+    const displayItem = intent.kva ? selected : (bestFit || cheapest);
+    const breakdown = [
+      verdict,
+      `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(displayItem.total).toLocaleString()} บาท`
+    ];
+
+    if (!intent.kva && fitting.length) {
+      breakdown.push(`ติดตั้งได้ในงบนี้: ${fitting.map(item => `${item.kva} kVA ${item.phase.toUpperCase()} (~${Math.round(item.total).toLocaleString()} บาท)`).join(" · ")}`);
+    }
+
+    return {
+      lines: displayItem.lines,
+      breakdown,
+      bundle: {
+        type: "tr_budget_check",
+        budgetBaht,
+        budgetVerdict: enough ? "enough" : "short",
+        budgetDelta: intent.kva ? budgetDelta : (bestFit ? budgetBaht - bestFit.total : budgetBaht - cheapest.total),
+        targetTotal: displayItem.total,
+        kva: displayItem.kva,
+        phase: displayItem.phase,
+        transformerId: displayItem.trResult.transformerId,
+        trSetId: displayItem.trResult.trSetId,
+        trSetName: displayItem.trResult.trSetName,
+        poleMaterialId: displayItem.trResult.poleMaterialId,
+        poleQty: displayItem.trResult.poleQty,
+        fittingOptions: fitting.map(item => ({
+          kva: item.kva,
+          phase: item.phase,
+          total: item.total
+        }))
+      }
+    };
+  }
+
   function sanitizeIntent(intent, query) {
     if (!intent) return intent;
 
@@ -346,6 +518,9 @@
       const poleIntent = window.PriceQuotePole.parsePoleQuery(query, budgetType);
       if (poleIntent) return poleIntent;
     }
+
+    const trBudgetIntent = parseTrBudgetQuery(query, budgetType);
+    if (trBudgetIntent) return trBudgetIntent;
 
     const kvaMatch = text.match(/(\d+)\s*kva/);
     const kva = kvaMatch ? Number(kvaMatch[1]) : null;
@@ -438,6 +613,14 @@
       lines = capResult.lines;
       bundle = capResult.bundle;
       poleBreakdown = capResult.breakdown;
+    } else if (intent.intent === "tr_budget_check") {
+      const trBudgetResult = buildTrBudgetQuote(intent, master);
+      if (trBudgetResult.error) {
+        return { ok: false, error: trBudgetResult.error, intent };
+      }
+      lines = trBudgetResult.lines;
+      bundle = trBudgetResult.bundle;
+      poleBreakdown = trBudgetResult.breakdown;
     } else if (intent.intent === "pole_run" && window.PriceQuotePole?.buildPoleRunLines) {
       const poleResult = window.PriceQuotePole.buildPoleRunLines(intent, master, mergeLineMap);
       if (poleResult.needsClarification || poleResult.error) {
@@ -506,6 +689,8 @@
     matchFaqByQuery,
     sanitizeIntent,
     parseQueryLocal,
+    parseTrBudgetQuery,
+    buildTrBudgetQuote,
     buildQuote,
     calculateQuoteTotal,
     findMasterItem,

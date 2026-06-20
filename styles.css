@@ -449,6 +449,16 @@ input:focus,
   color: var(--muted);
 }
 
+.price-ask-verdict-ok {
+  border-left: 3px solid #3ecf8e;
+  padding-left: 10px;
+}
+
+.price-ask-verdict-short {
+  border-left: 3px solid #ff8a65;
+  padding-left: 10px;
+}
+
 .price-ask-total {
   font-size: 22px;
   font-weight: 800;

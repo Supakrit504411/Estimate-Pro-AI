@@ -163,10 +163,17 @@
     return null;
   }
 
+  function isTransformerBudgetQuery(text) {
+    const t = normalizeText(text);
+    return /หม้อแปลง|transformer|แปลงไฟ|\btr\b/.test(t)
+      && !/ขยายเขต|ขยายสาย|ลากสาย|ระยะทาง/.test(t);
+  }
+
   function isBudgetCapacityQuery(text) {
     const t = normalizeText(text);
     if (!parseBudgetBaht(t)) return false;
-    return /มีเงิน|งบ.*บาท|ได้กี่ต้น|กี่ต้น|กี่\s*ระยะ|ได้ระยะ|ทำได้กี่|ครอบคลุม|จะได้/.test(t);
+    if (isTransformerBudgetQuery(t)) return false;
+    return /มีเงิน|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้กี่ต้น|กี่ต้น|กี่\s*ระยะ|ได้ระยะ|ทำได้กี่|ครอบคลุม|จะได้|อยากได้/.test(t);
   }
 
   function parseDistanceM(text) {
@@ -208,6 +215,7 @@
     if (!isBudgetCapacityQuery(text)) return null;
 
     const budgetBaht = parseBudgetBaht(text);
+    const targetDistanceM = parseDistanceM(text);
     const poleHeightM = parsePoleHeight(text);
     const voltage = detectVoltage(text);
     const phase = detectPhase(text);
@@ -217,6 +225,7 @@
       intent: "budget_capacity",
       budgetType,
       budgetBaht,
+      targetDistanceM,
       poleHeightM,
       voltage,
       phase,
@@ -736,6 +745,60 @@
       }
     }
 
+    const targetDistanceM = Number(params.targetDistanceM);
+    const hasTarget = targetDistanceM > 0;
+
+    if (hasTarget) {
+      const targetParams = mergePoleParams({ ...params, distanceM: targetDistanceM }, { distanceM: targetDistanceM });
+      const targetResult = buildPoleRunLines(targetParams, master, mergeLine);
+      if (!targetResult.lines?.length) {
+        return { error: targetResult.error || "คำนวณระยะทางที่ระบุไม่ได้ — ตรวจสอบ MV/LV และ 1P/3P" };
+      }
+
+      const targetTotal = calcTotal(targetResult.lines, params.budgetType).total;
+      const budgetDelta = budgetBaht - targetTotal;
+      const enough = budgetDelta >= 0;
+      const targetLayout = targetParams.layout || computePoleLayout(targetDistanceM);
+      const verdict = enough
+        ? `✓ งบพอ: ระยะ ${targetDistanceM} ม. ประมาณ ${Math.round(targetTotal).toLocaleString()} บาท — เหลือ buffer ~${Math.round(budgetDelta).toLocaleString()} บาท`
+        : `✗ งบไม่พอ: ระยะ ${targetDistanceM} ม. ประมาณ ${Math.round(targetTotal).toLocaleString()} บาท — ขาด ~${Math.round(-budgetDelta).toLocaleString()} บาท`;
+
+      const breakdown = [
+        verdict,
+        `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(targetTotal).toLocaleString()} บาท`,
+        `ระยะที่ถาม: ${targetDistanceM} ม. · ${targetLayout.totalPoles} ต้น` +
+          ` (${targetLayout.straightPoleCount} ทางตรง + ${targetLayout.endCount} ปลายทาง` +
+          `${targetLayout.curvePoleCount ? ` + ${targetLayout.curvePoleCount} โค้ง` : ""})`
+      ];
+
+      if (!enough && best) {
+        const maxLayout = best.testParams.layout || computePoleLayout(best.distanceM);
+        breakdown.push(
+          `ด้วยงบนี้ขยายได้สูงสุด ~${best.distanceM} ม. · ${maxLayout.totalPoles} ต้น` +
+            ` (ประมาณ ${Math.round(best.total).toLocaleString()} บาท)`
+        );
+      }
+
+      breakdown.push(...(targetResult.breakdown || []));
+
+      return {
+        lines: targetResult.lines,
+        breakdown,
+        bundle: {
+          ...targetResult.bundle,
+          type: "budget_capacity",
+          budgetBaht,
+          targetDistanceM,
+          targetTotal,
+          budgetVerdict: enough ? "enough" : "short",
+          budgetDelta,
+          estimatedTotal: targetTotal,
+          maxDistanceM: best?.distanceM ?? null,
+          poleCount: targetLayout.totalPoles
+        }
+      };
+    }
+
     if (!best) {
       return {
         error: `งบ ${budgetBaht.toLocaleString()} บาท ไม่เพียงพอสำหรับงานขยายเขต LV/MV ขั้นต่ำ (เสา + หัวเสา + สาย)`
@@ -759,7 +822,8 @@
         type: "budget_capacity",
         budgetBaht,
         estimatedTotal: best.total,
-        maxDistanceM: best.distanceM
+        maxDistanceM: best.distanceM,
+        poleCount: layout.totalPoles
       }
     };
   }
@@ -776,6 +840,8 @@
     isPoleRunQuery,
     isLineExtensionQuery,
     isBudgetCapacityQuery,
+    isTransformerBudgetQuery,
+    parseBudgetBaht,
     parseBudgetCapacityQuery,
     buildBudgetCapacityQuote,
     resolvePoleMaterialId,
