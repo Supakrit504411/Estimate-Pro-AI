@@ -26,26 +26,39 @@
     });
     await loadMasterData();
     checkInput();
+    renderPriceFaqChips();
     initScrollCompactHeader();
+  }
+
+  function renderPriceFaqChips() {
+    if (!els.priceAskChips) return;
+    const faq = appConfig.priceFaq || {};
+    els.priceAskChips.innerHTML = Object.entries(faq).map(([id, entry]) => `
+      <button type="button" class="price-ask-chip" data-faq-id="${escapeHtml(id)}">${escapeHtml(entry.label)}</button>
+    `).join("");
   }
 
   function initScrollCompactHeader() {
     const mq = window.matchMedia("(max-width: 720px)");
+    let compact = false;
+
     const apply = () => {
-      document.body.classList.toggle(
-        "is-scroll-compact",
-        mq.matches && window.scrollY > 48
-      );
+      if (!mq.matches) {
+        compact = false;
+        document.body.classList.remove("is-scroll-compact");
+        return;
+      }
+      document.body.classList.toggle("is-scroll-compact", compact);
     };
 
     let ticking = false;
     window.addEventListener("scroll", () => {
-      if (!mq.matches) {
-        document.body.classList.remove("is-scroll-compact");
-        return;
-      }
+      if (!mq.matches) return;
       if (!ticking) {
         window.requestAnimationFrame(() => {
+          const y = window.scrollY;
+          if (!compact && y > 80) compact = true;
+          else if (compact && y < 28) compact = false;
           apply();
           ticking = false;
         });
@@ -53,7 +66,10 @@
       }
     }, { passive: true });
 
-    mq.addEventListener("change", apply);
+    mq.addEventListener("change", () => {
+      compact = false;
+      apply();
+    });
     apply();
   }
 
@@ -61,9 +77,11 @@
     els.t1 = document.getElementById("t1");
     els.t2 = document.getElementById("t2");
     els.t3 = document.getElementById("t3");
+    els.t4 = document.getElementById("t4");
     els.view1 = document.getElementById("view1");
     els.view2 = document.getElementById("view2");
     els.view3 = document.getElementById("view3");
+    els.view4 = document.getElementById("view4");
     els.pjName = document.getElementById("pjName");
     els.aiSection = document.getElementById("aiSection");
     els.aiFile = document.getElementById("aiFile");
@@ -89,6 +107,7 @@
     els.t1.addEventListener("click", () => switchTab(1));
     els.t2.addEventListener("click", () => switchTab(2));
     if (els.t3) els.t3.addEventListener("click", () => switchTab(3));
+    if (els.t4) els.t4.addEventListener("click", () => switchTab(4));
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
       btn.addEventListener("click", () => switchTab(Number(btn.dataset.tabNav)));
     });
@@ -114,10 +133,11 @@
         if (event.key === "Enter") handlePriceAsk();
       });
       els.priceAskChips?.addEventListener("click", event => {
-        const chip = event.target.closest("[data-price-example]");
+        const chip = event.target.closest("[data-faq-id]");
         if (!chip || !els.priceAskInput) return;
-        els.priceAskInput.value = chip.dataset.priceExample || "";
-        handlePriceAsk();
+        const faq = (appConfig.priceFaq || {})[chip.dataset.faqId];
+        if (faq?.example) els.priceAskInput.value = faq.example;
+        handlePriceAsk(chip.dataset.faqId);
       });
       els.priceAskResult?.addEventListener("click", event => {
         if (event.target.closest("[data-action='import-price-quote']")) {
@@ -149,7 +169,7 @@
     els.aiSection.classList.toggle("hidden", !ready);
   }
 
-  async function handlePriceAsk() {
+  async function handlePriceAsk(faqId = null) {
     if (!window.PriceQuoteEngine) {
       Swal.fire("ระบบไม่พร้อม", "ไม่พบ PriceQuoteEngine", "error");
       return;
@@ -158,8 +178,8 @@
     const query = els.priceAskInput?.value.trim() || "";
     const budgetType = els.priceAskBudget?.value || "01.1";
 
-    if (!query) {
-      Swal.fire("พิมพ์คำถาม", "เช่น ติดตั้งหม้อแปลง 50 kVA กี่บาท", "info");
+    if (!query && !faqId) {
+      Swal.fire("พิมพ์คำถาม", "เลือกคำถามที่พบบ่อย หรือพิมพ์ เช่น หม้อแปลง 100 kVA กี่บาท", "info");
       return;
     }
 
@@ -173,44 +193,148 @@
 
     els.priceAskBtn.disabled = true;
     els.priceAskResult.classList.remove("hidden");
-    els.priceAskResult.innerHTML = `<div class="price-ask-loading">กำลังวิเคราะห์คำถาม...</div>`;
+    els.priceAskResult.innerHTML = `<div class="price-ask-loading">กำลังคำนวณราคา...</div>`;
 
     let intent = null;
-    let parseSource = "local";
+    let parseSource = "faq";
 
-    try {
-      const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
-      if (aiResponse.error) throw new Error(aiResponse.msg || "parse failed");
-      intent = aiResponse.intent || aiResponse;
-      parseSource = aiResponse.source || intent.source || "gemini";
-      intent.source = parseSource;
-    } catch (error) {
-      console.warn("Price AI fallback:", error);
+    if (faqId) {
+      intent = window.PriceQuoteEngine.buildIntentFromFaq(faqId, budgetType);
+    }
+    if (!intent && query) {
+      intent = window.PriceQuoteEngine.matchFaqByQuery(query, budgetType);
+    }
+    if (!intent && query) {
       intent = window.PriceQuoteEngine.parseQueryLocal(query, budgetType);
       parseSource = "local";
     }
 
-    const quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+    if (intent && query) {
+      intent = window.PriceQuoteEngine.sanitizeIntent(intent, query);
+    }
+
+    const useGemini = appConfig.priceAskUseGemini === true;
+    if (useGemini && query && (!intent || intent.needsClarification)) {
+      try {
+        const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
+        if (!aiResponse.error) {
+          intent = window.PriceQuoteEngine.sanitizeIntent(aiResponse.intent || aiResponse, query);
+          parseSource = "gemini";
+        }
+      } catch (error) {
+        console.warn("Price AI optional fallback:", error);
+      }
+    }
+
+    if (!intent) {
+      els.priceAskResult.innerHTML = `
+        <div class="price-ask-error">
+          <strong>ไม่เข้าใจคำถาม</strong>
+          <p>ลองเลือกจาก「คำถามที่พบบ่อย」ด้านล่าง หรือระบุ kVA / รหัสพัสดุให้ชัด เช่น 「หม้อแปลง 100 kVA」</p>
+        </div>
+      `;
+      els.priceAskBtn.disabled = false;
+      return;
+    }
+
+    let quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+
+    if (!quote.ok && quote.needsClarification && quote.clarificationType === "pole_run") {
+      const clarifiedIntent = await promptPoleClarification(quote.intent, quote.question);
+      if (clarifiedIntent) {
+        intent = clarifiedIntent;
+        quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+      }
+    }
+
     lastPriceQuote = quote;
     renderPriceAskResult(quote, parseSource);
     els.priceAskBtn.disabled = false;
+  }
+
+  async function promptPoleClarification(intent, question) {
+    const fields = window.PriceQuotePole?.buildClarificationFields?.(intent) || intent.clarificationFields || [];
+    if (!fields.length) {
+      return window.PriceQuoteEngine.mergePoleIntent(intent, {});
+    }
+
+    const fieldHtml = fields.map(field => {
+      const options = (field.options || []).map(opt => `
+        <option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>
+      `).join("");
+      return `
+        <label class="price-clarify-field">
+          <span>${escapeHtml(field.label)}</span>
+          <select id="price-clarify-${escapeHtml(field.key)}" class="price-clarify-select">
+            <option value="">— เลือก —</option>
+            ${options}
+          </select>
+        </label>
+      `;
+    }).join("");
+
+    const result = await Swal.fire({
+      title: "ระบุรายละเอียดงานเสา",
+      html: `
+        <p class="price-clarify-intro">${escapeHtml(question || "")}</p>
+        <div class="price-clarify-form">${fieldHtml}</div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "คำนวณราคา",
+      cancelButtonText: "ยกเลิก",
+      focusConfirm: false,
+      preConfirm: () => {
+        const answers = {};
+        for (const field of fields) {
+          const el = document.getElementById(`price-clarify-${field.key}`);
+          const value = el?.value || "";
+          if (!value) {
+            Swal.showValidationMessage(`กรุณาเลือก: ${field.label}`);
+            return false;
+          }
+          answers[field.key] = value;
+        }
+        return answers;
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return null;
+    return window.PriceQuoteEngine.mergePoleIntent(intent, result.value);
   }
 
   function renderPriceAskResult(quote, parseSource) {
     if (!els.priceAskResult) return;
 
     if (!quote.ok) {
+      const clarifyHint = quote.clarificationType === "pole_run"
+        ? `<p class="price-ask-clarify-hint">ระบบต้องการข้อมูลเพิ่ม — ลองถามใหม่หรือระบุ MV/LV, 1P/3P ในประโยคเดียว</p>`
+        : "";
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
           <strong>ยังประมาณราคาไม่ได้</strong>
           <p>${escapeHtml(quote.question || quote.error || "ลองระบุ kVA / รหัสพัสดุ / ประเภทงานให้ชัดขึ้น")}</p>
+          ${clarifyHint}
         </div>
       `;
       return;
     }
 
     const bundleNote = quote.bundle?.trSetName
-      ? `<div class="price-ask-bundle">ชุดติดตั้ง: ${escapeHtml(quote.bundle.trSetId)} — ${escapeHtml(quote.bundle.trSetName)}</div>`
+      ? `<div class="price-ask-bundle">ชุดติดตั้ง: ${escapeHtml(quote.bundle.trSetId)} — ${escapeHtml(quote.bundle.trSetName)}${
+          quote.bundle.poleMaterialId
+            ? ` · เสา ${escapeHtml(quote.bundle.poleMaterialId)} × ${quote.bundle.poleQty || 1} ต้น (12.20 ม.)`
+            : ""
+        }</div>`
+      : (quote.bundle?.type === "pole_run"
+        ? `<div class="price-ask-bundle">${
+            quote.bundle.distanceM
+              ? `ระยะ ${quote.bundle.distanceM} ม. · ${quote.bundle.poleCount} ต้น (${quote.bundle.straightCount} ตรง${quote.bundle.curveCount ? ` + ${quote.bundle.curveCount} โค้ง` : ""} + ${quote.bundle.endCount} ปลายทาง)`
+              : `เสา ${quote.bundle.poleHeightM} ม. · ${quote.bundle.poleCount} ต้น · ${quote.bundle.straightCount} ทางตรง + ${quote.bundle.endCount} ต้นสุดท้าย`
+          }</div>`
+        : "");
+
+    const poleBreakdownHtml = Array.isArray(quote.poleBreakdown) && quote.poleBreakdown.length
+      ? `<ul class="price-ask-pole-breakdown">${quote.poleBreakdown.map(line => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
       : "";
 
     const lineRows = quote.lines.slice(0, 12).map(line => `
@@ -229,11 +353,12 @@
     els.priceAskResult.innerHTML = `
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
-          <span class="price-ask-source">${parseSource === "gemini" ? "AI" : "Local"} · งบ ${escapeHtml(quote.budgetType)}</span>
+          <span class="price-ask-source">${parseSource === "faq" ? "คู่มือ" : parseSource === "gemini" ? "AI" : "ระบบ"} · งบ ${escapeHtml(quote.budgetType)}</span>
           <span class="price-ask-total">${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
         </div>
         <p class="price-ask-query">${escapeHtml(quote.query || "")}</p>
         ${bundleNote}
+        ${poleBreakdownHtml}
       </div>
       <div class="price-ask-breakdown">
         <span>พัสดุ ${quote.breakdown.material.toLocaleString()}</span>
@@ -301,9 +426,11 @@
     els.view1.classList.toggle("hidden", n !== 1);
     els.view2.classList.toggle("hidden", n !== 2);
     if (els.view3) els.view3.classList.toggle("hidden", n !== 3);
+    if (els.view4) els.view4.classList.toggle("hidden", n !== 4);
     els.t1.classList.toggle("active", n === 1);
     els.t2.classList.toggle("active", n === 2);
     if (els.t3) els.t3.classList.toggle("active", n === 3);
+    if (els.t4) els.t4.classList.toggle("active", n === 4);
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
       btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === n);
     });
@@ -311,6 +438,8 @@
     if (n !== 3) {
       document.body.classList.remove("survey-map-active");
     }
+    window.scrollTo({ top: 0, behavior: "auto" });
+    document.body.classList.remove("is-scroll-compact");
 
     if (n === 3 && window.SurveyModule) window.SurveyModule.onTabOpen();
   }
@@ -1383,73 +1512,20 @@
   function buildSurveyMetaDetailHtml(meta) {
     if (!meta || meta.startLat == null) return "";
 
-    if (meta.version === 2) {
-      const segRows = (meta.segments || [])
-        .filter(seg => (seg.poleCount ?? 0) > 0)
-        .map(seg => `
-        <tr>
-          <td><span class="survey-meta-dot" style="background:${escapeHtml(seg.color || "#71e8ff")}"></span> ${escapeHtml(seg.label)}</td>
-          <td>${escapeHtml(String(seg.type || "").toUpperCase())} ${escapeHtml(String(seg.phase || "").toUpperCase())}</td>
-          <td style="text-align:center;">${seg.poleCount ?? 0}</td>
-          <td style="text-align:right;">${seg.distanceM ?? 0} ม.</td>
-        </tr>
-      `).join("");
-
-      const trRows = (meta.trInstalls || []).map(tr => `
-        <tr>
-          <td>${escapeHtml(tr.label || "TR")}</td>
-          <td>${escapeHtml(tr.trSetId || "-")}</td>
-          <td>${escapeHtml(tr.transformerId || "-")}</td>
-          <td>${tr.isExistingPole ? "เสาเดิม" : "สำรวจ"}</td>
-        </tr>
-      `).join("");
-
-      const junctionRows = (meta.junctions || []).map(j => `
-        <tr>
-          <td>${j.type === "tr" ? "TR" : "LV←TR"}</td>
-          <td>${escapeHtml(j.label || "-")}</td>
-          <td>${j.lat != null ? Number(j.lat).toFixed(5) : "-"}, ${j.lng != null ? Number(j.lng).toFixed(5) : "-"}</td>
-          <td>${j.lvBranchCount != null ? `LV ${j.lvBranchCount} สาย` : escapeHtml(j.segmentLabel || "-")}</td>
-        </tr>
-      `).join("");
-
-      return `
-        <div class="survey-meta-box survey-meta-v2">
-          <strong>สำรวจหลายส่วน (MV/LV/TR)</strong>
-          <div class="survey-meta-summary">
-            ${meta.segmentCount || 0} ส่วน · ${meta.poleCount || 0} หมุด · TR ${meta.trCount || 0} · รวม ${meta.totalDistanceM || 0} ม.
-          </div>
-          ${segRows ? `
-            <div class="survey-meta-section-title">ส่วนงาน</div>
-            <table class="survey-meta-table">
-              <thead><tr><th>ชื่อ</th><th>ระบบ</th><th>หมุด</th><th>ระยะ</th></tr></thead>
-              <tbody>${segRows}</tbody>
-            </table>
-          ` : ""}
-          ${trRows ? `
-            <div class="survey-meta-section-title">TR</div>
-            <table class="survey-meta-table">
-              <thead><tr><th>จุด</th><th>SET</th><th>หม้อ</th><th>เสา</th></tr></thead>
-              <tbody>${trRows}</tbody>
-            </table>
-          ` : ""}
-          ${junctionRows ? `
-            <div class="survey-meta-section-title">Junction (จุดเชื่อม)</div>
-            <table class="survey-meta-table">
-              <thead><tr><th>ประเภท</th><th>ชื่อ</th><th>พิกัด</th><th>เชื่อม</th></tr></thead>
-              <tbody>${junctionRows}</tbody>
-            </table>
-          ` : ""}
-        </div>
-      `;
-    }
+    const poleCount = meta.poleCount ?? "-";
+    const totalDistanceM = meta.totalDistanceM ?? "-";
+    const spanM = meta.spanM
+      ?? meta.segments?.find(seg => seg.spanM)?.spanM
+      ?? "-";
+    const startLabel = meta.startLabel || "หมุด 0";
+    const endLabel = meta.endLabel || (poleCount !== "-" ? `หมุด ${Math.max(0, Number(poleCount) - 1)}` : "-");
 
     return `
       <div class="survey-meta-box">
         <strong>ข้อมูลเส้นทางสำรวจ</strong><br>
-        จุดเริ่ม (${escapeHtml(meta.startLabel || "หมุด 0")}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
-        จุดสิ้นสุด (${escapeHtml(meta.endLabel || "-")}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
-        หมุดทั้งหมด: ${meta.poleCount || "-"} | ระยะรวม: ${meta.totalDistanceM || "-"} ม. | Span: ${meta.spanM || "-"} ม.
+        จุดเริ่ม (${escapeHtml(startLabel)}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
+        จุดสิ้นสุด (${escapeHtml(endLabel)}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
+        หมุดทั้งหมด: ${poleCount} | ระยะรวม: ${totalDistanceM} ม. | Span: ${spanM} ม.
       </div>
     `;
   }

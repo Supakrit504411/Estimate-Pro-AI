@@ -16,6 +16,81 @@ window.APP_CONFIG = {
   },
   lineBridgePath: "/api/line-webhook",
 
+  /** คำถามที่พบบ่อย — หม้อแปลง + SET ติดตั้ง + เสา 12.20 ม. 1 ต้น */
+  priceFaq: {
+    "tr-install-30": {
+      label: "ราคาติดตั้งหม้อแปลง 30 kVA",
+      example: "ราคาติดตั้งหม้อแปลง 30 kVA",
+      intent: {
+        intent: "tr_install",
+        kva: 30,
+        phase: "1p",
+        installType: "single_pole",
+        includeTrSet: true,
+        transformerId: "1050000011",
+        trSetId: "40201",
+        poleMaterialId: "1000010012",
+        poleQty: 1,
+        needsClarification: false
+      }
+    },
+    "tr-install-50": {
+      label: "ราคาติดตั้งหม้อแปลง 50 kVA",
+      example: "ราคาติดตั้งหม้อแปลง 50 kVA",
+      intent: {
+        intent: "tr_install",
+        kva: 50,
+        phase: "3p",
+        installType: "single_pole",
+        includeTrSet: true,
+        transformerId: "1050010066",
+        trSetId: "40205",
+        poleMaterialId: "1000010012",
+        poleQty: 1,
+        needsClarification: false
+      }
+    },
+    "tr-install-100": {
+      label: "ราคาติดตั้งหม้อแปลง 100 kVA",
+      example: "ราคาติดตั้งหม้อแปลง 100 kVA",
+      intent: {
+        intent: "tr_install",
+        kva: 100,
+        phase: "3p",
+        installType: "single_pole",
+        includeTrSet: true,
+        transformerId: "1050010067",
+        trSetId: "40205",
+        poleMaterialId: "1000010012",
+        poleQty: 1,
+        needsClarification: false
+      }
+    },
+    "line-mv-200": {
+      label: "ขยายเขต MV 200 ม.",
+      example: "ขยายเขตแรงสูง ระยะทาง 200 เมตรกี่บาท",
+      intent: {
+        intent: "pole_run",
+        distanceM: 200,
+        voltage: "mv",
+        scope: "with_wire"
+      }
+    },
+    "line-lv-200": {
+      label: "ขยายเขต LV 200 ม.",
+      example: "ขยายเขตแรงต่ำ ระยะทาง 200 เมตรกี่บาท",
+      intent: {
+        intent: "pole_run",
+        distanceM: 200,
+        voltage: "lv",
+        scope: "with_wire"
+      }
+    }
+  },
+
+  /** เปิด Gemini เฉพาะเมื่อ FAQ/local ตอบไม่ได้ */
+  priceAskUseGemini: false,
+
   quickCategories: {
     transformer: {
       label: "หม้อแปลง",

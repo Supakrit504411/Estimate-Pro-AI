@@ -59,6 +59,17 @@ body::before {
   z-index: 1;
 }
 
+.view-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.view-grid {
+  display: grid;
+  gap: 14px;
+}
+
 .hero {
   position: sticky;
   top: 0;
@@ -66,6 +77,7 @@ body::before {
   padding: 12px 0 18px;
   backdrop-filter: blur(18px);
   background: linear-gradient(180deg, rgba(4, 11, 21, 0.92), rgba(4, 11, 21, 0.32), transparent);
+  overflow: hidden;
 }
 
 .hero-card,
@@ -219,7 +231,7 @@ body::before {
   gap: 10px;
 }
 
-.tab-bar { grid-template-columns: repeat(3, 1fr); }
+.tab-bar { grid-template-columns: repeat(4, 1fr); }
 .budget-grid { grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
 
 .tab-item,
@@ -333,9 +345,8 @@ input:focus,
   cursor: not-allowed;
 }
 
-/* —— Price Ask AI —— */
+/* —— Price Ask —— */
 .price-ask-panel {
-  margin-bottom: 14px;
   border-color: rgba(116, 4, 95, 0.35);
   background:
     linear-gradient(165deg, rgba(22, 10, 18, 0.95) 0%, rgba(8, 4, 7, 0.92) 100%);
@@ -455,6 +466,53 @@ input:focus,
   margin-top: 8px;
   font-size: 11px;
   color: var(--primary-soft);
+}
+
+.price-ask-pole-breakdown {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.price-ask-pole-breakdown li + li {
+  margin-top: 4px;
+}
+
+.price-clarify-intro {
+  margin: 0 0 12px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+}
+
+.price-clarify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.price-clarify-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.price-clarify-select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(116, 4, 95, 0.25);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.price-ask-clarify-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .price-ask-breakdown {
@@ -2102,24 +2160,26 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
 }
 
 @media (max-width: 720px) {
-  body.is-scroll-compact .hero-card {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    margin: 0;
-    overflow: hidden;
-    pointer-events: none;
-    border-width: 0;
+  .hero-card {
     transition:
-      max-height 0.28s ease,
-      opacity 0.22s ease,
-      padding 0.28s ease;
+      transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+  }
+
+  .hero {
+    transition: padding 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body.is-scroll-compact .hero-card {
+    transform: translateY(calc(-100% - 12px));
+    opacity: 0;
+    pointer-events: none;
   }
 
   body.is-scroll-compact .hero {
     padding-top: 4px;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
   }
 
   body.survey-map-active .app-bottom-nav {
@@ -2143,10 +2203,6 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   body.survey-map-active .hero {
     padding: 0;
     min-height: 0;
-  }
-
-  body.survey-map-active #priceAskPanel {
-    display: none;
   }
 
   .survey-tab-menu-btn {
@@ -2821,9 +2877,9 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    gap: 6px;
-    width: min(calc(100vw - 24px), 380px);
-    padding: 8px 10px;
+    gap: 2px;
+    width: min(calc(100vw - 16px), 400px);
+    padding: 8px 6px;
     border-radius: 999px;
     background: rgba(8, 4, 7, 0.88);
     border: 1px solid rgba(116, 4, 95, 0.35);
@@ -2862,9 +2918,9 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   }
 
   .bottom-nav-label {
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     white-space: nowrap;
   }
 

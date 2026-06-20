@@ -2899,6 +2899,222 @@ window.SURVEY_PRESETS = {
         }
       ]
     },
+    "23003": {
+      "id": "23003",
+      "name": "GY-22,DE SIZE 50 SQ.MM.",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210201",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 6
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "23004": {
+      "id": "23004",
+      "name": "GY-22,DE SIZE 95 SQ.MM.",
+      "items": [
+        {
+          "id": "1000040001",
+          "name": "ANCHOR,PLATE,REINFORCED CONCRETE 550X550X150 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210201",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 2
+        }
+      ]
+    },
+    "23005": {
+      "id": "23005",
+      "name": "DEADEND GUY AND SIDE GUY, GY-21, SIZE 95 SQ.MM., ON 12.2 M. POLE (ASSEMBLY NO. 8452, 8408)",
+      "items": [
+        {
+          "id": "1000040003",
+          "name": "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 16
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210201",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
+    "23006": {
+      "id": "23006",
+      "name": "DEADEND GUY AND SIDE GUY, GY-21, SIZE 95 SQ.MM., ON 14.3 M. POLE (ASSEMBLY NO. 8452, 8408)",
+      "items": [
+        {
+          "id": "1000040003",
+          "name": "ANCHOR, PLATE, REINFORCED CONCRETE 600 X 600 X 180 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010210000",
+          "name": "ROD,ANCHOR,ROUND EYE M.16, 2,000 mm.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210202",
+          "name": "BOLT,STRAND EYE,SINGLE 45 DEGREE M.16X350 MM.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010210304",
+          "name": "THIMBLE,GUY,FOR STEEL WIRE 50-95 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010230001",
+          "name": "CLAMP,DOUBLE U-BOLT,M.16 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1030030103",
+          "name": "INSULATOR,STRAIN,TYPE D (CLASS 54-4)TIS.280",
+          "unit": "ชิ้น",
+          "qty": 1
+        }
+      ]
+    },
     "23007": {
       "id": "23007",
       "name": "DEADEND GUY, GY-22, SIZE 95 SQ.MM., ON 12.2 M. POLE (ASSEMBLY NO. 8452, 8408, 8409)",
@@ -6051,6 +6267,10 @@ window.SURVEY_PRESETS = {
     "mv1p": {
       "end": {
         "guySetIds": [
+          "23003",
+          "23004",
+          "23005",
+          "23006",
           "23085",
           "23007",
           "23008",
@@ -6076,6 +6296,10 @@ window.SURVEY_PRESETS = {
       },
       "curve": {
         "guySetIds": [
+          "23003",
+          "23004",
+          "23005",
+          "23006",
           "23085",
           "23007",
           "23008",
@@ -6100,6 +6324,10 @@ window.SURVEY_PRESETS = {
     "mv3p": {
       "end": {
         "guySetIds": [
+          "23003",
+          "23004",
+          "23005",
+          "23006",
           "23085",
           "23007",
           "23008",
@@ -6125,6 +6353,10 @@ window.SURVEY_PRESETS = {
       },
       "curve": {
         "guySetIds": [
+          "23003",
+          "23004",
+          "23005",
+          "23006",
           "23085",
           "23007",
           "23008",
