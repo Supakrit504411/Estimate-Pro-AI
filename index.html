@@ -53,6 +53,41 @@
       </div>
     </header>
 
+    <section id="priceAskPanel" class="panel price-ask-panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">ถามราคา AI</h2>
+          <p class="section-note">พิมพ์คำถามสั้นๆ เช่น 「ติดตั้งหม้อแปลง 50 kVA กี่บาท」 — ไม่ต้องปักหมุด</p>
+        </div>
+        <span class="mini-tag">Price AI</span>
+      </div>
+
+      <div class="price-ask-row">
+        <input
+          id="priceAskInput"
+          class="price-ask-input"
+          type="text"
+          placeholder="ติดตั้งหม้อแปลง 50 kVA กี่บาท"
+          autocomplete="off"
+        >
+        <select id="priceAskBudget" class="price-ask-budget" aria-label="ประเภทงบ">
+          <option value="01.1">งบ 01.1</option>
+          <option value="02.1">งบ 02.1</option>
+          <option value="02.2">งบ 02.2</option>
+          <option value="03.1">งบ 03.1</option>
+        </select>
+        <button id="priceAskBtn" class="primary-btn price-ask-btn" type="button">ถามราคา</button>
+      </div>
+
+      <div id="priceAskChips" class="price-ask-chips">
+        <button type="button" class="price-ask-chip" data-price-example="ติดตั้งหม้อแปลง 50 kVA กี่บาท">หม้อ 50 kVA ติดตั้ง</button>
+        <button type="button" class="price-ask-chip" data-price-example="หม้อแปลง 100 kVA กี่บาท">หม้อ 100 kVA</button>
+        <button type="button" class="price-ask-chip" data-price-example="เสาคอนกรีต 12 ม. กี่บาท">เสา 12 ม.</button>
+      </div>
+
+      <div id="priceAskResult" class="price-ask-result hidden"></div>
+    </section>
+
     <section id="view1" class="view">
       <div class="view-grid">
         <div>
@@ -281,6 +316,7 @@
             </div>
             <div id="surveyMapAimDist" class="survey-map-aim-distance hidden"></div>
             <button id="surveyPlaceAimBtn" class="survey-place-aim-btn hidden" type="button">ปักที่กากบาท</button>
+            <button id="surveyTabMenuBtn" class="survey-tab-menu-btn hidden" type="button" aria-label="เปิดเมนูแท็บ">☰ เมนู</button>
             <button id="surveyToolbarToggle" class="survey-toolbar-toggle" type="button" aria-expanded="false">เครื่องมือ ▾</button>
 
             <aside id="surveyToolbar" class="survey-toolbar is-collapsed-mobile">
@@ -386,6 +422,7 @@
   <script src="./survey-presets.js"></script>
   <script src="./survey-project.js"></script>
   <script src="./services.js"></script>
+  <script src="./price-quote-engine.js"></script>
   <script src="./app.js"></script>
   <script src="./survey.js"></script>
 </body>

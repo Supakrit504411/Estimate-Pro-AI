@@ -11,6 +11,7 @@ window.APP_CONFIG = {
     health: "health",
     lineIntake: "line-intake",
     lineSearch: "line-search",
+    parsePriceQuery: "parse-price-query",
     driveFilePreviews: "drive-file-previews"
   },
   lineBridgePath: "/api/line-webhook",

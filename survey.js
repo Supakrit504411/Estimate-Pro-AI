@@ -105,6 +105,7 @@
     els.mapAim = document.getElementById("surveyMapAim");
     els.mapAimDist = document.getElementById("surveyMapAimDist");
     els.placeAimBtn = document.getElementById("surveyPlaceAimBtn");
+    els.tabMenuBtn = document.getElementById("surveyTabMenuBtn");
     els.exportKmlBtn = document.getElementById("surveyExportKmlBtn");
     els.saveProjectBtn = document.getElementById("surveySaveProjectBtn");
   }
@@ -145,6 +146,16 @@
     if (els.toolbarToggle) {
       els.toolbarToggle.addEventListener("click", toggleMobileToolbar);
     }
+    if (els.tabMenuBtn) {
+      els.tabMenuBtn.addEventListener("click", () => {
+        document.body.classList.toggle("survey-show-nav");
+        collapseMobileToolbar();
+      });
+    }
+
+    document.getElementById("appBottomNav")?.addEventListener("click", () => {
+      document.body.classList.remove("survey-show-nav");
+    });
 
     if (els.attachBtn) els.attachBtn.addEventListener("click", () => els.fileInput?.click());
     if (els.attachBtnMap) els.attachBtnMap.addEventListener("click", () => els.fileInput?.click());
@@ -1179,6 +1190,12 @@
   function setMapActiveMode(active) {
     const immersive = Boolean(active && state.sessionActive && state.phase === "surveying");
     document.body.classList.toggle("survey-map-active", immersive);
+    if (!immersive) {
+      document.body.classList.remove("survey-show-nav");
+    }
+    if (els.tabMenuBtn) {
+      els.tabMenuBtn.classList.toggle("hidden", !immersive);
+    }
     if (els.mapStage) {
       els.mapStage.classList.toggle("is-active", Boolean(active && state.sessionActive));
     }

@@ -76,6 +76,10 @@
       return request(config.endpoints.lineSearch, { query });
     },
 
+    parsePriceQuery(query, budgetType) {
+      return request(config.endpoints.parsePriceQuery, { query, budgetType });
+    },
+
     getDriveFilePreviews(fileIds) {
       return request(config.endpoints.driveFilePreviews, { fileIds });
     }

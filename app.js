@@ -12,6 +12,8 @@
     aiReviewQueue: []
   };
 
+  let lastPriceQuote = null;
+
   const els = {};
 
   document.addEventListener("DOMContentLoaded", init);
@@ -24,6 +26,35 @@
     });
     await loadMasterData();
     checkInput();
+    initScrollCompactHeader();
+  }
+
+  function initScrollCompactHeader() {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const apply = () => {
+      document.body.classList.toggle(
+        "is-scroll-compact",
+        mq.matches && window.scrollY > 48
+      );
+    };
+
+    let ticking = false;
+    window.addEventListener("scroll", () => {
+      if (!mq.matches) {
+        document.body.classList.remove("is-scroll-compact");
+        return;
+      }
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          apply();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    mq.addEventListener("change", apply);
+    apply();
   }
 
   function cacheElements() {
@@ -47,6 +78,11 @@
     els.budgetCount = document.getElementById("budgetCount");
     els.formTitle = document.getElementById("formTitle");
     els.budgetButtons = Array.from(document.querySelectorAll("[data-budget-type]"));
+    els.priceAskInput = document.getElementById("priceAskInput");
+    els.priceAskBudget = document.getElementById("priceAskBudget");
+    els.priceAskBtn = document.getElementById("priceAskBtn");
+    els.priceAskResult = document.getElementById("priceAskResult");
+    els.priceAskChips = document.getElementById("priceAskChips");
   }
 
   function bindEvents() {
@@ -71,6 +107,24 @@
 
     els.budgetSpace.addEventListener("click", handleBudgetSpaceClick);
     els.budgetSpace.addEventListener("input", handleBudgetSpaceInput);
+
+    if (els.priceAskBtn) {
+      els.priceAskBtn.addEventListener("click", handlePriceAsk);
+      els.priceAskInput?.addEventListener("keydown", event => {
+        if (event.key === "Enter") handlePriceAsk();
+      });
+      els.priceAskChips?.addEventListener("click", event => {
+        const chip = event.target.closest("[data-price-example]");
+        if (!chip || !els.priceAskInput) return;
+        els.priceAskInput.value = chip.dataset.priceExample || "";
+        handlePriceAsk();
+      });
+      els.priceAskResult?.addEventListener("click", event => {
+        if (event.target.closest("[data-action='import-price-quote']")) {
+          importPriceQuoteToBudget();
+        }
+      });
+    }
   }
 
   async function loadMasterData() {
@@ -93,6 +147,148 @@
       button.disabled = !ready;
     });
     els.aiSection.classList.toggle("hidden", !ready);
+  }
+
+  async function handlePriceAsk() {
+    if (!window.PriceQuoteEngine) {
+      Swal.fire("ระบบไม่พร้อม", "ไม่พบ PriceQuoteEngine", "error");
+      return;
+    }
+
+    const query = els.priceAskInput?.value.trim() || "";
+    const budgetType = els.priceAskBudget?.value || "01.1";
+
+    if (!query) {
+      Swal.fire("พิมพ์คำถาม", "เช่น ติดตั้งหม้อแปลง 50 kVA กี่บาท", "info");
+      return;
+    }
+
+    if (!state.dataStore.length) {
+      await loadMasterData();
+    }
+    if (!state.dataStore.length) {
+      Swal.fire("ไม่มี master data", "โหลดราคาพัสดุไม่สำเร็จ", "error");
+      return;
+    }
+
+    els.priceAskBtn.disabled = true;
+    els.priceAskResult.classList.remove("hidden");
+    els.priceAskResult.innerHTML = `<div class="price-ask-loading">กำลังวิเคราะห์คำถาม...</div>`;
+
+    let intent = null;
+    let parseSource = "local";
+
+    try {
+      const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
+      if (aiResponse.error) throw new Error(aiResponse.msg || "parse failed");
+      intent = aiResponse.intent || aiResponse;
+      parseSource = aiResponse.source || intent.source || "gemini";
+      intent.source = parseSource;
+    } catch (error) {
+      console.warn("Price AI fallback:", error);
+      intent = window.PriceQuoteEngine.parseQueryLocal(query, budgetType);
+      parseSource = "local";
+    }
+
+    const quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+    lastPriceQuote = quote;
+    renderPriceAskResult(quote, parseSource);
+    els.priceAskBtn.disabled = false;
+  }
+
+  function renderPriceAskResult(quote, parseSource) {
+    if (!els.priceAskResult) return;
+
+    if (!quote.ok) {
+      els.priceAskResult.innerHTML = `
+        <div class="price-ask-error">
+          <strong>ยังประมาณราคาไม่ได้</strong>
+          <p>${escapeHtml(quote.question || quote.error || "ลองระบุ kVA / รหัสพัสดุ / ประเภทงานให้ชัดขึ้น")}</p>
+        </div>
+      `;
+      return;
+    }
+
+    const bundleNote = quote.bundle?.trSetName
+      ? `<div class="price-ask-bundle">ชุดติดตั้ง: ${escapeHtml(quote.bundle.trSetId)} — ${escapeHtml(quote.bundle.trSetName)}</div>`
+      : "";
+
+    const lineRows = quote.lines.slice(0, 12).map(line => `
+      <tr>
+        <td>${escapeHtml(line.materialId)}</td>
+        <td>${escapeHtml(line.name)}</td>
+        <td class="num">${line.qty}</td>
+        <td class="num">${line.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `).join("");
+
+    const moreLines = quote.lines.length > 12
+      ? `<div class="price-ask-more">+ อีก ${quote.lines.length - 12} รายการ</div>`
+      : "";
+
+    els.priceAskResult.innerHTML = `
+      <div class="price-ask-summary">
+        <div class="price-ask-summary-top">
+          <span class="price-ask-source">${parseSource === "gemini" ? "AI" : "Local"} · งบ ${escapeHtml(quote.budgetType)}</span>
+          <span class="price-ask-total">${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
+        </div>
+        <p class="price-ask-query">${escapeHtml(quote.query || "")}</p>
+        ${bundleNote}
+      </div>
+      <div class="price-ask-breakdown">
+        <span>พัสดุ ${quote.breakdown.material.toLocaleString()}</span>
+        <span>แรง ${quote.breakdown.labor.toLocaleString()}</span>
+        <span>คุมงาน ${quote.breakdown.supervision.toLocaleString()}</span>
+        <span>ขนส่ง ${quote.breakdown.transport.toLocaleString()}</span>
+      </div>
+      <div class="price-ask-table-wrap">
+        <table class="price-ask-table">
+          <thead>
+            <tr><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr>
+          </thead>
+          <tbody>${lineRows}</tbody>
+        </table>
+        ${moreLines}
+      </div>
+      <p class="price-ask-disclaimer">${escapeHtml(quote.disclaimer)}</p>
+      <button class="primary-btn price-ask-import" type="button" data-action="import-price-quote">เพิ่มเข้างบประมาณการ</button>
+    `;
+  }
+
+  async function importPriceQuoteToBudget() {
+    const quote = lastPriceQuote;
+    if (!quote?.ok || !quote.lines?.length) return;
+
+    if (!els.pjName.value.trim()) {
+      const ready = await ensureProjectNameForBudget();
+      if (!ready) return;
+    }
+
+    let budgetIndex = state.budgets.findIndex(b => b.type === quote.budgetType);
+    if (budgetIndex < 0) {
+      addBudget(quote.budgetType);
+      budgetIndex = state.budgets.length - 1;
+    }
+
+    quote.lines.forEach(line => {
+      state.budgets[budgetIndex].items.push({
+        id: line.materialId,
+        name: line.name,
+        qty: line.qty,
+        matPrice: line.matPrice,
+        labPrice: line.labPrice,
+        laborDesc: line.laborDesc,
+        total: line.lineTotal
+      });
+    });
+
+    render();
+    switchTab(1);
+    Swal.fire(
+      "เพิ่มเข้างบแล้ว",
+      `นำ ${quote.lines.length} รายการเข้างบ ${quote.budgetType} เรียบร้อย`,
+      "success"
+    );
   }
 
   async function switchTab(n) {
@@ -1010,7 +1206,7 @@
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
                 <span class="type-chip">ID ${escapeHtml(projectId)}</span>
               </div>
-              <div style="margin-top:10px;font-family:'Orbitron',sans-serif;font-size:19px;color:#ff9caa;">
+              <div class="history-amount">
                 ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
               </div>
             </div>
