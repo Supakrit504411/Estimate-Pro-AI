@@ -214,7 +214,7 @@
     }
 
     const useGemini = appConfig.priceAskUseGemini === true;
-    if (useGemini && query && (!intent || intent.needsClarification)) {
+    if (useGemini && query && !intent) {
       try {
         const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
         if (!aiResponse.error) {
@@ -240,7 +240,15 @@
     let quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
 
     if (!quote.ok && quote.needsClarification && quote.clarificationType === "pole_run") {
-      const clarifiedIntent = await promptPoleClarification(quote.intent, quote.question);
+      const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "pole_run");
+      if (clarifiedIntent) {
+        intent = clarifiedIntent;
+        quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+      }
+    }
+
+    if (!quote.ok && quote.needsClarification && quote.clarificationType === "tr_install") {
+      const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "tr_install");
       if (clarifiedIntent) {
         intent = clarifiedIntent;
         quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
@@ -252,9 +260,15 @@
     els.priceAskBtn.disabled = false;
   }
 
-  async function promptPoleClarification(intent, question) {
-    const fields = window.PriceQuotePole?.buildClarificationFields?.(intent) || intent.clarificationFields || [];
+  async function promptPriceClarification(intent, question, type) {
+    const fields = type === "tr_install"
+      ? (window.PriceQuoteEngine.buildTrClarificationFields?.(intent) || intent.clarificationFields || [])
+      : (window.PriceQuotePole?.buildClarificationFields?.(intent) || intent.clarificationFields || []);
+
     if (!fields.length) {
+      if (type === "tr_install") {
+        return window.PriceQuoteEngine.mergeTrIntent(intent, {});
+      }
       return window.PriceQuoteEngine.mergePoleIntent(intent, {});
     }
 
@@ -274,7 +288,7 @@
     }).join("");
 
     const result = await Swal.fire({
-      title: "ระบุรายละเอียดงานเสา",
+      title: type === "tr_install" ? "ระบุหม้อแปลง" : "ระบุรายละเอียดงานเสา",
       html: `
         <p class="price-clarify-intro">${escapeHtml(question || "")}</p>
         <div class="price-clarify-form">${fieldHtml}</div>
@@ -292,14 +306,21 @@
             Swal.showValidationMessage(`กรุณาเลือก: ${field.label}`);
             return false;
           }
-          answers[field.key] = value;
+          answers[field.key] = field.key === "kva" ? Number(value) : value;
         }
         return answers;
       }
     });
 
     if (!result.isConfirmed || !result.value) return null;
+    if (type === "tr_install") {
+      return window.PriceQuoteEngine.mergeTrIntent(intent, result.value);
+    }
     return window.PriceQuoteEngine.mergePoleIntent(intent, result.value);
+  }
+
+  async function promptPoleClarification(intent, question) {
+    return promptPriceClarification(intent, question, "pole_run");
   }
 
   function formatPriceAskSource(parseSource) {
@@ -341,7 +362,9 @@
     if (!quote.ok) {
       const clarifyHint = quote.clarificationType === "pole_run"
         ? `<p class="price-ask-clarify-hint">ระบบต้องการข้อมูลเพิ่ม — ลองถามใหม่หรือระบุ MV/LV, 1P/3P ในประโยคเดียว</p>`
-        : "";
+        : (quote.clarificationType === "tr_install"
+          ? `<p class="price-ask-clarify-hint">ระบุ kVA ในประโยค เช่น 「ติดตั้งหม้อแปลง 50 kVA」หรือเลือกจากคำถามที่พบบ่อย</p>`
+          : "");
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
           <div class="price-ask-summary-top">

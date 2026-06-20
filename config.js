@@ -88,7 +88,7 @@ window.APP_CONFIG = {
     }
   },
 
-  /** เปิด Gemini เฉพาะเมื่อ FAQ/local ตอบไม่ได้ (GAS ใช้ 3.1 Flash Lite ก่อน → 2.5 Flash สำรอง) */
+  /** เปิด Gemini เฉพาะเมื่อ FAQ/local parse ไม่ได้ intent เลย (Swal จัดการ clarify) */
   priceAskUseGemini: true,
 
   /** ข้อมูลโมเดล Gemini — API key ตั้งใน GAS.txt เท่านั้น */

@@ -195,6 +195,8 @@
   function parsePoleCount(text) {
     const m = text.match(/(\d+)\s*(?:ต้น|เสา(?!\s*(?:เมตร|ม\.|m\b)))/);
     if (m) return Number(m[1]);
+    const approx = text.match(/(?:ประมาณ|ใช้|ต้องใช้|จำนวน)\s*(?:เสา[^0-9]*)?(\d+)\s*ต้น/);
+    if (approx) return Number(approx[1]);
     return null;
   }
 
@@ -418,6 +420,82 @@
     return intent;
   }
 
+  function enrichPoleIntentFromQuery(intent, query) {
+    if (!intent) return intent;
+    if (intent.intent !== "pole_run" && intent.intent !== "budget_capacity") return intent;
+
+    const sources = [query, intent.summary].filter(Boolean);
+    let localDistance = null;
+    let localPoleCount = null;
+    let localHeight = null;
+    let localVoltage = null;
+    let localPhase = null;
+    let localScope = null;
+    let localCableType = null;
+    let explicitPoleOnly = false;
+
+    sources.forEach(text => {
+      const t = normalizeText(text);
+      localDistance = localDistance ?? parseDistanceM(t);
+      localPoleCount = localPoleCount ?? parsePoleCount(t);
+      localHeight = localHeight ?? parsePoleHeight(t);
+      localVoltage = localVoltage ?? detectVoltage(t);
+      localPhase = localPhase ?? detectPhase(t);
+      localScope = localScope ?? detectScope(t);
+      if (/ปักเสาอย่างเดียว|เฉพาะเสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(t)) {
+        explicitPoleOnly = true;
+      }
+      if (!localCableType && localVoltage) {
+        localCableType = detectCableType(t, localVoltage);
+      }
+    });
+
+    const merged = { ...intent };
+    if (localDistance != null && !(Number(merged.distanceM) > 0)) merged.distanceM = localDistance;
+    if (localPoleCount != null && !(Number(merged.poleCount) > 1)) merged.poleCount = localPoleCount;
+    if (localHeight != null && !merged.poleHeightM) merged.poleHeightM = localHeight;
+    if (localVoltage && !merged.voltage) merged.voltage = localVoltage;
+    if (localPhase && !merged.phase) merged.phase = localPhase;
+    if (localCableType && !merged.cableType) merged.cableType = localCableType;
+
+    const span = Number(merged.spanStraightM) || DEFAULT_SPAN_M;
+    if (!(Number(merged.distanceM) > 0) && Number(merged.poleCount) >= 2) {
+      merged.distanceM = (Number(merged.poleCount) - 1) * span;
+    }
+
+    if (explicitPoleOnly) {
+      merged.scope = "pole_only";
+    } else if (Number(merged.distanceM) > 0) {
+      merged.scope = "with_wire";
+    } else if (localScope && !merged.scope) {
+      merged.scope = localScope;
+    }
+
+    if (merged.voltage) Object.assign(merged, applyLineDefaults(merged));
+    if (merged.phase) Object.assign(merged, applyPhaseDefaults(merged));
+
+    if (merged.intent === "pole_run") {
+      const missing = buildClarificationFields(merged);
+      merged.needsClarification = missing.length > 0;
+      merged.clarificationType = "pole_run";
+      merged.clarificationFields = missing;
+      merged.clarificationQuestion = missing.length
+        ? buildClarificationQuestion(merged)
+        : null;
+    } else if (merged.intent === "budget_capacity") {
+      const missing = buildClarificationFields(merged);
+      merged.needsClarification = missing.length > 0;
+      merged.clarificationType = "pole_run";
+      merged.clarificationFields = missing;
+      merged.clarificationQuestion = missing.length
+        ? (buildClarificationQuestion(merged) || merged.clarificationQuestion)
+        : null;
+    }
+
+    merged.summary = query || merged.summary;
+    return merged;
+  }
+
   function mergePoleParams(intent, answers = {}) {
     let merged = { ...intent, ...answers };
     merged.intent = "pole_run";
@@ -425,8 +503,9 @@
     if (merged.voltage) merged = applyLineDefaults(merged);
     if (merged.phase) merged = applyPhaseDefaults(merged);
 
-    if (merged.distanceM != null) {
-      merged.distanceM = Number(merged.distanceM);
+    const distanceM = Number(merged.distanceM);
+    if (Number.isFinite(distanceM) && distanceM > 0) {
+      merged.distanceM = distanceM;
       merged.curveDistanceM = Math.max(0, Number(merged.curveDistanceM) || 0);
       merged.layout = computePoleLayout(merged.distanceM, {
         spanStraightM: merged.spanStraightM,
@@ -837,6 +916,7 @@
     buildPoleRunBreakdown,
     buildPoleRunLines,
     buildClarificationFields,
+    enrichPoleIntentFromQuery,
     isPoleRunQuery,
     isLineExtensionQuery,
     isBudgetCapacityQuery,

@@ -462,6 +462,173 @@
     };
   }
 
+  function buildTrClarificationFields(intent) {
+    const fields = [];
+    if (!intent.kva) {
+      fields.push({
+        key: "kva",
+        label: "ขนาดหม้อแปลง",
+        type: "select",
+        options: [
+          { value: "30", label: "30 kVA (1 เฟส)" },
+          { value: "50", label: "50 kVA (3 เฟส)" },
+          { value: "100", label: "100 kVA (3 เฟส)" },
+          { value: "160", label: "160 kVA (3 เฟส)" },
+          { value: "250", label: "250 kVA (3 เฟส)" }
+        ]
+      });
+    }
+    const kva = Number(intent.kva);
+    if (kva && kva !== 30 && !intent.phase) {
+      fields.push({
+        key: "phase",
+        label: "ระบบเฟส",
+        type: "select",
+        options: [
+          { value: "3p", label: "3 เฟส (3P)" }
+        ]
+      });
+    }
+    if (kva === 30 && !intent.phase) {
+      intent.phase = "1p";
+    }
+    return fields;
+  }
+
+  function mergeTrIntent(intent, answers = {}) {
+    const kva = Number(answers.kva || intent.kva);
+    const phase = answers.phase
+      || intent.phase
+      || (kva === 30 ? "1p" : "3p");
+    const merged = {
+      ...intent,
+      intent: "tr_install",
+      kva,
+      phase,
+      includeTrSet: intent.includeTrSet !== false,
+      installType: answers.installType || intent.installType || "single_pole",
+      summary: intent.summary || ""
+    };
+    return sanitizeIntent(merged, merged.summary);
+  }
+
+  function validateIntent(intent, query) {
+    if (!intent) return null;
+
+    const result = { ...intent };
+    const distanceM = Number(result.distanceM);
+    const hasDistance = Number.isFinite(distanceM) && distanceM > 0;
+    const budgetBaht = Number(result.budgetBaht);
+
+    if (result.intent === "pole_run" || result.intent === "budget_capacity") {
+      if (hasDistance) {
+        result.scope = result.scope === "pole_only" ? result.scope : "with_wire";
+        delete result.poleCount;
+      }
+
+      const fields = window.PriceQuotePole?.buildClarificationFields?.(result) || [];
+      const missing = [];
+
+      if (result.intent === "budget_capacity" && !(budgetBaht > 0)) {
+        missing.push("งบประมาณ");
+      }
+      if (hasDistance || result.scope === "with_wire" || result.intent === "budget_capacity") {
+        if (!result.voltage) missing.push("แรงดัน (MV/LV)");
+        if (!result.phase) missing.push("ระบบเฟส (1P/3P)");
+      }
+      if (result.intent === "pole_run" && !hasDistance && !result.poleHeightM && !(Number(result.poleCount) > 0)) {
+        missing.push("ระยะทาง (เมตร) หรือจำนวนเสา");
+      }
+      if (result.voltage === "mv" && result.scope === "with_wire" && !result.cableType && hasDistance) {
+        result.cableType = result.cableType || "aerial";
+      }
+
+      if (fields.length || missing.length) {
+        result.needsClarification = true;
+        result.clarificationType = "pole_run";
+        result.clarificationFields = fields.length
+          ? fields
+          : (window.PriceQuotePole?.buildClarificationFields?.(result) || []);
+        result.clarificationQuestion = window.PriceQuotePole?.buildClarificationQuestion?.(result)
+          || (missing.length ? `กรุณาระบุ: ${missing.join(" · ")}` : "กรุณาระบุรายละเอียดงานเสา");
+      } else {
+        result.needsClarification = false;
+        result.clarificationQuestion = null;
+        result.clarificationFields = [];
+      }
+      return result;
+    }
+
+    if (result.intent === "tr_install") {
+      const kva = Number(result.kva) || extractKvaFromQuery(query);
+      if (!kva) {
+        result.needsClarification = true;
+        result.clarificationType = "tr_install";
+        result.clarificationFields = buildTrClarificationFields(result);
+        result.clarificationQuestion = "ระบุขนาดหม้อแปลง (kVA) เพื่อประมาณราคาติดตั้ง";
+        return result;
+      }
+
+      const phase = result.phase || (kva === 30 ? "1p" : "3p");
+      const series = detectTransformerSeries(query || result.summary || "");
+      const transformer = findTransformerByKva(kva, phase, series);
+      result.kva = kva;
+      result.phase = phase;
+
+      if (!transformer?.id) {
+        result.needsClarification = true;
+        result.clarificationType = "tr_install";
+        result.clarificationFields = buildTrClarificationFields({ ...result, kva: null });
+        result.clarificationQuestion = `ไม่พบหม้อแปลง ${kva} kVA ใน catalog — เลือกขนาดอื่น`;
+        return result;
+      }
+
+      result.transformerId = transformer.id;
+      result.trSetId = result.trSetId || resolveDefaultTrSetId(
+        result.installType || "single_pole",
+        phase,
+        kva
+      );
+      result.needsClarification = false;
+      result.clarificationQuestion = null;
+      result.clarificationFields = [];
+      return result;
+    }
+
+    if (result.intent === "tr_budget_check") {
+      if (!(budgetBaht > 0)) {
+        result.needsClarification = true;
+        result.clarificationQuestion = "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 50,000 บาท";
+        return result;
+      }
+      result.needsClarification = false;
+      return result;
+    }
+
+    if (result.intent === "material_only") {
+      const hasItem = (result.items || []).some(item => item.materialId || item.searchTerms?.length);
+      if (!hasItem) {
+        result.needsClarification = true;
+        result.clarificationQuestion = "ระบุรหัสพัสดุหรือคำค้นให้ชัด เช่น หม้อแปลง 100 kVA";
+        return result;
+      }
+      result.needsClarification = false;
+      return result;
+    }
+
+    if (result.intent === "unknown" || !result.intent) {
+      result.needsClarification = true;
+      result.clarificationQuestion = result.clarificationQuestion
+        || "ไม่เข้าใจประเภทงาน — ลองระบุ kVA / ระยะทาง / รหัสพัสดุ";
+      return result;
+    }
+
+    if (result.needsClarification) {
+      result.clarificationQuestion = result.clarificationQuestion || "กรุณาระบุรายละเอียดเพิ่มเติม";
+    }
+    return result;
+  }
+
   function sanitizeIntent(intent, query) {
     if (!intent) return intent;
 
@@ -508,7 +675,11 @@
       }
     }
 
-    return intent;
+    if (window.PriceQuotePole?.enrichPoleIntentFromQuery) {
+      intent = window.PriceQuotePole.enrichPoleIntentFromQuery(intent, query);
+    }
+
+    return validateIntent(intent, query);
   }
 
   function parseQueryLocal(query, budgetType = "01.1") {
@@ -549,15 +720,19 @@
       };
     }
 
-    const tokens = text.split(/[\s,]+/).filter(token => token.length > 1);
-    return {
-      intent: "material_only",
-      budgetType,
-      items: [{ searchTerms: tokens.length ? tokens : [text], qty: 1 }],
-      summary: query,
-      needsClarification: false,
-      source: "local"
-    };
+    const materialIdMatch = text.match(/\b(\d{10})\b/);
+    if (materialIdMatch) {
+      return {
+        intent: "material_only",
+        budgetType,
+        items: [{ materialId: materialIdMatch[1], qty: 1, laborHint: "ติดตั้ง" }],
+        summary: query,
+        needsClarification: false,
+        source: "local"
+      };
+    }
+
+    return null;
   }
 
   function buildQuote(intent, master) {
@@ -576,6 +751,17 @@
         clarificationType: "pole_run",
         clarificationFields: intent.clarificationFields || [],
         question: intent.clarificationQuestion || "กรุณาระบุรายละเอียดเพิ่มเติม",
+        intent
+      };
+    }
+
+    if (intent.needsClarification && intent.clarificationType === "tr_install") {
+      return {
+        ok: false,
+        needsClarification: true,
+        clarificationType: "tr_install",
+        clarificationFields: intent.clarificationFields || [],
+        question: intent.clarificationQuestion || "กรุณาระบุขนาดหม้อแปลง",
         intent
       };
     }
@@ -688,9 +874,12 @@
     buildIntentFromFaq,
     matchFaqByQuery,
     sanitizeIntent,
+    validateIntent,
     parseQueryLocal,
     parseTrBudgetQuery,
     buildTrBudgetQuote,
+    buildTrClarificationFields,
+    mergeTrIntent,
     buildQuote,
     calculateQuoteTotal,
     findMasterItem,
