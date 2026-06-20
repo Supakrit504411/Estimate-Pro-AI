@@ -526,12 +526,31 @@ input:focus,
 }
 
 .price-ask-breakdown {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
   margin: 10px 0;
-  font-size: 11px;
-  color: var(--muted);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(245, 201, 106, 0.06), rgba(143, 107, 255, 0.06));
+  border: 1px solid rgba(245, 201, 106, 0.12);
+}
+
+.detail-budget-wrap {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.detail-budget-block {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(245, 201, 106, 0.08), rgba(143, 107, 255, 0.08));
+  border: 1px solid rgba(245, 201, 106, 0.14);
+}
+
+.detail-budget-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-soft);
+  margin-bottom: 6px;
 }
 
 .price-ask-table-wrap {

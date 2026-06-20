@@ -33,6 +33,12 @@
       labor += line.labPrice * line.qty;
     });
 
+    const formula = window.BudgetFormula?.computeBudgetTotals
+      ? window.BudgetFormula.computeBudgetTotals(material, labor, budgetType)
+      : null;
+
+    if (formula) return formula;
+
     const supervision = labor * 0.3;
     const transport = material * 0.05;
     const subtotal = material + labor + supervision + transport;
@@ -51,6 +57,7 @@
       misc,
       overhead,
       profit,
+      preFinal,
       total
     };
   }

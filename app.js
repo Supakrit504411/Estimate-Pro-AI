@@ -323,6 +323,77 @@
     return promptPriceClarification(intent, question, "pole_run");
   }
 
+  function formatBudgetAmount(value) {
+    return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderBudgetBreakdownRowsHtml(totals, budgetType, options = {}) {
+    const type = window.BudgetFormula.normalizeBudgetType(budgetType);
+    const rowClass = options.rowClass || "calc-row";
+    const rows = [
+      ["พัสดุ", totals.material],
+      ["แรง", totals.labor],
+      ["คุมงาน 30%", totals.supervision],
+      ["ขนส่ง 5%", totals.transport],
+      ["\u0e40\u0e1a\u0e2d\u0e40\u0e34\u0e25\u0e32\u0e34 5%", totals.misc],
+      ["ดำเนินการ 5%", totals.overhead]
+    ];
+    if (type === "02.2") {
+      rows.push(["กำไร 30%", totals.profit]);
+    }
+
+    const body = rows.map(([label, amount]) => `
+      <div class="${rowClass}">
+        <span>${label}</span>
+        <span>${formatBudgetAmount(amount)}</span>
+      </div>
+    `).join("");
+
+    if (!options.showTotal) return body;
+
+    return `
+      ${body}
+      <div class="total-row">
+        <span>สุทธิ (${type})</span>
+        <span>${formatBudgetAmount(totals.total)}</span>
+      </div>
+    `;
+  }
+
+  function enrichDetailLineWithMaster(detail) {
+    const idKey = String(detail.id || "").trim();
+    const master = state.dataStore.find(item => String(item.id).trim() === idKey);
+    return {
+      ...detail,
+      matPrice: master?.matPrice || 0,
+      labPrice: parseFloat(detail.labPrice) || master?.labPrice || 0,
+      qty: parseFloat(detail.qty) || 0
+    };
+  }
+
+  function buildSavedBudgetBreakdownHtml(details) {
+    const grouped = {};
+    (details || []).forEach(detail => {
+      const type = window.BudgetFormula.normalizeBudgetType(detail.type);
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(enrichDetailLineWithMaster(detail));
+    });
+
+    const blocks = Object.entries(grouped).map(([type, items]) => {
+      const totals = window.BudgetFormula.computeBudgetTotalsFromItems(items, type);
+      return `
+        <div class="detail-budget-block">
+          <div class="detail-budget-title">สรุปงบ ${type}</div>
+          ${renderBudgetBreakdownRowsHtml(totals, type, { showTotal: true })}
+        </div>
+      `;
+    });
+
+    return blocks.length
+      ? `<div class="detail-budget-wrap">${blocks.join("")}</div>`
+      : "";
+  }
+
   function formatPriceAskSource(parseSource) {
     if (parseSource === "faq") return "คู่มือ";
     if (parseSource === "gemini-lite") return "AI 3.1 Lite";
@@ -420,11 +491,8 @@
         ${bundleNote}
         ${poleBreakdownHtml}
       </div>
-      <div class="price-ask-breakdown">
-        <span>พัสดุ ${quote.breakdown.material.toLocaleString()}</span>
-        <span>แรง ${quote.breakdown.labor.toLocaleString()}</span>
-        <span>คุมงาน ${quote.breakdown.supervision.toLocaleString()}</span>
-        <span>ขนส่ง ${quote.breakdown.transport.toLocaleString()}</span>
+      <div class="price-ask-breakdown calc-box">
+        ${renderBudgetBreakdownRowsHtml(quote.breakdown, quote.budgetType)}
       </div>
       <div class="price-ask-table-wrap">
         <table class="price-ask-table">
@@ -565,7 +633,11 @@
   }
 
   function addBudget(type) {
-    state.budgets.push({ type, items: [], total: 0 });
+    state.budgets.push({
+      type: window.BudgetFormula.normalizeBudgetType(type),
+      items: [],
+      total: 0
+    });
     render();
   }
 
@@ -584,7 +656,7 @@
     });
 
     if (newType) {
-      state.budgets[index].type = newType;
+      state.budgets[index].type = window.BudgetFormula.normalizeBudgetType(newType);
       render();
     }
   }
@@ -1207,36 +1279,10 @@
 
   function calcBudget(index) {
     const budget = state.budgets[index];
-    let material = 0;
-    let labor = 0;
-
-    budget.items.forEach(item => {
-      material += item.matPrice * item.qty;
-      labor += item.labPrice * item.qty;
-    });
-
-    const supervision = labor * 0.3;
-    const transport = material * 0.05;
-    const subtotal = material + labor + supervision + transport;
-    const misc = subtotal * 0.05;
-    const overhead = (subtotal + misc) * 0.05;
-    const preFinal = subtotal + misc + overhead;
-    const profit = budget.type === "02.2" ? preFinal * 0.3 : 0;
-    let final = preFinal + profit;
-
-    if (budget.type === "03.1") final *= 0.5;
-    budget.total = final;
-
-    return `
-      <div class="calc-row"><span>พัสดุ</span><span>${material.toLocaleString()}</span></div>
-      <div class="calc-row"><span>แรง</span><span>${labor.toLocaleString()}</span></div>
-      <div class="calc-row"><span>คุมงาน 30%</span><span>${supervision.toLocaleString()}</span></div>
-      <div class="calc-row"><span>ขนส่ง 5%</span><span>${transport.toLocaleString()}</span></div>
-      <div class="calc-row"><span>เบ็ดเตล็ด 5%</span><span>${misc.toLocaleString()}</span></div>
-      <div class="calc-row"><span>ดำเนินการ 5%</span><span>${overhead.toLocaleString()}</span></div>
-      ${profit > 0 ? `<div class="calc-row"><span>กำไร 30%</span><span>${profit.toLocaleString()}</span></div>` : ""}
-      <div class="total-row"><span>สุทธิ (${budget.type})</span><span>${budget.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-    `;
+    budget.type = window.BudgetFormula.normalizeBudgetType(budget.type);
+    const totals = window.BudgetFormula.computeBudgetTotalsFromItems(budget.items, budget.type);
+    budget.total = totals.total;
+    return renderBudgetBreakdownRowsHtml(totals, budget.type, { showTotal: true });
   }
 
   function updateGrandTotal() {
@@ -1629,6 +1675,7 @@
 
     return `
       ${surveyMetaHtml}
+      ${buildSavedBudgetBreakdownHtml(details)}
       ${mediaHtml}
       <table class="detail-table">
         <thead>
@@ -1719,7 +1766,7 @@
       const grouped = {};
 
       details.forEach(detail => {
-        const typeKey = String(detail.type).trim();
+        const typeKey = window.BudgetFormula.normalizeBudgetType(detail.type);
         const idKey = String(detail.id).trim();
         if (!grouped[typeKey]) grouped[typeKey] = [];
 
@@ -1736,7 +1783,11 @@
       });
 
       for (const type in grouped) {
-        state.budgets.push({ type, items: grouped[type], total: 0 });
+        state.budgets.push({
+          type: window.BudgetFormula.normalizeBudgetType(type),
+          items: grouped[type],
+          total: 0
+        });
       }
 
       switchTab(1);

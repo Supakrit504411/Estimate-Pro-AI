@@ -30,6 +30,7 @@ const sandbox = {
 sandbox.window = sandbox;
 vm.createContext(sandbox);
 
+load("budget-formula.js");
 load("price-quote-catalog.js");
 load("price-quote-pole.js");
 load("price-quote-engine.js");
@@ -140,6 +141,18 @@ runCase("mergeTrIntent — เลือก 50 kVA", () => {
 runCase("layout — 200m → 6 ต้น (span 40m)", () => {
   const layout = Pole.computePoleLayout(200, { spanStraightM: 40 });
   assert("6 poles", layout.totalPoles === 6);
+});
+
+runCase("budget formula — 02.2 includes profit", () => {
+  const totals = sandbox.window.BudgetFormula.computeBudgetTotals(100000, 8000, "2.2");
+  assert("normalize type", totals.budgetType === "02.2");
+  assert("profit > 0", totals.profit > 0);
+  assert("total > preFinal", totals.total > totals.preFinal);
+});
+
+runCase("budget formula — 01.1 no profit", () => {
+  const totals = sandbox.window.BudgetFormula.computeBudgetTotals(100000, 8000, "01.1");
+  assert("no profit", totals.profit === 0);
 });
 
 console.log(`\n--- สรุป: ${passed} passed, ${failed} failed ---`);
