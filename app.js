@@ -13,6 +13,7 @@
   };
 
   let lastPriceQuote = null;
+  let appBootstrapped = false;
 
   const els = {};
 
@@ -20,14 +21,72 @@
 
   async function init() {
     cacheElements();
-    bindEvents();
+    bindLoginEvents();
+    if (window.AuthSession?.isLoggedIn()) {
+      await bootstrapApp();
+    }
+  }
+
+  function bindLoginEvents() {
+    const form = document.getElementById("loginForm");
+    const logoutBtn = document.getElementById("logoutBtn");
+    form?.addEventListener("submit", handleLoginSubmit);
+    logoutBtn?.addEventListener("click", handleLogout);
+  }
+
+  async function handleLoginSubmit(event) {
+    event.preventDefault();
+    const usernameInput = document.getElementById("loginUsername");
+    const passwordInput = document.getElementById("loginPassword");
+    const errorEl = document.getElementById("loginError");
+    const submitBtn = document.getElementById("loginSubmitBtn");
+
+    const username = usernameInput?.value.trim() || "";
+    const password = passwordInput?.value || "";
+    if (!username || !password) return;
+
+    if (errorEl) errorEl.classList.add("hidden");
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const result = await window.ApiService.login(username, password);
+      if (!result?.ok || !result.user) {
+        throw new Error(result?.message || "เข้าสู่ระบบไม่สำเร็จ");
+      }
+      window.AuthSession.save(result.user);
+      await bootstrapApp();
+    } catch (error) {
+      if (errorEl) {
+        errorEl.textContent = error.message || "เข้าสู่ระบบไม่สำเร็จ";
+        errorEl.classList.remove("hidden");
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function handleLogout() {
+    window.AuthSession?.clear();
+    state.historyCache = null;
+    location.reload();
+  }
+
+  async function bootstrapApp() {
+    if (!window.AuthSession?.isLoggedIn()) return;
+    window.AuthSession.applyRbacToDom();
+    if (!appBootstrapped) {
+      bindEvents();
+      appBootstrapped = true;
+    }
+    const defaultTab = window.AuthSession.getDefaultTab?.() || 1;
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
-      btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === 1);
+      btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === defaultTab);
     });
     await loadMasterData();
     checkInput();
     renderPriceFaqChips();
     initScrollCompactHeader();
+    switchTab(defaultTab);
   }
 
   function renderPriceFaqChips() {
@@ -104,22 +163,23 @@
   }
 
   function bindEvents() {
-    els.t1.addEventListener("click", () => switchTab(1));
-    els.t2.addEventListener("click", () => switchTab(2));
+    els.t1?.addEventListener("click", () => switchTab(1));
+    els.t2?.addEventListener("click", () => switchTab(2));
     if (els.t3) els.t3.addEventListener("click", () => switchTab(3));
     if (els.t4) els.t4.addEventListener("click", () => switchTab(4));
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
       btn.addEventListener("click", () => switchTab(Number(btn.dataset.tabNav)));
     });
-    els.pjName.addEventListener("input", checkInput);
-    els.scanBtn.addEventListener("click", () => els.aiFile.click());
-    els.aiFile.addEventListener("change", event => handleAIUpload(event.target));
-    els.saveProjectBtn.addEventListener("click", confirmSave);
-    els.reloadHistoryBtn.addEventListener("click", () => {
+    els.pjName?.addEventListener("input", checkInput);
+    els.scanBtn?.addEventListener("click", () => els.aiFile.click());
+    els.aiFile?.addEventListener("change", event => handleAIUpload(event.target));
+    els.saveProjectBtn?.addEventListener("click", confirmSave);
+    els.reloadHistoryBtn?.addEventListener("click", () => {
       state.historyCache = null;
       fetchHistory();
     });
-    els.histSearch.addEventListener("input", filterHistory);
+    els.histSearch?.addEventListener("input", filterHistory);
+    els.histContent?.addEventListener("click", handleHistoryClick);
     els.budgetButtons.forEach(button => {
       button.addEventListener("click", () => addBudget(button.dataset.budgetType));
     });
@@ -213,7 +273,8 @@
       intent = window.PriceQuoteEngine.sanitizeIntent(intent, query);
     }
 
-    const useGemini = appConfig.priceAskUseGemini === true;
+    const useGemini = appConfig.priceAskUseGemini === true
+      && window.AuthSession?.canUseAiAsk?.() !== false;
     if (useGemini && query && !intent) {
       try {
         const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
@@ -468,7 +529,7 @@
       ? `<ul class="price-ask-pole-breakdown">${quote.poleBreakdown.map(line => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
       : "";
 
-    const lineRows = quote.lines.slice(0, 12).map(line => `
+    const lineRows = quote.lines.map(line => `
       <tr>
         <td>${escapeHtml(line.materialId)}</td>
         <td>${escapeHtml(line.name)}</td>
@@ -476,10 +537,6 @@
         <td class="num">${line.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
       </tr>
     `).join("");
-
-    const moreLines = quote.lines.length > 12
-      ? `<div class="price-ask-more">+ อีก ${quote.lines.length - 12} รายการ</div>`
-      : "";
 
     els.priceAskResult.innerHTML = `
       <div class="price-ask-summary">
@@ -501,7 +558,6 @@
           </thead>
           <tbody>${lineRows}</tbody>
         </table>
-        ${moreLines}
       </div>
       <p class="price-ask-disclaimer">${escapeHtml(quote.disclaimer)}</p>
       <button class="primary-btn price-ask-import" type="button" data-action="import-price-quote">เพิ่มเข้างบประมาณการ</button>
@@ -536,6 +592,7 @@
     });
 
     render();
+    resetPriceAskDraft();
     switchTab(1);
     Swal.fire(
       "เพิ่มเข้างบแล้ว",
@@ -544,10 +601,96 @@
     );
   }
 
+  function hasCreateJobDraft() {
+    if (els.pjName?.value.trim()) return true;
+    if (state.budgets.some(budget => budget.items.length > 0)) return true;
+    if (state.tempFileList?.length) return true;
+    if (state.aiReviewQueue?.length) return true;
+    return false;
+  }
+
+  function hasPriceAskDraft() {
+    if (lastPriceQuote?.ok) return true;
+    if (els.priceAskInput?.value.trim()) return true;
+    return false;
+  }
+
+  function resetCreateJobDraft() {
+    state.budgets = [];
+    state.currentJobId = null;
+    state.currentFileUrl = "";
+    state.tempFileList = [];
+    state.aiReviewQueue = [];
+    if (els.pjName) els.pjName.value = "";
+    if (els.formTitle) els.formTitle.innerText = "Your Project";
+    render();
+    checkInput();
+  }
+
+  function resetPriceAskDraft() {
+    lastPriceQuote = null;
+    if (els.priceAskInput) els.priceAskInput.value = "";
+    if (els.priceAskResult) {
+      els.priceAskResult.classList.add("hidden");
+      els.priceAskResult.innerHTML = "";
+    }
+  }
+
+  async function confirmLeaveCreateTab() {
+    if (!hasCreateJobDraft()) return true;
+
+    const { isConfirmed } = await Swal.fire({
+      title: "ออกจากหน้าสร้างงาน?",
+      text: "ยังมีข้อมูลที่กรอกไว้ — ออกจากหน้านี้จะไม่บันทึกรายการงบและไฟล์ที่แนบ",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ออก (ไม่บันทึก)",
+      cancelButtonText: "อยู่ต่อ"
+    });
+
+    if (!isConfirmed) return false;
+    resetCreateJobDraft();
+    return true;
+  }
+
+  async function confirmLeavePriceAskTab() {
+    if (!hasPriceAskDraft()) return true;
+
+    const { isConfirmed } = await Swal.fire({
+      title: "ออกจากหน้าถามราคา?",
+      text: "ยังมีคำถามหรือผลลัพธ์ราคาที่ยังไม่ได้นำเข้างบ — ออกจากหน้านี้จะล้างผลลัพธ์",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ออก (ล้างผลลัพธ์)",
+      cancelButtonText: "อยู่ต่อ"
+    });
+
+    if (!isConfirmed) return false;
+    resetPriceAskDraft();
+    return true;
+  }
+
   async function switchTab(n) {
+    if (window.AuthSession && !window.AuthSession.canAccessTab(n)) {
+      Swal.fire("ไม่มีสิทธิ์", "บัญชีนี้ไม่สามารถเข้าแท็บนี้ได้", "warning");
+      return;
+    }
+
     const onSurvey = els.view3 && !els.view3.classList.contains("hidden");
     if (onSurvey && n !== 3 && window.SurveyModule?.confirmLeaveTab) {
       const ok = await window.SurveyModule.confirmLeaveTab();
+      if (!ok) return;
+    }
+
+    const onCreate = !els.view1.classList.contains("hidden");
+    if (onCreate && n !== 1) {
+      const ok = await confirmLeaveCreateTab();
+      if (!ok) return;
+    }
+
+    const onPriceAsk = els.view4 && !els.view4.classList.contains("hidden");
+    if (onPriceAsk && n !== 4) {
+      const ok = await confirmLeavePriceAskTab();
       if (!ok) return;
     }
 
@@ -781,6 +924,12 @@
 
   async function handleAIUpload(input) {
     if (!input.files.length) return;
+
+    if (window.AuthSession && !window.AuthSession.canUseAiAsk()) {
+      Swal.fire("ไม่มีสิทธิ์", "บัญชีนี้ไม่สามารถใช้ AI Scan ได้", "warning");
+      input.value = "";
+      return;
+    }
 
     if (state.budgets.length === 0) {
       Swal.fire({
@@ -1140,15 +1289,129 @@
     });
   }
 
+  function collectSetIdsFromObject(obj, bucket) {
+    if (!obj || typeof obj !== "object") return;
+    Object.entries(obj).forEach(([key, value]) => {
+      if (key === "setIds" || key.endsWith("SetIds")) {
+        (Array.isArray(value) ? value : []).forEach(id => bucket.add(String(id)));
+      } else if (value && typeof value === "object") {
+        collectSetIdsFromObject(value, bucket);
+      }
+    });
+  }
+
+  function getQuickPickSetItems(setSource) {
+    const presets = window.SURVEY_PRESETS;
+    const api = window.SurveyPresetsApi;
+    if (!presets || !api) return [];
+
+    const ids = new Set();
+    if (setSource === "tr") {
+      collectSetIdsFromObject(presets.trInstallCatalog, ids);
+    } else {
+      const voltage = setSource === "mv" ? "mv" : "lv";
+      Object.values(presets.configs || {}).forEach(config => {
+        if (config.voltage === voltage) collectSetIdsFromObject(config, ids);
+      });
+      Object.entries(presets.specialPoleRules || {}).forEach(([key, rules]) => {
+        if (key.startsWith(voltage)) collectSetIdsFromObject(rules, ids);
+      });
+    }
+
+    return [...ids]
+      .map(id => api.getSet(id))
+      .filter(Boolean)
+      .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }))
+      .map(set => ({ id: set.id, name: set.name, isSet: true }));
+  }
+
+  function resolveQuickPickItems(category) {
+    if (category.setSource) return getQuickPickSetItems(category.setSource);
+    if (Array.isArray(category.items) && category.items.length) return category.items;
+    return filterByCategory(state.dataStore, category.keywords || []);
+  }
+
+  function findMasterItem(itemId) {
+    const idKey = String(itemId).trim();
+    return state.dataStore.find(item => String(item.id).trim() === idKey) || null;
+  }
+
+  async function addSetToBudget(budgetIndex, setEntry) {
+    const setObj = window.SurveyPresetsApi?.getSet?.(setEntry.id)
+      || window.SURVEY_PRESETS?.sets?.[String(setEntry.id)];
+    if (!setObj?.items?.length) {
+      Swal.fire("ไม่พบชุด SET", `ไม่พบรายการในชุด ${setEntry.id}`, "warning");
+      return;
+    }
+
+    const { value: qty } = await Swal.fire({
+      title: "จำนวนชุด SET",
+      text: `${setObj.id} — ${setObj.name}`,
+      input: "number",
+      inputAttributes: { step: "any", min: "0.01" },
+      inputValue: 1,
+      showCancelButton: true
+    });
+
+    if (qty === undefined || qty === "") return;
+    const multiplier = parseFloat(qty);
+    if (!Number.isFinite(multiplier) || multiplier <= 0) return;
+
+    const lines = window.SurveyPresetsApi?.expandTrSetItems?.(setObj.id, {})
+      || setObj.items;
+    let added = 0;
+    const missing = [];
+
+    lines.forEach(line => {
+      const master = findMasterItem(line.id);
+      if (!master) {
+        missing.push(line.id);
+        return;
+      }
+      const lineQty = (parseFloat(line.qty) || 1) * multiplier;
+      const labor = master.laborOptions?.[0];
+      state.budgets[budgetIndex].items.push({
+        ...master,
+        qty: lineQty,
+        labPrice: labor?.price ?? master.labPrice,
+        laborDesc: labor?.desc || "ค่าแรงมาตรฐาน",
+        total: (master.matPrice + (labor?.price ?? master.labPrice)) * lineQty
+      });
+      added += 1;
+    });
+
+    if (added) {
+      render();
+      if (missing.length) {
+        Swal.fire(
+          "เพิ่มชุด SET แล้ว",
+          `เพิ่ม ${added} รายการ — ไม่พบราคา master สำหรับ ${missing.length} รหัส`,
+          "info"
+        );
+      }
+      return;
+    }
+
+    Swal.fire(
+      "ไม่สามารถเพิ่มชุด SET",
+      missing.length
+        ? `ไม่พบราคา master ของรหัส: ${missing.slice(0, 5).join(", ")}`
+        : "ไม่มีรายการในชุดนี้",
+      "warning"
+    );
+  }
+
   async function openQuickPicker(budgetIndex, categoryKey) {
     const category = (appConfig.quickCategories || {})[categoryKey];
     if (!category) return;
 
-    const hits = filterByCategory(state.dataStore, category.keywords);
+    const hits = resolveQuickPickItems(category);
     if (!hits.length) {
       Swal.fire(
         "ไม่พบรายการ",
-        `ไม่พบพัสดุหมวด "${category.label}" ใน master data`,
+        category.setSource
+          ? `ไม่พบชุด SET หมวด "${category.label}" — ตรวจสอบว่าโหลด survey-presets.js แล้ว`
+          : `ไม่พบพัสดุหมวด "${category.label}" ใน master data`,
         "info"
       );
       return;
@@ -1158,8 +1421,8 @@
       <div class="quick-pick-list">
         <input id="quickPickFilter" class="quick-pick-filter" placeholder="กรองรายการ ${category.label}...">
         <div id="quickPickResults" class="quick-pick-results">
-          ${hits.slice(0, 80).map(item => `
-            <button type="button" class="quick-pick-item" data-item-id="${escapeHtml(item.id)}">
+          ${hits.slice(0, 120).map(item => `
+            <button type="button" class="quick-pick-item" data-item-id="${escapeHtml(item.id)}" data-is-set="${item.isSet ? "1" : "0"}">
               <strong>${escapeHtml(item.id)}</strong>
               <span>${escapeHtml(item.name)}</span>
             </button>
@@ -1180,14 +1443,29 @@
         const resultsBox = popup.querySelector("#quickPickResults");
         const itemMap = new Map(hits.map(item => [item.id, item]));
 
+        const handlePick = async item => {
+          Swal.close();
+          if (item.isSet) {
+            await addSetToBudget(budgetIndex, item);
+            return;
+          }
+          const master = findMasterItem(item.id);
+          if (master) {
+            hideAndAsk(budgetIndex, master);
+            return;
+          }
+          Swal.fire(
+            "ไม่พบราคา",
+            `รหัส ${item.id} ยังไม่มีใน master data — ไม่สามารถคำนวณราคาได้`,
+            "warning"
+          );
+        };
+
         popup.addEventListener("click", event => {
           const button = event.target.closest(".quick-pick-item");
           if (!button) return;
           const item = itemMap.get(button.dataset.itemId);
-          if (item) {
-            Swal.close();
-            hideAndAsk(budgetIndex, item);
-          }
+          if (item) handlePick(item);
         });
 
         filterInput.addEventListener("input", () => {
@@ -1195,10 +1473,10 @@
           const filtered = hits.filter(item => {
             const hay = `${item.id} ${item.name}`.toLowerCase();
             return !value || hay.includes(value);
-          }).slice(0, 80);
+          }).slice(0, 120);
 
           resultsBox.innerHTML = filtered.map(item => `
-            <button type="button" class="quick-pick-item" data-item-id="${escapeHtml(item.id)}">
+            <button type="button" class="quick-pick-item" data-item-id="${escapeHtml(item.id)}" data-is-set="${item.isSet ? "1" : "0"}">
               <strong>${escapeHtml(item.id)}</strong>
               <span>${escapeHtml(item.name)}</span>
             </button>
@@ -1335,7 +1613,10 @@
     };
 
     try {
-      await window.ApiService.saveProject(payload);
+      const result = await window.ApiService.saveProject(payload);
+      if (result?.status === "error") {
+        throw new Error(result.msg || "บันทึกไม่สำเร็จ");
+      }
       await Swal.fire("สำเร็จ", "บันทึกโครงการเรียบร้อย", "success");
 
       if (options.fromSurvey) {
@@ -1410,6 +1691,100 @@
     }
   }
 
+  function canManageHistoryProject(cached) {
+    const me = window.AuthSession?.getUsername?.() || "";
+    if (!me) return false;
+    if (window.AuthSession?.isAdmin?.()) return true;
+    if (!cached?.createdBy) return false;
+    return cached.createdBy === me;
+  }
+
+  function getHistoryAccessBadge(row) {
+    const me = window.AuthSession?.getUsername?.() || "";
+    const createdBy = String(row[6] || "");
+    const sharedWith = String(row[7] || "");
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(row[8] || ""));
+
+    if (createdBy && createdBy === me) {
+      return `<span class="history-badge history-badge-own">ของฉัน</span>`;
+    }
+    if (isPublic) {
+      return `<span class="history-badge history-badge-public">สาธารณะ</span>`;
+    }
+    if (sharedWith) {
+      return `<span class="history-badge history-badge-shared">แชร์</span>`;
+    }
+    if (createdBy) {
+      return `<span class="history-badge">${escapeHtml(createdBy)}</span>`;
+    }
+    return `<span class="history-badge">legacy</span>`;
+  }
+
+  function handleHistoryClick(event) {
+    const shareBtn = event.target.closest("[data-action='share-project']");
+    if (!shareBtn) return;
+    askShare(shareBtn.dataset.projectId);
+  }
+
+  async function askShare(projectId) {
+    const cached = state.historyRowCache[projectId] || {};
+    if (!canManageHistoryProject(cached)) {
+      Swal.fire("ไม่มีสิทธิ์", "เฉพาะเจ้าของโครงการเท่านั้นที่แชร์ได้", "warning");
+      return;
+    }
+
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(cached.isPublic || ""));
+    const html = `
+      <div class="share-form">
+        <label class="share-label" for="shareUsers">แชร์ให้ผู้ใช้ (คั่นด้วย comma)</label>
+        <input id="shareUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedWith || "")}" placeholder="user1, user2">
+        <label class="share-check">
+          <input id="sharePublic" type="checkbox" ${isPublic ? "checked" : ""}>
+          เปิดให้ทุกคนในระบบเห็น (Public)
+        </label>
+      </div>
+    `;
+
+    const { isConfirmed } = await Swal.fire({
+      title: "แชร์โครงการ",
+      html,
+      showCancelButton: true,
+      confirmButtonText: "บันทึก",
+      cancelButtonText: "ยกเลิก",
+      preConfirm: () => {
+        const popup = Swal.getPopup();
+        return {
+          sharedWith: popup.querySelector("#shareUsers")?.value || "",
+          isPublic: popup.querySelector("#sharePublic")?.checked === true
+        };
+      }
+    });
+
+    if (!isConfirmed) return;
+
+    Swal.fire({
+      title: "กำลังบันทึก...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      const result = await window.ApiService.shareProject({
+        projectId,
+        sharedWith: isConfirmed.sharedWith,
+        isPublic: isConfirmed.isPublic
+      });
+      if (result.status !== "success") {
+        throw new Error(result.msg || "แชร์ไม่สำเร็จ");
+      }
+      state.historyCache = null;
+      await fetchHistory();
+      Swal.fire("สำเร็จ", "อัปเดตการแชร์เรียบร้อย", "success");
+    } catch (error) {
+      Swal.fire("แชร์ไม่สำเร็จ", error.message || "เกิดข้อผิดพลาด", "error");
+    }
+  }
+
   function renderHistory(data) {
     state.historyRowCache = {};
 
@@ -1427,11 +1802,25 @@
     els.histContent.innerHTML = data.map(row => {
       const dateDisplay = safeDateDisplay(row[1]);
       const projectId = String(row[0] || "");
+      const createdBy = String(row[6] || "");
+      const sharedWith = String(row[7] || "");
+      const isPublic = String(row[8] || "");
       state.historyRowCache[projectId] = {
         name: String(row[2] || ""),
         imgStr: String(row[4] || ""),
-        surveyMetaStr: String(row[5] || "")
+        surveyMetaStr: String(row[5] || ""),
+        createdBy,
+        sharedWith,
+        isPublic
       };
+      const canManage = canManageHistoryProject(state.historyRowCache[projectId]);
+      const manageActions = canManage
+        ? `
+              <button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}">แชร์</button>
+              <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>
+              <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
+            `
+        : "";
       return `
         <div class="history-card">
           <div class="history-top">
@@ -1440,6 +1829,7 @@
               <div class="history-meta">
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
                 <span class="type-chip">ID ${escapeHtml(projectId)}</span>
+                ${getHistoryAccessBadge(row)}
               </div>
               <div class="history-amount">
                 ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
@@ -1447,8 +1837,7 @@
             </div>
             <div class="history-actions">
               <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>
-              <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>
-              <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
+              ${manageActions}
             </div>
           </div>
         </div>
@@ -1479,6 +1868,14 @@
 
     try {
       const details = await window.ApiService.getProjectDetails(id);
+      if (details?.error) {
+        Swal.fire("ไม่มีสิทธิ์", details.msg || "ไม่สามารถดูโครงการนี้ได้", "warning");
+        return;
+      }
+      if (!Array.isArray(details) || !details.length) {
+        Swal.fire("ไม่พบข้อมูล", "ไม่พบรายละเอียดพัสดุในโครงการนี้", "warning");
+        return;
+      }
       const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
       const previews = await fetchDrivePreviews(urls);
       const html = buildDetailHtml(details, imgStr, name, surveyMetaStr, previews);
@@ -1719,28 +2116,14 @@
 
   async function askEdit(id) {
     const cached = state.historyRowCache[id] || {};
+    if (!canManageHistoryProject(cached)) {
+      Swal.fire("ไม่มีสิทธิ์", "เฉพาะเจ้าของโครงการเท่านั้นที่แก้ไขได้", "warning");
+      return;
+    }
+
     const name = cached.name || "";
     const img = cached.imgStr || "";
-
-    const { value: password } = await Swal.fire({
-      title: "รหัสผ่านเพื่อแก้ไข",
-      input: "password",
-      showCancelButton: true
-    });
-
-    if (!password) return;
-
-    try {
-      const ok = await window.ApiService.verifyPassword(password);
-      if (ok) {
-        await editJob(id, name, img);
-      } else {
-        Swal.fire("รหัสผ่านไม่ถูกต้อง", "", "error");
-      }
-    } catch (error) {
-      console.error(error);
-      Swal.fire("ตรวจสอบรหัสผ่านไม่สำเร็จ", error.message || "เกิดข้อผิดพลาด", "error");
-    }
+    await editJob(id, name, img);
   }
 
   async function editJob(id, name, img) {
@@ -1752,7 +2135,11 @@
 
     try {
       const details = await window.ApiService.getProjectDetails(id);
-      if (!details || !details.length) {
+      if (details?.error) {
+        Swal.fire("ไม่มีสิทธิ์", details.msg || "ไม่สามารถดูโครงการนี้ได้", "warning");
+        return;
+      }
+      if (!Array.isArray(details) || !details.length) {
         Swal.fire("ไม่พบข้อมูล", "ไม่พบรายละเอียดพัสดุในโครงการนี้", "warning");
         return;
       }
@@ -1801,14 +2188,34 @@
   }
 
   async function askDel(id) {
-    const { value: password } = await Swal.fire({
-      title: "รหัสผ่านเพื่อลบ",
-      input: "password",
-      showCancelButton: true,
-      confirmButtonText: "ลบทันที"
-    });
+    const cached = state.historyRowCache[id] || {};
+    if (!canManageHistoryProject(cached)) {
+      Swal.fire("ไม่มีสิทธิ์", "เฉพาะเจ้าของโครงการเท่านั้นที่ลบได้", "warning");
+      return;
+    }
 
-    if (!password) return;
+    const needsAdminPassword = !cached.createdBy && window.AuthSession?.isAdmin?.();
+    let password = "";
+
+    if (needsAdminPassword) {
+      const { value } = await Swal.fire({
+        title: "รหัสผ่าน admin",
+        input: "password",
+        showCancelButton: true
+      });
+      if (!value) return;
+      password = value;
+    } else {
+      const { isConfirmed } = await Swal.fire({
+        title: "ลบโครงการ?",
+        text: "การลบไม่สามารถย้อนกลับได้",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "ลบทันที",
+        cancelButtonText: "ยกเลิก"
+      });
+      if (!isConfirmed) return;
+    }
 
     Swal.fire({
       title: "กำลังลบ...",
@@ -1906,7 +2313,8 @@
     viewDetail,
     exportToExcel,
     askEdit,
-    askDel
+    askDel,
+    askShare
   };
 
   window.AppCore = {
@@ -1953,6 +2361,7 @@
     confirmSaveProject: options => confirmSave(options),
     addBudgetType: type => addBudget(type),
     switchToCreateTab: () => switchTab(1),
+    switchToTab: n => switchTab(n),
     render
   };
 })();

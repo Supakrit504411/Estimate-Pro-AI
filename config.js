@@ -8,6 +8,8 @@ window.APP_CONFIG = {
     getProjectDetails: "project-details",
     verifyPassword: "verify-password",
     deleteProject: "delete-project",
+    login: "login",
+    shareProject: "share-project",
     health: "health",
     lineIntake: "line-intake",
     lineSearch: "line-search",
@@ -107,17 +109,82 @@ window.APP_CONFIG = {
     transformer: {
       label: "หม้อแปลง",
       icon: "⚡",
-      keywords: ["หม้อแปลง", "transformer", "kva", "kVA", "แปลง"]
+      items: [
+        { id: "1050000011", name: "TR., 30KVA,1P,22-0.48/0.24KV, SC" },
+        { id: "1050010066", name: "TR.,50KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010067", name: "TR.,100KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010068", name: "TR.,160KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010069", name: "TR.,250KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010070", name: "TR.,315KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010071", name: "TR.,400KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010072", name: "TR.,500KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010073", name: "TR.,630KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010074", name: "TR.,800KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010075", name: "TR.,1000KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010076", name: "TR.,1250KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010077", name: "TR.,1500KVA,3P,22-0.416/0.24KV,DYN11, SC" },
+        { id: "1050010078", name: "TR.,2000KVA,3P,22-0.416/0.24KV,DYN11, SC" }
+      ]
     },
     pole: {
       label: "เสา",
       icon: "🏗️",
-      keywords: ["เสา", "pole", "คอนกรีต", "เหล็ก", "9 ม", "12 ม", "9ม", "12ม", "คอ."]
+      items: [
+        { id: "1000010001", name: "POLE,CONCRETE, 8 M.LONG" },
+        { id: "1000010002", name: "POLE,CONCRETE, 9 M.LONG" },
+        { id: "1000010003", name: "POLE,CONCRETE 12 M.LONG,FOR 22 KV." },
+        { id: "1000010004", name: "POLE,CONCRETE, 12 M.LONG" },
+        { id: "1000010005", name: "POLE,CONCRETE 14 M.LONG,FOR 22 KV." },
+        { id: "1000010006", name: "POLE,CONCRETE, 14 M. LONG" },
+        { id: "1000010008", name: "POLE,CONCRETE, 16 M. LONG" },
+        { id: "1000010011", name: "POLE,CONCRETE, 22 M. LONG" },
+        { id: "1000010012", name: "POLE,CONCRETE, 12.20 M. LONG" },
+        { id: "1000010013", name: "POLE,CONCRETE, 14.30 M. LONG" },
+        { id: "1000010014", name: "POLE,CONCRETE, 9.30 M. LONG" }
+      ]
     },
     cable: {
       label: "สายไฟ",
       icon: "〰️",
-      keywords: ["สาย", "cable", "aac", "xlpe", "cv", "อลูมิเนียม", "ทองแดง"]
+      items: [
+        { id: "1020050000", name: "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm." },
+        { id: "1020050001", name: "CABLE,AERIAL,AL 22 kV. 1x95 sq.mm." },
+        { id: "1020050002", name: "CABLE,AERIAL,AL 22 kV. 1x120 sq.mm." },
+        { id: "1020050003", name: "CABLE,AERIAL,AL 22 KV. 1X150 SQ.MM." },
+        { id: "1020050004", name: "CABLE,AERIAL,AL 22 kV. 1x185 sq.mm." },
+        { id: "1020050005", name: "CABLE,AERIAL,AL 22 kV. 1x240 sq.mm." },
+        { id: "1020020001", name: "CONDUCTOR,ACSR 35/6 sq.mm.TIS.86" },
+        { id: "1020020002", name: "CONDUCTOR,ACSR 50/8 sq.mm.TIS.86" },
+        { id: "1020020003", name: "CONDUCTOR,ACSR 70/12 SQ.MM.TIS.85" },
+        { id: "1020020004", name: "CONDUCTOR,ACSR 95/15 sq.mm.TIS.86" },
+        { id: "1020020005", name: "CONDUCTOR,ACSR 120/20 sq.mm.TIS.86" },
+        { id: "1020020007", name: "CONDUCTOR,ACSR 185/30 sq.mm.TIS.86" },
+        { id: "1020020008", name: "CONDUCTOR, ACSR 380/50 SQ.MM. TIS.86" },
+        { id: "1020070000", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 25 DQ.MM. TIS.293" },
+        { id: "1020070001", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 35 SQ.MM.TIS.293" },
+        { id: "1020070002", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 50 SQ.MM. TIS.293" },
+        { id: "1020070003", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 70 SQ.MM. TIS.293" },
+        { id: "1020070004", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 95 SQ.MM. TIS.293" },
+        { id: "1020070005", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 120 SQ.MM.TIS.293" },
+        { id: "1020070006", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 150 SQ.MM. TIS.293" },
+        { id: "1020070007", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 185 SQ.MM. TIS.293" },
+        { id: "1020070008", name: "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 240 SQ.MM. TIS.293" }
+      ]
+    },
+    setMv: {
+      label: "ชุด SET MV",
+      icon: "📦",
+      setSource: "mv"
+    },
+    setTr: {
+      label: "ชุด SET TR",
+      icon: "🔧",
+      setSource: "tr"
+    },
+    setLv: {
+      label: "ชุด SET LV",
+      icon: "📦",
+      setSource: "lv"
     }
   },
 

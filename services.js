@@ -9,6 +9,13 @@
     return `${base}?action=${encodeURIComponent(action)}`;
   }
 
+  function withAuth(payload) {
+    if (window.AuthSession?.withAuthPayload) {
+      return window.AuthSession.withAuthPayload(payload || {});
+    }
+    return payload || {};
+  }
+
   async function request(action, payload, method = "POST") {
     const url = buildGasUrl(action);
     const options = {
@@ -19,7 +26,7 @@
     };
 
     if (method !== "GET") {
-      options.body = JSON.stringify(payload || {});
+      options.body = JSON.stringify(withAuth(payload));
     }
 
     const response = await fetch(url, options);
@@ -36,6 +43,10 @@
   }
 
   window.ApiService = {
+    login(username, password) {
+      return request(config.endpoints.login, { username, password });
+    },
+
     getMasterData() {
       return request(config.endpoints.masterData, null, "GET");
     },
@@ -49,11 +60,15 @@
     },
 
     getSavedProjects() {
-      return request(config.endpoints.getSavedProjects, null, "GET");
+      return request(config.endpoints.getSavedProjects, {}, "POST");
     },
 
     getProjectDetails(projectId) {
       return request(config.endpoints.getProjectDetails, { projectId });
+    },
+
+    shareProject(payload) {
+      return request(config.endpoints.shareProject, payload);
     },
 
     verifyPassword(password) {
