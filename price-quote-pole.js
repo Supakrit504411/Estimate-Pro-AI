@@ -140,26 +140,54 @@
   }
 
   function parsePoleHeight(text) {
-    const poleCtx = text.match(/(?:เสา|pole)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/);
-    if (poleCtx) return Number(poleCtx[1]);
-    const m = text.match(/(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)/);
-    if (m && /เสา|pole|ขนาด/.test(text)) return Number(m[1]);
+    const patterns = [
+      /(?:ปักเสา|ติดตั้งเสา|เสาขนาด)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/,
+      /(?:เสา|pole)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)/,
+      /(?:เสา|pole)\s*(\d+(?:\.\d+)?)/
+    ];
+    for (const re of patterns) {
+      const m = text.match(re);
+      if (m) return Number(m[1]);
+    }
+    return null;
+  }
+
+  function parseBudgetBaht(text) {
+    const t = normalizeText(text);
+    let m = t.match(/(\d+(?:\.\d+)?)\s*แส(?:นบาท|นบาท|น)?/);
+    if (m) return Math.round(Number(m[1]) * 100000);
+    m = t.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*บาท/);
+    if (m) return Number(m[1].replace(/,/g, ""));
+    m = t.match(/(?:มีเงิน|งบ|งบประมาณ)\s*(\d+(?:,\d{3})*)/);
+    if (m) return Number(m[1].replace(/,/g, ""));
+    return null;
+  }
+
+  function isBudgetCapacityQuery(text) {
+    const t = normalizeText(text);
+    if (!parseBudgetBaht(t)) return false;
+    return /มีเงิน|งบ.*บาท|ได้กี่ต้น|กี่ต้น|กี่\s*ระยะ|ได้ระยะ|ทำได้กี่|ครอบคลุม|จะได้/.test(t);
+  }
+
+  function parseDistanceM(text) {
+    const labeled = text.match(/(?:ระยะทาง|ระยะ|distance|ยาว)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/);
+    if (labeled) return Number(labeled[1]);
+
+    const poleHeight = parsePoleHeight(text);
+    if (poleHeight != null && !/(?:ระยะทาง|ระยะ)\s*\d/.test(text)) {
+      return null;
+    }
+
+    if (/ขยายเขต|ขยายสาย|ลากสาย|ระยะทาง/.test(text)) {
+      const m = text.match(/(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)/);
+      if (m) return Number(m[1]);
+    }
     return null;
   }
 
   function parsePoleCount(text) {
     const m = text.match(/(\d+)\s*(?:ต้น|เสา(?!\s*(?:เมตร|ม\.|m\b)))/);
     if (m) return Number(m[1]);
-    return null;
-  }
-
-  function parseDistanceM(text) {
-    const labeled = text.match(/(?:ระยะทาง|ระยะ|distance|ยาว)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/);
-    if (labeled) return Number(labeled[1]);
-    if (/ขยายเขต|ขยายสาย|ลากสาย|ระยะทาง/.test(text)) {
-      const m = text.match(/(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)/);
-      if (m) return Number(m[1]);
-    }
     return null;
   }
 
@@ -170,8 +198,47 @@
 
   function isLineExtensionQuery(text) {
     const t = normalizeText(text);
+    if (isBudgetCapacityQuery(t)) return true;
     return /ขยายเขต|ขยายสาย|ลากสาย|ระยะทาง|extension|line extension/.test(t)
       || (parseDistanceM(t) != null && !parsePoleCount(t));
+  }
+
+  function parseBudgetCapacityQuery(query, budgetType = "01.1") {
+    const text = normalizeText(query);
+    if (!isBudgetCapacityQuery(text)) return null;
+
+    const budgetBaht = parseBudgetBaht(text);
+    const poleHeightM = parsePoleHeight(text);
+    const voltage = detectVoltage(text);
+    const phase = detectPhase(text);
+    const scope = "with_wire";
+
+    const intent = {
+      intent: "budget_capacity",
+      budgetType,
+      budgetBaht,
+      poleHeightM,
+      voltage,
+      phase,
+      scope,
+      cableSizeSqMm: 50,
+      spanStraightM: DEFAULT_SPAN_M,
+      spanCurveM: DEFAULT_CURVE_SPAN_M,
+      summary: query,
+      source: "local",
+      clarificationType: "pole_run"
+    };
+
+    if (voltage) Object.assign(intent, applyLineDefaults(intent));
+    if (phase) Object.assign(intent, applyPhaseDefaults(intent));
+
+    const missing = buildClarificationFields(intent);
+    intent.needsClarification = missing.length > 0;
+    intent.clarificationFields = missing;
+    intent.clarificationQuestion = buildClarificationQuestion(intent)
+      || "ระบุ 1P/3P เพื่อคำนวณว่างบนี้ขยายเขตได้กี่เมตร/กี่ต้น";
+
+    return intent;
   }
 
   function isPoleRunQuery(text) {
@@ -292,6 +359,10 @@
 
   function parsePoleQuery(query, budgetType = "01.1") {
     const text = normalizeText(query);
+
+    const budgetQuery = parseBudgetCapacityQuery(query, budgetType);
+    if (budgetQuery) return budgetQuery;
+
     if (!isPoleRunQuery(text)) return null;
 
     const distanceM = parseDistanceM(text);
@@ -633,6 +704,66 @@
     };
   }
 
+  function buildBudgetCapacityQuote(intent, master, mergeLine, calcTotal) {
+    const params = mergePoleParams(intent, intent);
+    if (params.needsClarification) {
+      return { error: params.clarificationQuestion, needsClarification: true };
+    }
+
+    const budgetBaht = Number(params.budgetBaht);
+    if (!budgetBaht || budgetBaht <= 0) {
+      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 2 แสนบาท" };
+    }
+
+    let lo = 0;
+    let hi = 50000;
+    let best = null;
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      const testParams = mergePoleParams({ ...params, distanceM: mid }, { distanceM: mid });
+      const result = buildPoleRunLines(testParams, master, mergeLine);
+      if (!result.lines?.length) {
+        hi = mid - 1;
+        continue;
+      }
+      const total = calcTotal(result.lines, params.budgetType).total;
+      if (total <= budgetBaht) {
+        best = { distanceM: mid, total, result, testParams };
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+
+    if (!best) {
+      return {
+        error: `งบ ${budgetBaht.toLocaleString()} บาท ไม่เพียงพอสำหรับงานขยายเขต LV/MV ขั้นต่ำ (เสา + หัวเสา + สาย)`
+      };
+    }
+
+    const layout = best.testParams.layout || computePoleLayout(best.distanceM);
+    const breakdown = [
+      `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(best.total).toLocaleString()} บาท`,
+      `ตอบ: ขยายเขตได้สูงสุด ~${best.distanceM} ม. · ${layout.totalPoles} ต้น` +
+        ` (${layout.straightPoleCount} ทางตรง + ${layout.endCount} ปลายทาง` +
+        `${layout.curvePoleCount ? ` + ${layout.curvePoleCount} โค้ง` : ""})`,
+      ...(best.result.breakdown || [])
+    ];
+
+    return {
+      lines: best.result.lines,
+      breakdown,
+      bundle: {
+        ...best.result.bundle,
+        type: "budget_capacity",
+        budgetBaht,
+        estimatedTotal: best.total,
+        maxDistanceM: best.distanceM
+      }
+    };
+  }
+
   window.PriceQuotePole = {
     DEFAULT_SPAN_M,
     DEFAULT_CURVE_SPAN_M,
@@ -644,6 +775,9 @@
     buildClarificationFields,
     isPoleRunQuery,
     isLineExtensionQuery,
+    isBudgetCapacityQuery,
+    parseBudgetCapacityQuery,
+    buildBudgetCapacityQuote,
     resolvePoleMaterialId,
     expandSetItems,
     applyLineDefaults,

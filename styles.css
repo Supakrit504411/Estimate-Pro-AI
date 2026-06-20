@@ -2172,14 +2172,17 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   }
 
   body.is-scroll-compact .hero-card {
-    transform: translateY(calc(-100% - 12px));
-    opacity: 0;
-    pointer-events: none;
+    display: none;
   }
 
   body.is-scroll-compact .hero {
-    padding-top: 4px;
-    padding-bottom: 4px;
+    padding: 0;
+    min-height: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: transparent;
+    overflow: visible;
+    pointer-events: none;
   }
 
   body.survey-map-active .app-bottom-nav {

@@ -219,7 +219,7 @@
         const aiResponse = await window.ApiService.parsePriceQuery(query, budgetType);
         if (!aiResponse.error) {
           intent = window.PriceQuoteEngine.sanitizeIntent(aiResponse.intent || aiResponse, query);
-          parseSource = "gemini";
+          parseSource = aiResponse.source === "gemini-lite" ? "gemini-lite" : "gemini";
         }
       } catch (error) {
         console.warn("Price AI optional fallback:", error);
@@ -325,13 +325,15 @@
             ? ` · เสา ${escapeHtml(quote.bundle.poleMaterialId)} × ${quote.bundle.poleQty || 1} ต้น (12.20 ม.)`
             : ""
         }</div>`
-      : (quote.bundle?.type === "pole_run"
+      : (quote.bundle?.type === "budget_capacity"
+        ? `<div class="price-ask-bundle">งบ ${Number(quote.bundle.budgetBaht).toLocaleString()} บาท → ขยายได้ ~${quote.bundle.maxDistanceM} ม. · ${quote.bundle.poleCount} ต้น</div>`
+        : (quote.bundle?.type === "pole_run"
         ? `<div class="price-ask-bundle">${
             quote.bundle.distanceM
               ? `ระยะ ${quote.bundle.distanceM} ม. · ${quote.bundle.poleCount} ต้น (${quote.bundle.straightCount} ตรง${quote.bundle.curveCount ? ` + ${quote.bundle.curveCount} โค้ง` : ""} + ${quote.bundle.endCount} ปลายทาง)`
               : `เสา ${quote.bundle.poleHeightM} ม. · ${quote.bundle.poleCount} ต้น · ${quote.bundle.straightCount} ทางตรง + ${quote.bundle.endCount} ต้นสุดท้าย`
           }</div>`
-        : "");
+        : ""));
 
     const poleBreakdownHtml = Array.isArray(quote.poleBreakdown) && quote.poleBreakdown.length
       ? `<ul class="price-ask-pole-breakdown">${quote.poleBreakdown.map(line => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
@@ -353,7 +355,7 @@
     els.priceAskResult.innerHTML = `
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
-          <span class="price-ask-source">${parseSource === "faq" ? "คู่มือ" : parseSource === "gemini" ? "AI" : "ระบบ"} · งบ ${escapeHtml(quote.budgetType)}</span>
+          <span class="price-ask-source">${parseSource === "faq" ? "คู่มือ" : parseSource === "gemini-lite" ? "AI 3.1 Lite" : parseSource === "gemini" ? "AI 2.5" : "ระบบ"} · งบ ${escapeHtml(quote.budgetType)}</span>
           <span class="price-ask-total">${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
         </div>
         <p class="price-ask-query">${escapeHtml(quote.query || "")}</p>

@@ -419,7 +419,26 @@
     let bundle = null;
     let poleBreakdown = null;
 
-    if (intent.intent === "pole_run" && window.PriceQuotePole?.buildPoleRunLines) {
+    if (intent.intent === "budget_capacity" && window.PriceQuotePole?.buildBudgetCapacityQuote) {
+      const capResult = window.PriceQuotePole.buildBudgetCapacityQuote(
+        intent,
+        master,
+        mergeLineMap,
+        calculateQuoteTotal
+      );
+      if (capResult.needsClarification || capResult.error) {
+        return {
+          ok: false,
+          needsClarification: Boolean(capResult.needsClarification),
+          clarificationType: capResult.needsClarification ? "pole_run" : undefined,
+          question: capResult.error || intent.clarificationQuestion,
+          intent
+        };
+      }
+      lines = capResult.lines;
+      bundle = capResult.bundle;
+      poleBreakdown = capResult.breakdown;
+    } else if (intent.intent === "pole_run" && window.PriceQuotePole?.buildPoleRunLines) {
       const poleResult = window.PriceQuotePole.buildPoleRunLines(intent, master, mergeLineMap);
       if (poleResult.needsClarification || poleResult.error) {
         return {

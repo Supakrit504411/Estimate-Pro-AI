@@ -88,8 +88,20 @@ window.APP_CONFIG = {
     }
   },
 
-  /** เปิด Gemini เฉพาะเมื่อ FAQ/local ตอบไม่ได้ */
-  priceAskUseGemini: false,
+  /** เปิด Gemini เฉพาะเมื่อ FAQ/local ตอบไม่ได้ (GAS ใช้ 3.1 Flash Lite ก่อน → 2.5 Flash สำรอง) */
+  priceAskUseGemini: true,
+
+  /** ข้อมูลโมเดล Gemini — API key ตั้งใน GAS.txt เท่านั้น */
+  gemini: {
+    models: {
+      flash: "gemini-2.5-flash",
+      flashLite: "gemini-3.1-flash-lite"
+    },
+    routing: {
+      parsePriceQuery: ["gemini-3.1-flash-lite", "gemini-2.5-flash"],
+      processImageAI: ["gemini-2.5-flash", "gemini-3.1-flash-lite"]
+    }
+  },
 
   quickCategories: {
     transformer: {
