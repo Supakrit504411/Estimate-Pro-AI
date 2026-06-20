@@ -5,7 +5,8 @@
     1: ["t1", "view1"],
     2: ["t2", "view2"],
     3: ["t3", "view3"],
-    4: ["t4", "view4"]
+    4: ["t4", "view4"],
+    5: ["t5", "view5"]
   };
 
   function loadSession() {
@@ -52,10 +53,12 @@
     },
 
     canAccessTab(tabNumber) {
+      const tab = Number(tabNumber);
+      if (tab === 5) return this.isAdmin();
       const user = this.getUser();
       if (!user) return false;
       const steps = Array.isArray(user.allowedSteps) ? user.allowedSteps : [1, 2, 3, 4];
-      return steps.includes(Number(tabNumber));
+      return steps.includes(tab);
     },
 
     save(user) {
@@ -96,6 +99,10 @@
         });
       });
 
+      document.querySelectorAll("[data-tab-nav='5']").forEach(btn => {
+        btn.classList.toggle("auth-hidden", !this.isAdmin());
+      });
+
       const aiSection = document.getElementById("aiSection");
       if (aiSection) {
         aiSection.classList.toggle("hidden", !this.canUseAiAsk());
@@ -103,7 +110,7 @@
     },
 
     getDefaultTab() {
-      return [1, 4, 3, 2].find(tab => this.canAccessTab(tab)) || null;
+      return [1, 4, 3, 2, 5].find(tab => this.canAccessTab(tab)) || null;
     },
 
     withAuthPayload(payload) {

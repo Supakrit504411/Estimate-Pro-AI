@@ -10,6 +10,7 @@ window.APP_CONFIG = {
     deleteProject: "delete-project",
     login: "login",
     shareProject: "share-project",
+    adminDashboard: "admin-dashboard",
     health: "health",
     lineIntake: "line-intake",
     lineSearch: "line-search",
@@ -17,6 +18,7 @@ window.APP_CONFIG = {
     driveFilePreviews: "drive-file-previews"
   },
   lineBridgePath: "/api/line-webhook",
+  masterDataCacheTtlMs: 480000,
 
   /** คำถามที่พบบ่อย — หม้อแปลง + SET ติดตั้ง + เสา 12.20 ม. 1 ต้น */
   priceFaq: {

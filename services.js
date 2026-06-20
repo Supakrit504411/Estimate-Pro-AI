@@ -71,6 +71,10 @@
       return request(config.endpoints.shareProject, payload);
     },
 
+    getAdminDashboard() {
+      return request(config.endpoints.adminDashboard, {});
+    },
+
     verifyPassword(password) {
       return request(config.endpoints.verifyPassword, { password });
     },

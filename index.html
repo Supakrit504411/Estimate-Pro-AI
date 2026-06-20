@@ -82,6 +82,7 @@
           <button id="t4" class="tab-item" type="button">ถามราคา</button>
           <button id="t3" class="tab-item" type="button">สำรวจหน้างาน</button>
           <button id="t2" class="tab-item" type="button">ประวัติโครงการ</button>
+          <button id="t5" class="tab-item auth-hidden" type="button">Admin</button>
         </div>
       </div>
     </header>
@@ -422,6 +423,32 @@
           <div class="empty-state">
             <div class="hero-orb empty-orb">SYNC</div>
             <div>กำลังโหลดข้อมูลประวัติโครงการ...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view5" class="view view-page hidden auth-hidden">
+      <div class="panel admin-panel">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Admin Console</h2>
+            <p class="section-note">ผู้ใช้จาก Config · โครงการทั้งหมด · Audit log ล่าสุด</p>
+          </div>
+          <button id="reloadAdminBtn" class="ghost-btn" type="button">รีโหลด</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-block">
+            <h3 class="admin-block-title">ผู้ใช้ (Config)</h3>
+            <div id="adminUsers" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block">
+            <h3 class="admin-block-title">โครงการทั้งหมด</h3>
+            <div id="adminProjects" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block admin-block-wide">
+            <h3 class="admin-block-title">Project Audit</h3>
+            <div id="adminAudit" class="admin-table-wrap"></div>
           </div>
         </div>
       </div>

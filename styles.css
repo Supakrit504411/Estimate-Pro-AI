@@ -3145,3 +3145,72 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   align-items: center;
   gap: 8px;
 }
+
+.history-badge-edit {
+  color: #ffc89a;
+  border-color: rgba(255, 180, 120, 0.35);
+}
+
+.price-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.price-ask-actions .price-ask-import {
+  margin-left: auto;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-block-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-block-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--primary-soft);
+}
+
+.admin-table-wrap {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid rgba(116, 4, 95, 0.2);
+  border-radius: 12px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(116, 4, 95, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  background: rgba(18, 8, 14, 0.98);
+}
+
+.admin-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

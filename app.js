@@ -6,6 +6,7 @@
     budgets: [],
     historyCache: null,
     historyRowCache: {},
+    adminCache: null,
     currentJobId: null,
     currentFileUrl: "",
     tempFileList: [],
@@ -137,10 +138,12 @@
     els.t2 = document.getElementById("t2");
     els.t3 = document.getElementById("t3");
     els.t4 = document.getElementById("t4");
+    els.t5 = document.getElementById("t5");
     els.view1 = document.getElementById("view1");
     els.view2 = document.getElementById("view2");
     els.view3 = document.getElementById("view3");
     els.view4 = document.getElementById("view4");
+    els.view5 = document.getElementById("view5");
     els.pjName = document.getElementById("pjName");
     els.aiSection = document.getElementById("aiSection");
     els.aiFile = document.getElementById("aiFile");
@@ -160,6 +163,10 @@
     els.priceAskBtn = document.getElementById("priceAskBtn");
     els.priceAskResult = document.getElementById("priceAskResult");
     els.priceAskChips = document.getElementById("priceAskChips");
+    els.reloadAdminBtn = document.getElementById("reloadAdminBtn");
+    els.adminUsers = document.getElementById("adminUsers");
+    els.adminProjects = document.getElementById("adminProjects");
+    els.adminAudit = document.getElementById("adminAudit");
   }
 
   function bindEvents() {
@@ -167,6 +174,7 @@
     els.t2?.addEventListener("click", () => switchTab(2));
     if (els.t3) els.t3.addEventListener("click", () => switchTab(3));
     if (els.t4) els.t4.addEventListener("click", () => switchTab(4));
+    if (els.t5) els.t5.addEventListener("click", () => switchTab(5));
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
       btn.addEventListener("click", () => switchTab(Number(btn.dataset.tabNav)));
     });
@@ -180,6 +188,10 @@
     });
     els.histSearch?.addEventListener("input", filterHistory);
     els.histContent?.addEventListener("click", handleHistoryClick);
+    els.reloadAdminBtn?.addEventListener("click", () => {
+      state.adminCache = null;
+      fetchAdminDashboard();
+    });
     els.budgetButtons.forEach(button => {
       button.addEventListener("click", () => addBudget(button.dataset.budgetType));
     });
@@ -203,13 +215,42 @@
         if (event.target.closest("[data-action='import-price-quote']")) {
           importPriceQuoteToBudget();
         }
+        if (event.target.closest("[data-action='export-price-excel']")) {
+          exportPriceAskExcel();
+        }
+        if (event.target.closest("[data-action='export-price-pdf']")) {
+          exportPriceAskPdf();
+        }
       });
     }
   }
 
-  async function loadMasterData() {
+  const MASTER_CACHE_KEY = "pea_master_cache_v1";
+
+  function getMasterCacheTtlMs() {
+    const ttl = Number(appConfig.masterDataCacheTtlMs);
+    return Number.isFinite(ttl) && ttl > 0 ? ttl : 480000;
+  }
+
+  async function loadMasterData(force = false) {
+    if (!force) {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(MASTER_CACHE_KEY) || "null");
+        if (cached?.data && Date.now() - cached.savedAt < getMasterCacheTtlMs()) {
+          state.dataStore = cached.data;
+          return;
+        }
+      } catch (error) {
+        console.warn("master cache read failed", error);
+      }
+    }
+
     try {
       state.dataStore = await window.ApiService.getMasterData();
+      sessionStorage.setItem(MASTER_CACHE_KEY, JSON.stringify({
+        data: state.dataStore,
+        savedAt: Date.now()
+      }));
     } catch (error) {
       state.dataStore = [];
       console.error(error);
@@ -539,6 +580,7 @@
     `).join("");
 
     els.priceAskResult.innerHTML = `
+      <div id="priceAskExportRoot" class="price-ask-export-root">
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
           <span class="price-ask-source">${formatPriceAskSource(parseSource)} · งบ ${escapeHtml(quote.budgetType)}</span>
@@ -560,8 +602,89 @@
         </table>
       </div>
       <p class="price-ask-disclaimer">${escapeHtml(quote.disclaimer)}</p>
-      <button class="primary-btn price-ask-import" type="button" data-action="import-price-quote">เพิ่มเข้างบประมาณการ</button>
+      </div>
+      <div class="price-ask-actions">
+        <button class="ghost-btn" type="button" data-action="export-price-excel">Export Excel</button>
+        <button class="ghost-btn" type="button" data-action="export-price-pdf">Export PDF</button>
+        <button class="primary-btn price-ask-import" type="button" data-action="import-price-quote">เพิ่มเข้างบประมาณการ</button>
+      </div>
     `;
+  }
+
+  function exportPriceAskExcel() {
+    const quote = lastPriceQuote;
+    if (!quote?.ok || !quote.lines?.length) return;
+
+    const rows = quote.lines.map((line, index) => ({
+      "ลำดับ": index + 1,
+      "รหัสพัสดุ": line.materialId,
+      "รายการ": line.name,
+      "จำนวน": line.qty,
+      "รวม": line.lineTotal
+    }));
+
+    rows.push({
+      "ลำดับ": "",
+      "รหัสพัสดุ": "",
+      "รายการ": "รวมทั้งสิ้น",
+      "จำนวน": "",
+      "รวม": quote.total
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PriceAsk");
+    const safeName = (quote.query || "price_ask").slice(0, 40).replace(/[\\/:*?"<>|]/g, "_");
+    XLSX.writeFile(wb, `ถามราคา_${safeName}.xlsx`);
+  }
+
+  function buildPriceAskPrintHtml(quote) {
+    const lineRows = quote.lines.map((line, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(line.materialId)}</td>
+        <td>${escapeHtml(line.name)}</td>
+        <td style="text-align:right">${line.qty}</td>
+        <td style="text-align:right">${line.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `).join("");
+
+    return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ถามราคา</title>
+      <style>
+        body { font-family: Sarabun, sans-serif; padding: 24px; color: #111; }
+        h1 { font-size: 20px; margin: 0 0 8px; }
+        .meta { color: #444; font-size: 13px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; vertical-align: top; }
+        th { background: #f3f3f3; }
+        .total { margin-top: 12px; font-size: 16px; font-weight: 700; text-align: right; }
+      </style></head><body>
+      <h1>ผลการถามราคา</h1>
+      <div class="meta">งบ ${escapeHtml(quote.budgetType)} · ${escapeHtml(quote.query || "")}</div>
+      <table>
+        <thead><tr><th>#</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
+        <tbody>${lineRows}</tbody>
+      </table>
+      <div class="total">รวม ${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</div>
+      </body></html>`;
+  }
+
+  function exportPriceAskPdf() {
+    const quote = lastPriceQuote;
+    if (!quote?.ok || !quote.lines?.length) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      Swal.fire("ไม่สามารถเปิดหน้าพิมพ์", "อนุญาต pop-up แล้วลองใหม่", "warning");
+      return;
+    }
+
+    printWindow.document.write(buildPriceAskPrintHtml(quote));
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 350);
   }
 
   async function importPriceQuoteToBudget() {
@@ -698,14 +821,17 @@
     els.view2.classList.toggle("hidden", n !== 2);
     if (els.view3) els.view3.classList.toggle("hidden", n !== 3);
     if (els.view4) els.view4.classList.toggle("hidden", n !== 4);
+    if (els.view5) els.view5.classList.toggle("hidden", n !== 5);
     els.t1.classList.toggle("active", n === 1);
     els.t2.classList.toggle("active", n === 2);
     if (els.t3) els.t3.classList.toggle("active", n === 3);
     if (els.t4) els.t4.classList.toggle("active", n === 4);
+    if (els.t5) els.t5.classList.toggle("active", n === 5);
     document.querySelectorAll("[data-tab-nav]").forEach(btn => {
       btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === n);
     });
     if (n === 2) fetchHistory();
+    if (n === 5) fetchAdminDashboard();
     if (n !== 3) {
       document.body.classList.remove("survey-map-active");
     }
@@ -1691,28 +1817,63 @@
     }
   }
 
+  function parseHistoryShareFields(row) {
+    const sharedView = String(row[7] || "");
+    if (row.length >= 10) {
+      return {
+        sharedView,
+        sharedEdit: String(row[8] || ""),
+        isPublic: String(row[9] || "")
+      };
+    }
+    return {
+      sharedView,
+      sharedEdit: "",
+      isPublic: String(row[8] || "")
+    };
+  }
+
+  function userInShareList(listValue, username) {
+    const me = String(username || "").trim().toLowerCase();
+    if (!me) return false;
+    return String(listValue || "")
+      .split(/[,;|/\s]+/)
+      .map(part => part.trim().toLowerCase())
+      .filter(Boolean)
+      .includes(me);
+  }
+
   function canManageHistoryProject(cached) {
     const me = window.AuthSession?.getUsername?.() || "";
     if (!me) return false;
     if (window.AuthSession?.isAdmin?.()) return true;
-    if (!cached?.createdBy) return false;
-    return cached.createdBy === me;
+    if (cached?.createdBy && cached.createdBy === me) return true;
+    return userInShareList(cached?.sharedEdit, me);
   }
 
-  function getHistoryAccessBadge(row) {
+  function canShareHistoryProject(cached) {
+    const me = window.AuthSession?.getUsername?.() || "";
+    if (!me) return false;
+    if (window.AuthSession?.isAdmin?.()) return true;
+    return cached?.createdBy === me;
+  }
+
+  function getHistoryAccessBadge(row, shareFields) {
     const me = window.AuthSession?.getUsername?.() || "";
     const createdBy = String(row[6] || "");
-    const sharedWith = String(row[7] || "");
-    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(row[8] || ""));
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(shareFields.isPublic || ""));
 
     if (createdBy && createdBy === me) {
       return `<span class="history-badge history-badge-own">ของฉัน</span>`;
     }
+    if (userInShareList(shareFields.sharedEdit, me)) {
+      return `<span class="history-badge history-badge-edit">แชร์แก้ไข</span>`;
+    }
     if (isPublic) {
       return `<span class="history-badge history-badge-public">สาธารณะ</span>`;
     }
-    if (sharedWith) {
-      return `<span class="history-badge history-badge-shared">แชร์</span>`;
+    if (shareFields.sharedView || shareFields.sharedEdit) {
+      return `<span class="history-badge history-badge-shared">แชร์ดู</span>`;
     }
     if (createdBy) {
       return `<span class="history-badge">${escapeHtml(createdBy)}</span>`;
@@ -1728,7 +1889,7 @@
 
   async function askShare(projectId) {
     const cached = state.historyRowCache[projectId] || {};
-    if (!canManageHistoryProject(cached)) {
+    if (!canShareHistoryProject(cached)) {
       Swal.fire("ไม่มีสิทธิ์", "เฉพาะเจ้าของโครงการเท่านั้นที่แชร์ได้", "warning");
       return;
     }
@@ -1736,8 +1897,10 @@
     const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(cached.isPublic || ""));
     const html = `
       <div class="share-form">
-        <label class="share-label" for="shareUsers">แชร์ให้ผู้ใช้ (คั่นด้วย comma)</label>
-        <input id="shareUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedWith || "")}" placeholder="user1, user2">
+        <label class="share-label" for="shareViewUsers">แชร์ดู (View) — คั่นด้วย comma</label>
+        <input id="shareViewUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedView || "")}" placeholder="user1, user2">
+        <label class="share-label" for="shareEditUsers">แชร์แก้ไข (Edit) — คั่นด้วย comma</label>
+        <input id="shareEditUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedEdit || "")}" placeholder="user3, user4">
         <label class="share-check">
           <input id="sharePublic" type="checkbox" ${isPublic ? "checked" : ""}>
           เปิดให้ทุกคนในระบบเห็น (Public)
@@ -1754,7 +1917,8 @@
       preConfirm: () => {
         const popup = Swal.getPopup();
         return {
-          sharedWith: popup.querySelector("#shareUsers")?.value || "",
+          sharedView: popup.querySelector("#shareViewUsers")?.value || "",
+          sharedEdit: popup.querySelector("#shareEditUsers")?.value || "",
           isPublic: popup.querySelector("#sharePublic")?.checked === true
         };
       }
@@ -1771,7 +1935,8 @@
     try {
       const result = await window.ApiService.shareProject({
         projectId,
-        sharedWith: isConfirmed.sharedWith,
+        sharedView: isConfirmed.sharedView,
+        sharedEdit: isConfirmed.sharedEdit,
         isPublic: isConfirmed.isPublic
       });
       if (result.status !== "success") {
@@ -1802,21 +1967,24 @@
     els.histContent.innerHTML = data.map(row => {
       const dateDisplay = safeDateDisplay(row[1]);
       const projectId = String(row[0] || "");
-      const createdBy = String(row[6] || "");
-      const sharedWith = String(row[7] || "");
-      const isPublic = String(row[8] || "");
+      const shareFields = parseHistoryShareFields(row);
       state.historyRowCache[projectId] = {
         name: String(row[2] || ""),
         imgStr: String(row[4] || ""),
         surveyMetaStr: String(row[5] || ""),
-        createdBy,
-        sharedWith,
-        isPublic
+        createdBy: String(row[6] || ""),
+        sharedView: shareFields.sharedView,
+        sharedEdit: shareFields.sharedEdit,
+        isPublic: shareFields.isPublic
       };
-      const canManage = canManageHistoryProject(state.historyRowCache[projectId]);
-      const manageActions = canManage
+      const cached = state.historyRowCache[projectId];
+      const canManage = canManageHistoryProject(cached);
+      const canShare = canShareHistoryProject(cached);
+      const manageActions = canShare
+        ? `<button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}">แชร์</button>`
+        : "";
+      const editActions = canManage
         ? `
-              <button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}">แชร์</button>
               <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>
               <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
             `
@@ -1829,7 +1997,7 @@
               <div class="history-meta">
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
                 <span class="type-chip">ID ${escapeHtml(projectId)}</span>
-                ${getHistoryAccessBadge(row)}
+                ${getHistoryAccessBadge(row, shareFields)}
               </div>
               <div class="history-amount">
                 ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
@@ -1838,11 +2006,86 @@
             <div class="history-actions">
               <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>
               ${manageActions}
+              ${editActions}
             </div>
           </div>
         </div>
       `;
     }).join("");
+  }
+
+  async function fetchAdminDashboard() {
+    if (!window.AuthSession?.isAdmin?.()) return;
+
+    if (state.adminCache) {
+      renderAdminDashboard(state.adminCache);
+      return;
+    }
+
+    const loadingHtml = `<div class="empty-state"><div>กำลังโหลด Admin Console...</div></div>`;
+    if (els.adminUsers) els.adminUsers.innerHTML = loadingHtml;
+
+    try {
+      const data = await window.ApiService.getAdminDashboard();
+      if (data?.error) throw new Error(data.msg || "โหลด admin ไม่สำเร็จ");
+      state.adminCache = data;
+      renderAdminDashboard(data);
+    } catch (error) {
+      console.error(error);
+      const errHtml = `<div class="empty-state"><div>${escapeHtml(error.message || "โหลด admin ไม่สำเร็จ")}</div></div>`;
+      if (els.adminUsers) els.adminUsers.innerHTML = errHtml;
+    }
+  }
+
+  function renderAdminDashboard(data) {
+    if (!els.adminUsers || !els.adminProjects || !els.adminAudit) return;
+
+    const users = data.users || [];
+    els.adminUsers.innerHTML = users.length
+      ? `<table class="admin-table"><thead><tr><th>User</th><th>Role</th><th>Steps</th><th>Active</th><th>AI</th></tr></thead><tbody>${
+          users.map(user => `
+            <tr>
+              <td>${escapeHtml(user.username)}</td>
+              <td>${escapeHtml(user.role)}</td>
+              <td>${escapeHtml((user.allowedSteps || []).join(","))}</td>
+              <td>${user.active ? "Y" : "N"}</td>
+              <td>${user.aiAsk ? "Y" : "N"}</td>
+            </tr>
+          `).join("")
+        }</tbody></table>`
+      : `<div class="empty-state">ไม่มีผู้ใช้ในชีต Config</div>`;
+
+    const projects = data.projects || [];
+    els.adminProjects.innerHTML = projects.length
+      ? `<table class="admin-table"><thead><tr><th>ID</th><th>ชื่อ</th><th>เจ้าของ</th><th>View</th><th>Edit</th><th>Public</th><th>รวม</th></tr></thead><tbody>${
+          projects.map(project => `
+            <tr>
+              <td>${escapeHtml(project.projectId)}</td>
+              <td>${escapeHtml(project.name)}</td>
+              <td>${escapeHtml(project.createdBy || "-")}</td>
+              <td>${escapeHtml(project.sharedView || "-")}</td>
+              <td>${escapeHtml(project.sharedEdit || "-")}</td>
+              <td>${/^(Y|YES|TRUE|1)$/i.test(String(project.isPublic || "")) ? "Y" : "N"}</td>
+              <td class="num">${parseFloat(project.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+          `).join("")
+        }</tbody></table>`
+      : `<div class="empty-state">ไม่มีโครงการ</div>`;
+
+    const audit = data.audit || [];
+    els.adminAudit.innerHTML = audit.length
+      ? `<table class="admin-table"><thead><tr><th>เวลา</th><th>User</th><th>Action</th><th>Project</th><th>Detail</th></tr></thead><tbody>${
+          audit.map(entry => `
+            <tr>
+              <td>${escapeHtml(safeDateDisplay(entry.timestamp))}</td>
+              <td>${escapeHtml(entry.username)}</td>
+              <td>${escapeHtml(entry.action)}</td>
+              <td>${escapeHtml(entry.projectId)}</td>
+              <td>${escapeHtml(entry.detail)}</td>
+            </tr>
+          `).join("")
+        }</tbody></table>`
+      : `<div class="empty-state">ยังไม่มี audit log</div>`;
   }
 
   function filterHistory() {
