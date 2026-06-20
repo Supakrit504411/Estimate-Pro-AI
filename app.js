@@ -161,6 +161,8 @@
     els.saveProjectBtn = document.getElementById("saveProjectBtn");
     els.reloadHistoryBtn = document.getElementById("reloadHistoryBtn");
     els.histSearch = document.getElementById("histSearch");
+    els.histSort = document.getElementById("histSort");
+    els.histMineOnly = document.getElementById("histMineOnly");
     els.histContent = document.getElementById("histContent");
     els.budgetSpace = document.getElementById("budgetSpace");
     els.saveZone = document.getElementById("saveZone");
@@ -197,6 +199,8 @@
       fetchHistory();
     });
     els.histSearch?.addEventListener("input", filterHistory);
+    els.histSort?.addEventListener("change", filterHistory);
+    els.histMineOnly?.addEventListener("change", filterHistory);
     els.histContent?.addEventListener("click", handleHistoryClick);
     els.reloadAdminBtn?.addEventListener("click", () => {
       state.adminCache = null;
@@ -2000,10 +2004,73 @@
     return `<span class="history-badge">legacy</span>`;
   }
 
+  function getHistoryCardAccentClass(row, shareFields) {
+    const me = window.AuthSession?.getUsername?.() || "";
+    const createdBy = String(row[6] || "");
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(shareFields.isPublic || ""));
+
+    if (createdBy && createdBy === me) return "history-accent-own";
+    if (userInShareList(shareFields.sharedEdit, me)) return "history-accent-edit";
+    if (isPublic) return "history-accent-public";
+    if (userInShareList(shareFields.sharedView, me) || shareFields.sharedView || shareFields.sharedEdit) {
+      return "history-accent-shared";
+    }
+    return "history-accent-legacy";
+  }
+
+  function parseHistoryDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return 0;
+    const ts = Date.parse(raw);
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function sortAndFilterHistoryData(data) {
+    const term = (els.histSearch?.value || "").toLowerCase();
+    const sort = els.histSort?.value || "newest";
+    const mineOnly = els.histMineOnly?.checked === true;
+    const me = window.AuthSession?.getUsername?.() || "";
+
+    let rows = Array.isArray(data) ? [...data] : [];
+
+    if (mineOnly && me) {
+      rows = rows.filter(row => String(row[6] || "") === me);
+    }
+    if (term) {
+      rows = rows.filter(row => String(row[2] || "").toLowerCase().includes(term));
+    }
+
+    rows.sort((a, b) => {
+      if (sort === "oldest") {
+        return parseHistoryDate(a[1]) - parseHistoryDate(b[1]);
+      }
+      if (sort === "amount-desc") {
+        return parseFloat(b[3] || 0) - parseFloat(a[3] || 0);
+      }
+      if (sort === "amount-asc") {
+        return parseFloat(a[3] || 0) - parseFloat(b[3] || 0);
+      }
+      return parseHistoryDate(b[1]) - parseHistoryDate(a[1]);
+    });
+
+    return rows;
+  }
+
   function handleHistoryClick(event) {
     const shareBtn = event.target.closest("[data-action='share-project']");
-    if (!shareBtn) return;
-    askShare(shareBtn.dataset.projectId);
+    if (shareBtn) {
+      shareBtn.closest(".history-more")?.removeAttribute("open");
+      askShare(shareBtn.dataset.projectId);
+      return;
+    }
+
+    const moreSummary = event.target.closest(".history-more summary");
+    if (moreSummary) {
+      const current = moreSummary.closest(".history-more");
+      els.histContent.querySelectorAll(".history-more[open]").forEach(el => {
+        if (el !== current) el.removeAttribute("open");
+      });
+    }
   }
 
   async function askShare(projectId) {
@@ -2071,6 +2138,7 @@
 
   function renderHistory(data) {
     state.historyRowCache = {};
+    const rows = sortAndFilterHistoryData(data);
 
     if (!data.length) {
       els.histContent.innerHTML = `
@@ -2083,7 +2151,19 @@
       return;
     }
 
-    els.histContent.innerHTML = data.map((row, index) => {
+    if (!rows.length) {
+      els.histContent.innerHTML = `
+        <div class="empty-state">
+          <div>ไม่พบโครงการตามเงื่อนไขที่เลือก</div>
+          <div style="font-size:12px;">ลองเปลี่ยนคำค้นหา หรือยกเลิกตัวกรอง "ของฉันเท่านั้น"</div>
+        </div>
+      `;
+      return;
+    }
+
+    els.histContent.innerHTML = `
+      <div class="history-list">
+        ${rows.map((row, index) => {
       const dateDisplay = safeDateDisplay(row[1]);
       const projectId = String(row[0] || "");
       const shareFields = parseHistoryShareFields(row);
@@ -2100,25 +2180,28 @@
       const canManage = canManageHistoryProject(cached);
       const canShare = canShareHistoryProject(cached);
       const coverage = getShareCoverageStatus(cached, state.shareUserList || []);
+      const accentClass = getHistoryCardAccentClass(row, shareFields);
       const shareBtn = canShare
         ? (coverage.complete
-          ? `<button class="action-btn is-disabled" type="button" disabled title="แชร์ครบทุกผู้ใช้แล้ว">แชร์ครบ</button>`
+          ? `<button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}" title="จัดการสิทธิ์แชร์">จัดการแชร์</button>`
           : `<button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}" title="ยังไม่ได้แชร์ ${coverage.remaining.length} คน">แชร์ (${coverage.remaining.length})</button>`)
         : "";
-      const editActions = canManage
-        ? `
-              <button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>
-              <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
-            `
+      const viewBtn = `<button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>`;
+      const editBtn = canManage
+        ? `<button class="action-btn" type="button" onclick="window.AppActions.askEdit('${escapeJs(projectId)}')">แก้ไข</button>`
+        : "";
+      const deleteBtn = canManage
+        ? `<button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>`
         : "";
       const shareSummary = canShare && coverage.total
         ? `<span class="history-share-chip">${coverage.complete ? "แชร์ครบ" : `แชร์แล้ว ${coverage.coveredCount}/${coverage.total}`}</span>`
         : "";
+      const actionButtons = [viewBtn, shareBtn, editBtn, deleteBtn].filter(Boolean).join("");
       return `
-        <div class="history-card">
-          <div class="history-index">${index + 1}</div>
-          <div class="history-top">
-            <div style="min-width:0;">
+        <article class="history-card ${accentClass}" data-project-id="${escapeHtml(projectId)}">
+          <div class="history-row history-row-main">
+            <span class="history-index">${index + 1}</span>
+            <div class="history-main-body">
               <h3 class="history-name">${escapeHtml(row[2])}</h3>
               <div class="history-meta">
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
@@ -2126,19 +2209,27 @@
                 ${getHistoryAccessBadge(row, shareFields)}
                 ${shareSummary}
               </div>
-              <div class="history-amount">
-                ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
-              </div>
-            </div>
-            <div class="history-actions">
-              <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>
-              ${shareBtn}
-              ${editActions}
             </div>
           </div>
-        </div>
+          <div class="history-row history-row-actions">
+            <div class="history-amount">
+              ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
+            </div>
+            <div class="history-actions history-actions-inline">
+              ${actionButtons}
+            </div>
+            <details class="history-more">
+              <summary class="history-more-btn" aria-label="เมนูเพิ่มเติม">⋮</summary>
+              <div class="history-more-menu">
+                ${actionButtons}
+              </div>
+            </details>
+          </div>
+        </article>
       `;
-    }).join("");
+    }).join("")}
+      </div>
+    `;
   }
 
   async function fetchAdminDashboard() {
@@ -2216,12 +2307,8 @@
   }
 
   function filterHistory() {
-    const term = els.histSearch.value.toLowerCase();
-    const cards = els.histContent.querySelectorAll(".history-card");
-    cards.forEach(card => {
-      const title = (card.querySelector(".history-name")?.innerText || "").toLowerCase();
-      card.style.display = title.includes(term) ? "" : "none";
-    });
+    if (!state.historyCache) return;
+    renderHistory(state.historyCache);
   }
 
   async function viewDetail(id) {
