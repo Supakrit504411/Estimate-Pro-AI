@@ -1956,12 +1956,37 @@
     };
   }
 
+  function resetSwalActionState(popup) {
+    if (!popup) return;
+    popup.classList.remove("swal2-loading");
+    popup.removeAttribute("data-loading");
+    popup.removeAttribute("aria-busy");
+    const actions = popup.querySelector(".swal2-actions");
+    actions?.classList.remove("swal2-loading");
+    const loader = popup.querySelector(".swal2-loader");
+    if (loader) loader.style.display = "none";
+    const confirmBtn = popup.querySelector(".swal2-confirm");
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.style.removeProperty("display");
+    }
+    const cancelBtn = popup.querySelector(".swal2-cancel");
+    if (cancelBtn) cancelBtn.disabled = false;
+  }
+
   function wireSharePickerEvents(popup) {
     popup.querySelectorAll(".share-cb-edit").forEach(editBox => {
       editBox.addEventListener("change", () => {
         if (!editBox.checked) return;
-        const viewBox = popup.querySelector(`.share-cb-view[data-user="${editBox.dataset.user}"]`);
+        const viewBox = popup.querySelector(`.share-cb-view[data-user="${CSS.escape(editBox.dataset.user || "")}"]`);
         if (viewBox) viewBox.checked = true;
+      });
+    });
+    popup.querySelectorAll(".share-cb-view").forEach(viewBox => {
+      viewBox.addEventListener("change", () => {
+        if (viewBox.checked) return;
+        const editBox = popup.querySelector(`.share-cb-edit[data-user="${CSS.escape(viewBox.dataset.user || "")}"]`);
+        if (editBox) editBox.checked = false;
       });
     });
   }
@@ -2086,9 +2111,15 @@
       didOpen: () => Swal.showLoading()
     });
 
-    const shareUsers = await loadShareUserList();
+    let shareUsers = [];
+    try {
+      shareUsers = await loadShareUserList();
+    } finally {
+      Swal.close();
+      Swal.hideLoading();
+    }
+
     const coverage = getShareCoverageStatus(cached, shareUsers);
-    Swal.close();
 
     if (coverage.complete && !shareUsers.length) {
       Swal.fire("ไม่มีผู้ใช้อื่น", "ใน Config มีเพียงบัญชีของคุณ", "info");
@@ -2102,10 +2133,13 @@
       html,
       width: "min(100%, 440px)",
       showCancelButton: true,
+      showLoaderOnConfirm: false,
       confirmButtonText: coverage.complete ? "อัปเดตการแชร์" : "บันทึกการแชร์",
       cancelButtonText: "ยกเลิก",
       didOpen: () => {
-        wireSharePickerEvents(Swal.getPopup());
+        const popup = Swal.getPopup();
+        resetSwalActionState(popup);
+        wireSharePickerEvents(popup);
       },
       preConfirm: () => collectSharePickerValues(Swal.getPopup())
     });

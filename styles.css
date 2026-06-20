@@ -1133,7 +1133,7 @@ input:focus,
 
 .share-user-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(52px, auto) minmax(58px, auto);
   gap: 8px;
   align-items: center;
   padding: 8px 10px;
@@ -1159,9 +1159,17 @@ input:focus,
 .share-user-check {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-width: 48px;
   color: var(--muted);
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.share-user-check span {
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .share-user-check input {
@@ -1694,6 +1702,21 @@ div:where(.swal2-container).swal2-backdrop-show {
 
 .pea-swal-popup .swal2-loader {
   border-color: var(--primary) transparent var(--primary) transparent !important;
+}
+
+.swal2-actions:not(.swal2-loading) .swal2-loader {
+  display: none !important;
+}
+
+.pea-swal-popup:not(.swal2-loading) .swal2-confirm {
+  display: inline-flex !important;
+}
+
+.pea-swal-actions .swal2-loader {
+  flex: 0 0 auto !important;
+  width: 2.2em !important;
+  height: 2.2em !important;
+  margin: 0 0.5em !important;
 }
 
 .pea-swal-popup .swal2-timer-progress-bar {
@@ -2898,6 +2921,14 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
     padding: 8px 14px !important;
     min-width: 0 !important;
     flex: 1 1 auto;
+  }
+
+  .share-user-row {
+    grid-template-columns: minmax(0, 1fr) minmax(52px, auto) minmax(58px, auto);
+  }
+
+  .share-user-role {
+    display: none;
   }
 
   .swal-detail {
