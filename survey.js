@@ -27,11 +27,19 @@
     voltageType: null,
     phaseType: null,
     presetConfig: null,
+    aimLine: null,
+    surveyEstimateImported: false,
+    surveyProjectSaved: false,
     defaults: {
       straight: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false },
       curve: { poleMaterialId: "", headMaterialId: "", cableMaterialId: "", ohgwSetId: "", ohgwInstall: false }
-    }
+    },
+    segments: [],
+    trInstalls: [],
+    activeSegmentId: null
   };
+
+  const projectApi = window.SurveyProject;
 
   let rebuildToken = 0;
 
@@ -41,6 +49,7 @@
     cacheElements();
     initSystemSelectors();
     bindEvents();
+    renderSegmentList();
     updateUiState();
   }
 
@@ -87,6 +96,17 @@
     els.toolButtons = document.querySelectorAll("[data-survey-tool]");
     els.toolbar = document.getElementById("surveyToolbar");
     els.toolbarToggle = document.getElementById("surveyToolbarToggle");
+    els.segmentList = document.getElementById("surveySegmentList");
+    els.activeSegmentLabel = document.getElementById("surveyActiveSegment");
+    els.addMvBtn = document.getElementById("surveyAddMvBtn");
+    els.addLvBtn = document.getElementById("surveyAddLvBtn");
+    els.trBtn = document.getElementById("surveyTrBtn");
+    els.addLvFromTrBtn = document.getElementById("surveyAddLvFromTrBtn");
+    els.mapAim = document.getElementById("surveyMapAim");
+    els.mapAimDist = document.getElementById("surveyMapAimDist");
+    els.placeAimBtn = document.getElementById("surveyPlaceAimBtn");
+    els.exportKmlBtn = document.getElementById("surveyExportKmlBtn");
+    els.saveProjectBtn = document.getElementById("surveySaveProjectBtn");
   }
 
   function bindEvents() {
@@ -104,6 +124,23 @@
     els.completeBtn.addEventListener("click", () => { completeSurvey(); });
     els.generateBtn.addEventListener("click", generateEstimate);
     els.resetBtn.addEventListener("click", resetSurvey);
+
+    document.querySelectorAll("[data-add-segment]").forEach(btn => {
+      btn.addEventListener("click", () => handleAddSegmentClick(btn.dataset.addSegment));
+    });
+    if (els.addMvBtn) els.addMvBtn.addEventListener("click", () => handleAddSegmentClick("mv"));
+    if (els.addLvBtn) els.addLvBtn.addEventListener("click", () => handleAddSegmentClick("lv"));
+    if (els.trBtn) els.trBtn.addEventListener("click", () => beginPlaceMode("tr_pick"));
+    if (els.addLvFromTrBtn) els.addLvFromTrBtn.addEventListener("click", () => addLvBranchFromTr());
+    if (els.placeAimBtn) els.placeAimBtn.addEventListener("click", () => placeAtMapCenter());
+    if (els.exportKmlBtn) els.exportKmlBtn.addEventListener("click", exportSurveyKml);
+    if (els.saveProjectBtn) {
+      els.saveProjectBtn.addEventListener("click", () => {
+        if (window.AppCore?.confirmSaveProject) {
+          window.AppCore.confirmSaveProject({ fromSurvey: true, stayOnSurvey: true });
+        }
+      });
+    }
 
     if (els.toolbarToggle) {
       els.toolbarToggle.addEventListener("click", toggleMobileToolbar);
@@ -269,16 +306,6 @@
   }
 
   async function beginSurveySession() {
-    if (!isSystemReady()) {
-      Swal.fire({
-        title: "เลือกระบบก่อน",
-        text: "กรุณาเลือก MV/LV และ 1P/3P ให้ครบก่อนเริ่มสำรวจ",
-        icon: "warning",
-        confirmButtonText: "เข้าใจแล้ว"
-      });
-      return;
-    }
-
     const span = await pickSpanOnStart();
     if (!span) return;
 
@@ -286,6 +313,9 @@
     if (!ready) return;
 
     state.selectedSpan = span;
+    const activeSeg = getActiveLineSegment();
+    if (activeSeg) activeSeg.selectedSpan = span;
+
     state.sessionActive = true;
     state.placeMode = null;
     resetHistory();
@@ -304,15 +334,28 @@
     if (!state.mapReady) initMap();
     scheduleMapResize();
 
+    renderSegmentList();
+    updateActiveSegmentLabel();
     pushHistory();
     renderAll();
     updateModeHint();
   }
 
   function createSnapshot() {
+    syncActiveSegmentToStore();
     return {
+      segments: JSON.parse(JSON.stringify(state.segments)),
+      trInstalls: JSON.parse(JSON.stringify(state.trInstalls)),
+      activeSegmentId: state.activeSegmentId,
       controlPoints: JSON.parse(JSON.stringify(state.controlPoints)),
       poles: JSON.parse(JSON.stringify(state.poles)),
+      routedPaths: JSON.parse(JSON.stringify(state.routedPaths)),
+      routedLegs: JSON.parse(JSON.stringify(state.routedLegs)),
+      routeCache: JSON.parse(JSON.stringify(state.routeCache)),
+      defaults: JSON.parse(JSON.stringify(state.defaults)),
+      selectedSpan: state.selectedSpan,
+      voltageType: state.voltageType,
+      phaseType: state.phaseType,
       placeMode: state.placeMode,
       pendingCurveSpan: state.pendingCurveSpan,
       phase: state.phase
@@ -339,12 +382,26 @@
   }
 
   function restoreSnapshot(snap) {
+    state.segments = JSON.parse(JSON.stringify(snap.segments || []));
+    state.trInstalls = JSON.parse(JSON.stringify(snap.trInstalls || []));
+    state.activeSegmentId = snap.activeSegmentId || null;
     state.controlPoints = JSON.parse(JSON.stringify(snap.controlPoints));
     state.poles = JSON.parse(JSON.stringify(snap.poles));
+    state.routedPaths = JSON.parse(JSON.stringify(snap.routedPaths || []));
+    state.routedLegs = JSON.parse(JSON.stringify(snap.routedLegs || []));
+    state.routeCache = JSON.parse(JSON.stringify(snap.routeCache || {}));
+    state.defaults = JSON.parse(JSON.stringify(snap.defaults || state.defaults));
+    state.selectedSpan = snap.selectedSpan;
+    state.voltageType = snap.voltageType;
+    state.phaseType = snap.phaseType;
+    state.presetConfig = state.voltageType && state.phaseType
+      ? presetsApi.getConfig(state.voltageType, state.phaseType)
+      : null;
     state.placeMode = snap.placeMode;
     state.pendingCurveSpan = snap.pendingCurveSpan;
     state.phase = snap.phase || "surveying";
-    state.routeCache = {};
+    renderSegmentList();
+    updateActiveSegmentLabel();
     renderAll();
     updateModeHint();
     updateToolbarActiveState();
@@ -371,7 +428,8 @@
     if (!els.toolButtons) return;
     els.toolButtons.forEach(btn => {
       const tool = btn.dataset.surveyTool;
-      if (!tool || tool === "back" || tool === "forward" || tool === "complete" || tool === "reset" || tool === "attach") {
+      if (!tool || tool === "back" || tool === "forward" || tool === "complete" || tool === "reset" || tool === "attach"
+        || tool === "add_mv" || tool === "add_lv" || tool === "tr_pick" || tool === "add_lv_tr") {
         btn.classList.remove("is-active");
         return;
       }
@@ -412,11 +470,431 @@
       control: `แตะแผนที่ปักหมุดถัดไป — วางเสาตามถนน (Span ${state.selectedSpan} ม.)`,
       curve_in: `แตะแผนที่ปักหมุดเข้าโค้ง (Span โค้ง ${state.pendingCurveSpan || 15} ม.)`,
       curve_out: "แตะแผนที่ปักหมุดออกโค้ง",
-      curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง"
+      curve_waypoint: "แตะแผนที่ปักจุดบนโค้งตามถนน/เส้นทางจริง",
+      tr_pick: "แตะแผนที่หรือเสาที่สำรวจแล้ว เพื่อติด TR"
     };
 
     els.modeHint.textContent = (hints[state.placeMode] || "") + attachNote;
     updateToolbarActiveState();
+    updateAimOverlay();
+  }
+
+  function isAimModeActive() {
+    return Boolean(
+      state.sessionActive
+      && state.phase === "surveying"
+      && state.placeMode
+    );
+  }
+
+  function getAimReferencePoint() {
+    if (state.placeMode === "start") {
+      const seg = getActiveLineSegment();
+      if (seg?.startFromTrInstallId) {
+        const tr = state.trInstalls.find(t => t.id === seg.startFromTrInstallId);
+        if (tr) return { lat: tr.lat, lng: tr.lng, label: "TR" };
+      }
+      return null;
+    }
+    if (state.controlPoints.length) {
+      const last = state.controlPoints[state.controlPoints.length - 1];
+      return { lat: last.lat, lng: last.lng, label: "หมุดล่าสุด" };
+    }
+    return null;
+  }
+
+  function removeAimLine() {
+    if (state.aimLine) {
+      state.aimLine.remove();
+      state.aimLine = null;
+    }
+  }
+
+  function hideAimOverlay() {
+    removeAimLine();
+    if (els.mapAim) {
+      els.mapAim.classList.add("hidden");
+      els.mapAim.setAttribute("aria-hidden", "true");
+    }
+    if (els.mapAimDist) els.mapAimDist.classList.add("hidden");
+    if (els.placeAimBtn) els.placeAimBtn.classList.add("hidden");
+  }
+
+  function updateAimOverlay() {
+    const active = isAimModeActive();
+    if (!active || !state.map) {
+      hideAimOverlay();
+      return;
+    }
+
+    if (els.mapAim) {
+      els.mapAim.classList.remove("hidden");
+      els.mapAim.setAttribute("aria-hidden", "false");
+    }
+    if (els.placeAimBtn) els.placeAimBtn.classList.remove("hidden");
+
+    const center = state.map.getCenter();
+    const ref = getAimReferencePoint();
+
+    removeAimLine();
+    if (ref) {
+      const dist = distanceMeters(ref, { lat: center.lat, lng: center.lng });
+      if (els.mapAimDist) {
+        els.mapAimDist.textContent = `${Math.round(dist)} ม. จาก${ref.label ? ` ${ref.label}` : ""}`;
+        els.mapAimDist.classList.remove("hidden");
+      }
+      state.aimLine = L.polyline(
+        [[ref.lat, ref.lng], [center.lat, center.lng]],
+        { color: "#ff6b6b", weight: 2, dashArray: "6 8", opacity: 0.9 }
+      ).addTo(state.map);
+    } else if (els.mapAimDist) {
+      els.mapAimDist.textContent = "เลื่อนแผนที่ให้กากบาทตรงจุดปัก";
+      els.mapAimDist.classList.remove("hidden");
+    }
+  }
+
+  async function placeAtMapCenter() {
+    if (!state.map || !state.placeMode || state.phase !== "surveying") return;
+    const center = state.map.getCenter();
+    if (state.placeMode === "tr_pick") {
+      await handleTrMapClick({ lat: center.lat, lng: center.lng });
+      return;
+    }
+    await handleMapClick({ latlng: center });
+  }
+
+  function sanitizeFilename(name) {
+    return String(name || "PEA_Survey")
+      .replace(/[<>:"/\\|?*]+/g, "_")
+      .replace(/\s+/g, "_")
+      .slice(0, 80) || "PEA_Survey";
+  }
+
+  function downloadTextFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportSurveyKml() {
+    syncActiveSegmentToStore();
+    const project = { segments: state.segments, trInstalls: state.trInstalls };
+    const hasData = project.segments.some(s => (s.poles?.length || s.controlPoints?.length))
+      || project.trInstalls.length;
+    if (!hasData) {
+      Swal.fire("ไม่มีข้อมูล", "สำรวจหรือติด TR ก่อนส่งออก KML", "info");
+      return;
+    }
+    if (!projectApi?.buildProjectKml) {
+      Swal.fire("ระบบไม่พร้อม", "ไม่พบตัวสร้าง KML", "error");
+      return;
+    }
+
+    const projectName = window.AppCore?.getProjectName?.() || "PEA_Survey";
+    const kml = projectApi.buildProjectKml(project, {
+      projectName,
+      description: `Survey export — ${new Date().toLocaleString("th-TH")}`
+    });
+    const filename = `${sanitizeFilename(projectName)}_survey.kml`;
+    downloadTextFile(kml, filename, "application/vnd.google-earth.kml+xml");
+    Swal.fire("ส่งออก KML แล้ว", filename, "success", { timer: 2200, showConfirmButton: false });
+  }
+
+  function getActiveLineSegment() {
+    return state.segments.find(s => s.id === state.activeSegmentId && s.kind === "line") || null;
+  }
+
+  function syncActiveSegmentToStore() {
+    const seg = getActiveLineSegment();
+    if (!seg || !projectApi) return;
+    projectApi.saveWorkspaceToSegment(seg, {
+      controlPoints: state.controlPoints,
+      poles: state.poles,
+      routedPaths: state.routedPaths,
+      routedLegs: state.routedLegs,
+      routeCache: state.routeCache,
+      defaults: state.defaults,
+      selectedSpan: state.selectedSpan
+    });
+  }
+
+  function loadActiveSegmentWorkspace() {
+    const seg = getActiveLineSegment();
+    if (!seg || !projectApi) {
+      state.controlPoints = [];
+      state.poles = [];
+      state.routedPaths = [];
+      state.routedLegs = [];
+      state.routeCache = {};
+      return;
+    }
+    projectApi.loadSegmentToWorkspace(seg, state);
+    state.presetConfig = presetsApi.getConfig(seg.type, seg.phase);
+    state.voltageType = seg.type;
+    state.phaseType = seg.phase;
+    refreshDefaultMaterialSelects();
+  }
+
+  function setActiveSegment(segmentId) {
+    syncActiveSegmentToStore();
+    state.activeSegmentId = segmentId;
+    loadActiveSegmentWorkspace();
+    renderSegmentList();
+    updateActiveSegmentLabel();
+    updateUiState();
+    if (state.sessionActive) renderAll();
+  }
+
+  function updateActiveSegmentLabel() {
+    if (!els.activeSegmentLabel) return;
+    const seg = getActiveLineSegment();
+    const trCount = state.trInstalls.length;
+    els.activeSegmentLabel.textContent = seg
+      ? `ส่วน: ${seg.label}`
+      : trCount
+        ? `TR ${trCount} จุด — เลือกส่วน MV/LV`
+        : "ยังไม่มีส่วนงาน";
+  }
+
+  function renderSegmentList() {
+    if (!els.segmentList) return;
+    if (!state.segments.length && !state.trInstalls.length) {
+      els.segmentList.innerHTML = `<div class="survey-empty">ยังไม่มีส่วนงาน — กด + MV / + LV / + TR</div>`;
+      return;
+    }
+    const lineHtml = state.segments.filter(s => s.kind === "line").map(seg => `
+      <button type="button" class="survey-segment-chip ${seg.id === state.activeSegmentId ? "is-active" : ""}" data-segment-id="${seg.id}">
+        <span class="survey-segment-dot" style="background:${seg.color}"></span>
+        ${escapeHtml(seg.label)} · ${seg.poles?.length || 0} หมุด
+      </button>
+    `).join("");
+    const trHtml = state.trInstalls.map(tr => `
+      <div class="survey-segment-chip is-tr-static">
+        <span class="survey-segment-dot is-tr"></span>
+        TR ${escapeHtml(tr.label || tr.id.slice(-4))}
+      </div>
+    `).join("");
+    els.segmentList.innerHTML = lineHtml + trHtml;
+    els.segmentList.querySelectorAll("[data-segment-id]").forEach(btn => {
+      btn.addEventListener("click", () => setActiveSegment(btn.dataset.segmentId));
+    });
+  }
+
+  async function pickPhaseForType(type) {
+    const { value } = await Swal.fire({
+      title: `${type.toUpperCase()} — เลือกเฟส`,
+      input: "select",
+      inputOptions: { "1p": "1P", "3p": "3P" },
+      inputValue: type === "lv" ? "3p" : "1p",
+      showCancelButton: true
+    });
+    return value || null;
+  }
+
+  async function handleAddSegmentClick(type) {
+    if (type === "tr") {
+      if (!state.sessionActive) {
+        Swal.fire("เริ่มสำรวจก่อน", "กดเริ่มสำรวจ แล้วใช้ปุ่ม ติด TR บนแผนที่", "info");
+        return;
+      }
+      beginPlaceMode("tr_pick");
+      return;
+    }
+    const phase = await pickPhaseForType(type);
+    if (!phase) return;
+    let span = state.selectedSpan;
+    if (!span) {
+      span = await pickSpanOnStart();
+      if (!span) return;
+      state.selectedSpan = span;
+    }
+    if (!projectApi) return;
+    const seg = projectApi.createLineSegment(
+      type,
+      phase,
+      span,
+      `${type.toUpperCase()} ${phase.toUpperCase()} #${state.segments.filter(s => s.type === type).length + 1}`
+    );
+    state.segments.push(seg);
+    setActiveSegment(seg.id);
+    showDefaultsPanel();
+    renderSegmentList();
+    if (state.sessionActive) {
+      Swal.fire("เพิ่มส่วนงานแล้ว", `เลือก ${seg.label} — ปักจุดเริ่มได้`, "success", { timer: 2000, showConfirmButton: false });
+    }
+  }
+
+  async function addLvBranchFromTr() {
+    if (!state.trInstalls.length) {
+      Swal.fire("ยังไม่มี TR", "ติด TR ก่อน แล้วค่อยเพิ่ม LV จาก TR", "info");
+      return;
+    }
+    const options = {};
+    state.trInstalls.forEach((tr, i) => {
+      options[tr.id] = `TR ${i + 1} (${tr.label || "จุดแวนหม้อ"})`;
+    });
+    const { value: trId } = await Swal.fire({
+      title: "LV ออกจาก TR",
+      text: "เลือกจุด TR ที่จะเริ่มสาย LV",
+      input: "select",
+      inputOptions: options,
+      showCancelButton: true
+    });
+    if (!trId) return;
+    const phase = await pickPhaseForType("lv");
+    if (!phase) return;
+    let span = state.selectedSpan;
+    if (!span) {
+      span = await pickSpanOnStart();
+      if (!span) return;
+      state.selectedSpan = span;
+    }
+    const tr = state.trInstalls.find(t => t.id === trId);
+    const branchNum = (tr.lvBranchSegmentIds?.length || 0) + 1;
+    const seg = projectApi.createLineSegment("lv", phase, span, `LV ${phase.toUpperCase()} ← TR #${branchNum}`);
+    seg.startFromTrInstallId = trId;
+    if (!tr.lvBranchSegmentIds) tr.lvBranchSegmentIds = [];
+    tr.lvBranchSegmentIds.push(seg.id);
+    state.segments.push(seg);
+    setActiveSegment(seg.id);
+    showDefaultsPanel();
+    renderSegmentList();
+  }
+
+  async function openTrInstallDialog(point, hostPoleId, segmentId) {
+    const hostInfo = hostPoleId && projectApi
+      ? projectApi.findPoleById({ segments: state.segments, trInstalls: state.trInstalls }, hostPoleId)
+      : null;
+
+    const { value: isExisting } = await Swal.fire({
+      title: "ประเภทเสา TR Host",
+      input: "radio",
+      inputOptions: {
+        surveyed: "เสาที่สำรวจไว้",
+        existing: "เสาเดิมหน้างาน (ไม่นับเสาใน BOM)"
+      },
+      inputValue: hostInfo ? "surveyed" : "existing",
+      showCancelButton: true
+    });
+    if (!isExisting) return;
+
+    const { value: installType } = await Swal.fire({
+      title: "รูปแบบติดตั้ง",
+      input: "select",
+      inputOptions: {
+        singlePole: "แวนบนเสา (Single Pole)",
+        platform: "แท่นหม้อ (Platform)"
+      },
+      inputValue: "singlePole",
+      showCancelButton: true
+    });
+    if (!installType) return;
+
+    const phaseResult = installType === "singlePole"
+      ? await Swal.fire({
+        title: "เฟส TR",
+        input: "select",
+        inputOptions: { "1p": "1P", "3p": "3P" },
+        inputValue: "3p",
+        showCancelButton: true
+      })
+      : { value: "3p" };
+    const phase = phaseResult.value;
+    if (!phase) return;
+
+    const catalog = presetsApi.getTrInstallCatalog();
+    const group = catalog?.[installType]?.[phase];
+    const setOptions = {};
+    presetsApi.getSetOptions(group?.setIds || []).forEach(s => { setOptions[s.id] = presetsApi.formatSetLabel(s); });
+    const { value: trSetId } = await Swal.fire({
+      title: "ชุด SET ติดตั้ง TR",
+      input: "select",
+      inputOptions: setOptions,
+      inputValue: group?.defaultSetId,
+      showCancelButton: true
+    });
+    if (!trSetId) return;
+
+    const txOptions = {};
+    presetsApi.getTransformers(phase)
+      .filter(t => !group?.transformerIds?.length || group.transformerIds.includes(t.id))
+      .forEach(t => { txOptions[t.id] = `${t.id} — ${t.name}`; });
+    const { value: transformerId } = await Swal.fire({
+      title: "หม้อแปลง",
+      input: "select",
+      inputOptions: txOptions,
+      showCancelButton: true
+    });
+    if (!transformerId) return;
+
+    const tr = projectApi.createTrInstall({
+      hostPoleId: hostPoleId || "",
+      segmentId: segmentId || hostInfo?.segment?.id || "",
+      lat: point.lat,
+      lng: point.lng,
+      isExistingPole: isExisting === "existing",
+      installType,
+      phase,
+      trSetId,
+      transformerId,
+      label: hostInfo ? `TR @ ${hostInfo.pole.label}` : "TR เสาเดิม"
+    });
+    state.trInstalls.push(tr);
+    state.placeMode = null;
+    renderSegmentList();
+    renderAll();
+    updateModeHint();
+    Swal.fire("บันทึก TR", tr.label, "success", { timer: 1800, showConfirmButton: false });
+  }
+
+  async function handleTrMapClick(point) {
+    await openTrInstallDialog(point, "", "");
+    state.placeMode = null;
+    updateModeHint();
+  }
+
+  function findPoleInProject(poleId) {
+    syncActiveSegmentToStore();
+    for (const seg of state.segments) {
+      const pole = seg.poles?.find(p => p.id === poleId);
+      if (pole) return { pole, segment: seg };
+    }
+    return null;
+  }
+
+  function applySpecsToProject() {
+    syncActiveSegmentToStore();
+    let appliedCount = 0;
+    const activeId = state.activeSegmentId;
+
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      if (!seg.poles?.length) return;
+      projectApi.loadSegmentToWorkspace(seg, state);
+      state.presetConfig = presetsApi.getConfig(seg.type, seg.phase);
+      appliedCount += applyDefaultSpecs();
+      applySpecialPoleSpecs();
+      projectApi.saveWorkspaceToSegment(seg, {
+        controlPoints: state.controlPoints,
+        poles: state.poles,
+        routedPaths: state.routedPaths,
+        routedLegs: state.routedLegs,
+        routeCache: state.routeCache,
+        defaults: state.defaults,
+        selectedSpan: state.selectedSpan
+      });
+    });
+
+    if (activeId) {
+      const seg = state.segments.find(s => s.id === activeId);
+      if (seg) projectApi.loadSegmentToWorkspace(seg, state);
+    }
+    return appliedCount;
   }
 
   function initSystemSelectors() {
@@ -725,6 +1203,33 @@
   }
 
   function buildSurveyMetaObject() {
+    syncActiveSegmentToStore();
+
+    if (projectApi) {
+      const meta = projectApi.buildSurveyMetaV2(
+        { segments: state.segments, trInstalls: state.trInstalls },
+        { distanceMeters }
+      );
+      if (!meta.poleCount && !meta.trCount) return null;
+
+      const allPoles = state.segments
+        .filter(s => s.kind === "line")
+        .flatMap(s => s.poles || []);
+      const first = allPoles[0];
+      const last = allPoles[allPoles.length - 1];
+
+      return {
+        ...meta,
+        startLabel: first?.label || "หมุด 0",
+        endLabel: last?.label || "",
+        spanM: state.selectedSpan,
+        voltageType: state.voltageType,
+        phaseType: state.phaseType,
+        systemLabel: getPresetConfig()?.label || "",
+        wireMultiplier: getWireMultiplier()
+      };
+    }
+
     if (!state.poles.length) return null;
 
     const start = state.poles[0];
@@ -757,9 +1262,10 @@
   }
 
   async function drawRouteCanvasFallback() {
+    syncActiveSegmentToStore();
     const map = state.map;
-    const width = els.mapEl.clientWidth || 900;
-    const height = els.mapEl.clientHeight || 600;
+    const width = els.mapEl?.clientWidth || 900;
+    const height = els.mapEl?.clientHeight || 600;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -768,62 +1274,143 @@
     ctx.fillStyle = "#0a1524";
     ctx.fillRect(0, 0, width, height);
 
-    const points = state.poles.map(pole => map.latLngToContainerPoint([pole.lat, pole.lng]));
-    if (points.length > 1) {
-      ctx.strokeStyle = "#71e8ff";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i += 1) {
-        ctx.lineTo(points[i].x, points[i].y);
-      }
-      ctx.stroke();
-    }
+    const project = { segments: state.segments, trInstalls: state.trInstalls };
+    const lineSegs = project.segments.filter(s => s.kind === "line");
 
-    state.poles.forEach((pole, index) => {
-      const pt = points[index];
-      const isStart = pole.source === "start" || pole.number === 0;
-      ctx.fillStyle = isStart ? "#f5c96a" : "#71e8ff";
+    lineSegs.forEach(seg => {
+      const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
+      const poles = seg.poles || [];
+
+      (seg.routedPaths || []).forEach(path => {
+        if (!path || path.length < 2 || !map) return;
+        const pts = path.map(p => map.latLngToContainerPoint([p.lat, p.lng]));
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.45;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+
+      if (poles.length > 1 && map) {
+        const pts = poles.map(p => map.latLngToContainerPoint([p.lat, p.lng]));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      poles.forEach((pole, index) => {
+        if (!map) return;
+        const pt = map.latLngToContainerPoint([pole.lat, pole.lng]);
+        const isStart = pole.source === "start" || pole.number === 0;
+        ctx.fillStyle = isStart ? "#f5c96a" : color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, isStart ? 11 : 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.85)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "#03111f";
+        ctx.font = "bold 9px Sarabun,sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+      });
+    });
+
+    (project.trInstalls || []).forEach(tr => {
+      if (!map) return;
+      const pt = map.latLngToContainerPoint([tr.lat, tr.lng]);
+      ctx.fillStyle = "#ff6b35";
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, isStart ? 12 : 9, 0, Math.PI * 2);
+      ctx.moveTo(pt.x, pt.y - 10);
+      ctx.lineTo(pt.x + 10, pt.y);
+      ctx.lineTo(pt.x, pt.y + 10);
+      ctx.lineTo(pt.x - 10, pt.y);
+      ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#03111f";
-      ctx.font = "bold 10px Sarabun,sans-serif";
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = "#1a0a00";
+      ctx.font = "bold 8px Sarabun,sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+      ctx.fillText("TR", pt.x, pt.y);
+    });
+
+    const legendX = 10;
+    let legendY = 14;
+    ctx.font = "bold 10px Sarabun,sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText("Survey Map Legend", legendX, legendY);
+    legendY += 14;
+
+    const legendItems = [
+      ...lineSegs.map(seg => ({
+        color: seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff",
+        label: `${seg.label} (${seg.type?.toUpperCase()})`
+      })),
+      ...(project.trInstalls?.length ? [{ color: "#ff6b35", label: `TR × ${project.trInstalls.length}` }] : [])
+    ];
+
+    ctx.font = "9px Sarabun,sans-serif";
+    legendItems.forEach(item => {
+      ctx.fillStyle = item.color;
+      ctx.fillRect(legendX, legendY - 7, 14, 3);
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fillText(item.label.slice(0, 36), legendX + 18, legendY - 4);
+      legendY += 12;
     });
 
     const meta = buildSurveyMetaObject();
     if (meta) {
+      ctx.fillStyle = "rgba(4, 11, 21, 0.82)";
+      ctx.fillRect(8, height - 52, width - 16, 44);
       ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "11px Sarabun,sans-serif";
+      ctx.font = "10px Sarabun,sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(
-        `${meta.startLabel}: ${meta.startLat.toFixed(6)}, ${meta.startLng.toFixed(6)}`,
-        12,
-        height - 28
-      );
-      ctx.fillText(
-        `${meta.endLabel}: ${meta.endLat.toFixed(6)}, ${meta.endLng.toFixed(6)}`,
-        12,
-        height - 12
-      );
+      const summary = meta.version === 2
+        ? `${meta.segmentCount || 0} ส่วน · ${meta.poleCount || 0} หมุด · TR ${meta.trCount || 0} · ${meta.totalDistanceM || 0} ม.`
+        : `${meta.poleCount || 0} หมุด · ${meta.totalDistanceM || 0} ม.`;
+      ctx.fillText(summary, 14, height - 34);
+      if (meta.startLat != null) {
+        ctx.fillText(
+          `Start: ${Number(meta.startLat).toFixed(5)}, ${Number(meta.startLng).toFixed(5)}`,
+          14,
+          height - 18
+        );
+      }
     }
 
     return canvas.toDataURL("image/png").split(",")[1];
   }
 
   async function captureSurveyMapImage() {
-    if (!state.map || !state.poles.length) return null;
+    syncActiveSegmentToStore();
+    const latlngs = [];
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      (seg.poles || []).forEach(pole => latlngs.push([pole.lat, pole.lng]));
+    });
+    state.trInstalls.forEach(tr => latlngs.push([tr.lat, tr.lng]));
 
-    const bounds = L.latLngBounds(state.poles.map(pole => [pole.lat, pole.lng]));
+    if (!state.map || !latlngs.length) return null;
+
+    const bounds = L.latLngBounds(latlngs);
     scheduleMapResize();
     state.map.fitBounds(bounds, { padding: [50, 50] });
     await delay(900);
     scheduleMapResize();
 
-    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle].filter(Boolean);
+    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn].filter(Boolean);
     const prevDisplay = hideEls.map(el => el.style.display);
     hideEls.forEach(el => { el.style.display = "none"; });
 
@@ -879,6 +1466,8 @@
       attribution: "&copy; OpenStreetMap"
     }).addTo(state.map);
     state.map.on("click", handleMapClick);
+    state.map.on("move", updateAimOverlay);
+    state.map.on("moveend", updateAimOverlay);
     state.mapReady = true;
   }
 
@@ -994,6 +1583,26 @@
     const ready = await ensureProjectReady();
     if (!ready) return;
 
+    if (mode === "tr_pick") {
+      if (!state.sessionActive) {
+        Swal.fire("เริ่มสำรวจก่อน", "กดเริ่มสำรวจก่อนติด TR", "info");
+        return;
+      }
+      state.placeMode = "tr_pick";
+      updateModeHint();
+      return;
+    }
+
+    if (!getActiveLineSegment()) {
+      Swal.fire("เพิ่มส่วนงาน", "กด + MV หรือ + LV เพื่อสร้างส่วนสำรวจก่อนปักหมุด", "info");
+      return;
+    }
+
+    if (!getPresetConfig()) {
+      Swal.fire("Preset ไม่พร้อม", "ส่วนงานที่เลือกยังไม่มีค่า preset", "warning");
+      return;
+    }
+
     if (mode === "control" && !state.controlPoints.length) {
       Swal.fire("ยังไม่มีหมุด 0", "ปักจุดเริ่มก่อน", "info");
       return;
@@ -1035,7 +1644,27 @@
 
     const point = { lat: event.latlng.lat, lng: event.latlng.lng };
 
+    if (state.placeMode === "tr_pick") {
+      await handleTrMapClick(point);
+      return;
+    }
+
+    if (!getActiveLineSegment()) {
+      Swal.fire("เพิ่มส่วนงาน", "กด + MV หรือ + LV ก่อนปักหมุด", "info");
+      state.placeMode = null;
+      updateModeHint();
+      return;
+    }
+
     if (state.placeMode === "start") {
+      const activeSeg = getActiveLineSegment();
+      if (activeSeg?.startFromTrInstallId) {
+        const tr = state.trInstalls.find(t => t.id === activeSeg.startFromTrInstallId);
+        if (tr) {
+          point.lat = tr.lat;
+          point.lng = tr.lng;
+        }
+      }
       const headSetId = await pickStartHeadType();
       if (!headSetId) return;
       state.controlPoints = [{
@@ -1591,18 +2220,40 @@
     );
   }
 
+  function projectCanComplete() {
+    syncActiveSegmentToStore();
+    const lineSegs = state.segments.filter(s => s.kind === "line");
+    if (lineSegs.some(s => s.controlPoints.length >= 2)) return true;
+    return state.trInstalls.length > 0;
+  }
+
+  function validateProjectBeforeComplete() {
+    syncActiveSegmentToStore();
+    const lineSegs = state.segments.filter(s => s.kind === "line");
+
+    if (!lineSegs.some(s => s.controlPoints.length >= 2) && !state.trInstalls.length) {
+      return "ยังไม่มีงาน — สำรวจอย่างน้อย 1 ส่วน MV/LV หรือติด TR";
+    }
+
+    for (const seg of lineSegs) {
+      if (seg.controlPoints.length === 1) {
+        return `${seg.label} มีแค่หมุดเริ่ม — เพิ่มหมุดถัดไปหรือลบส่วนนี้`;
+      }
+      const hasIn = seg.controlPoints.some(c => c.role === "curve_in");
+      const hasOut = seg.controlPoints.some(c => c.role === "curve_out");
+      if (hasIn && !hasOut) {
+        return `${seg.label} ยังไม่มีจุดออกโค้ง`;
+      }
+    }
+    return null;
+  }
+
   async function completeSurvey() {
     if (!ensureSpanSelected()) return;
 
-    if (state.controlPoints.length < 2) {
-      Swal.fire("ยังสำรวจไม่ครบ", "ต้องมีอย่างน้อยหมุด 0 และหมุดถัดไปอีก 1 จุด", "info");
-      return;
-    }
-
-    const curveIn = getCurveInPoint();
-    const curveOut = getCurveOutPoint();
-    if (curveIn && !curveOut) {
-      Swal.fire("ยังไม่มีจุดออกโค้ง", "กรุณาปักหมุดออกโค้งก่อนสำรวจเสร็จ", "warning");
+    const validationError = validateProjectBeforeComplete();
+    if (validationError) {
+      Swal.fire("ยังสำรวจไม่ครบ", validationError, "info");
       return;
     }
 
@@ -1622,8 +2273,9 @@
 
     state.phase = "spec";
     state.placeMode = null;
-    const appliedCount = applyDefaultSpecs();
-    applySpecialPoleSpecs();
+    state.surveyEstimateImported = false;
+    state.surveyProjectSaved = false;
+    const appliedCount = applySpecsToProject();
 
     setMapActiveMode(false);
     collapseMobileToolbar();
@@ -1651,39 +2303,44 @@
   }
 
   function renderAll() {
+    syncActiveSegmentToStore();
     updateMapLayers();
     renderPoleList();
     updateSummary();
     updateDistanceLegs();
     updateUiState();
+    updateAimOverlay();
   }
 
   function updateUiState() {
     const surveying = state.phase === "surveying";
     const sessionActive = state.sessionActive;
+    const hasActiveSeg = Boolean(getActiveLineSegment());
     const hasStart = state.controlPoints.length > 0;
     const hasCurveIn = Boolean(getCurveInPoint());
     const hasCurveOut = Boolean(getCurveOutPoint());
     const inCurve = isInsideCurveZone();
-    const canComplete = sessionActive && hasStart && state.controlPoints.length >= 2;
+    const canComplete = sessionActive && surveying && projectCanComplete();
 
-    if (els.startBtn) els.startBtn.disabled = !sessionActive || !surveying || hasStart;
-    if (els.gpsBtn) els.gpsBtn.disabled = !sessionActive || !surveying || hasStart;
-    if (els.addPointBtn) els.addPointBtn.disabled = !sessionActive || !surveying || !hasStart || inCurve;
-    if (els.curveInBtn) els.curveInBtn.disabled = !sessionActive || !surveying || !hasStart || hasCurveIn;
-    if (els.curveWaypointBtn) els.curveWaypointBtn.disabled = !sessionActive || !surveying || !inCurve;
-    if (els.curveOutBtn) els.curveOutBtn.disabled = !sessionActive || !surveying || !hasCurveIn || hasCurveOut;
-    if (els.completeBtn) els.completeBtn.disabled = !canComplete || !surveying;
+    if (els.startBtn) els.startBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || hasStart;
+    if (els.gpsBtn) els.gpsBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || hasStart;
+    if (els.addPointBtn) els.addPointBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || !hasStart || inCurve;
+    if (els.curveInBtn) els.curveInBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || !hasStart || hasCurveIn;
+    if (els.curveWaypointBtn) els.curveWaypointBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || !inCurve;
+    if (els.curveOutBtn) els.curveOutBtn.disabled = !sessionActive || !surveying || !hasActiveSeg || !hasCurveIn || hasCurveOut;
+    if (els.completeBtn) els.completeBtn.disabled = !canComplete;
     if (els.backBtn) els.backBtn.disabled = !sessionActive || state.historyIndex <= 0;
     if (els.forwardBtn) els.forwardBtn.disabled = !sessionActive || state.historyIndex >= state.history.length - 1;
 
     if (els.beginBtn) {
-      els.beginBtn.disabled = sessionActive || !isSystemReady();
+      els.beginBtn.disabled = sessionActive;
     }
 
     if (els.generateBtn) {
       els.generateBtn.disabled = state.phase !== "spec" || !allSpecsFilled();
     }
+
+    updateSurveyWorkflowUi();
 
     if (els.sideTitle) {
       els.sideTitle.textContent = state.phase === "spec" ? "กรอกรายละเอียดแต่ละหมุด" : "คู่มือสำรวจ";
@@ -1700,7 +2357,11 @@
   }
 
   function allSpecsFilled() {
-    return state.poles.length > 0 && state.poles.every(pole => pole.specFilled);
+    syncActiveSegmentToStore();
+    const lineSegs = state.segments.filter(s => s.kind === "line");
+    const withPoles = lineSegs.filter(s => s.poles?.length);
+    if (!withPoles.length && state.trInstalls.length) return true;
+    return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
   function createNumberIcon(number, source) {
@@ -1719,68 +2380,97 @@
     });
   }
 
+  function createTrIcon() {
+    return L.divIcon({
+      className: "survey-pin-wrap",
+      html: `<div class="survey-pin is-tr">TR</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+  }
+
   function updateMapLayers() {
     if (!state.map) return;
+
+    syncActiveSegmentToStore();
 
     state.markers.forEach(m => m.remove());
     state.markers = [];
     state.polylines.forEach(p => p.remove());
     state.polylines = [];
 
-    state.poles.forEach(pole => {
-      const marker = L.marker([pole.lat, pole.lng], {
-        icon: createNumberIcon(pole.number, pole.source),
-        draggable: state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId
-      }).addTo(state.map);
+    const activeId = state.activeSegmentId;
 
-      marker.bindPopup(`<b>${pole.label}</b><br>${roleText(pole.source)}${pole.headMaterialId ? `<br>หัวเสา: ${escapeHtml(getSetLabel(pole.headMaterialId))}` : ""}`);
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      const isActive = seg.id === activeId;
+      const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
+      const lineOpacity = isActive ? 0.85 : 0.4;
 
-      if (state.phase === "surveying" && pole.ctrlId) {
-        marker.on("click", event => {
-          L.DomEvent.stopPropagation(event);
-          handleControlMarkerClick(pole);
-        });
-        marker.on("dragend", () => {
-          const pos = marker.getLatLng();
-          const ctrl = state.controlPoints.find(c => c.id === pole.ctrlId);
-          if (ctrl) {
-            ctrl.lat = pos.lat;
-            ctrl.lng = pos.lng;
-            state.routeCache = {};
-            rebuildPolesFromControls().then(() => {
-              pushHistory();
-            });
-          }
-        });
+      (seg.routedPaths || []).forEach(path => {
+        if (path.length < 2) return;
+        state.polylines.push(L.polyline(
+          path.map(p => [p.lat, p.lng]),
+          { color, weight: isActive ? 5 : 4, opacity: lineOpacity * 0.55 }
+        ).addTo(state.map));
+      });
+
+      if ((seg.controlPoints || []).length > 1) {
+        state.polylines.push(L.polyline(
+          seg.controlPoints.map(c => [c.lat, c.lng]),
+          { color: "#f5c96a", weight: 2, dashArray: "4 6", opacity: isActive ? 1 : 0.45 }
+        ).addTo(state.map));
       }
 
+      if ((seg.poles || []).length > 1) {
+        state.polylines.push(L.polyline(
+          seg.poles.map(p => [p.lat, p.lng]),
+          { color, weight: 3, dashArray: "6 8", opacity: lineOpacity }
+        ).addTo(state.map));
+      }
+
+      (seg.poles || []).forEach(pole => {
+        const marker = L.marker([pole.lat, pole.lng], {
+          icon: createNumberIcon(pole.number, pole.source),
+          draggable: isActive && state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId,
+          opacity: isActive ? 1 : 0.65
+        }).addTo(state.map);
+
+        marker.bindPopup(`<b>${pole.label}</b><br>${roleText(pole.source)}${pole.headMaterialId ? `<br>หัวเสา: ${escapeHtml(getSetLabel(pole.headMaterialId))}` : ""}`);
+
+        if (state.phase === "surveying" && state.placeMode === "tr_pick") {
+          marker.on("click", event => {
+            L.DomEvent.stopPropagation(event);
+            openTrInstallDialog({ lat: pole.lat, lng: pole.lng }, pole.id, seg.id);
+          });
+        } else if (isActive && state.phase === "surveying" && pole.ctrlId) {
+          marker.on("click", event => {
+            L.DomEvent.stopPropagation(event);
+            handleControlMarkerClick(pole);
+          });
+          marker.on("dragend", () => {
+            const pos = marker.getLatLng();
+            const ctrl = state.controlPoints.find(c => c.id === pole.ctrlId);
+            if (ctrl) {
+              ctrl.lat = pos.lat;
+              ctrl.lng = pos.lng;
+              state.routeCache = {};
+              rebuildPolesFromControls().then(() => {
+                pushHistory();
+              });
+            }
+          });
+        }
+
+        state.markers.push(marker);
+      });
+    });
+
+    state.trInstalls.forEach(tr => {
+      const marker = L.marker([tr.lat, tr.lng], { icon: createTrIcon() }).addTo(state.map);
+      const txName = presetsApi.getTransformers?.(tr.phase)?.find(t => t.id === tr.transformerId)?.name || tr.transformerId;
+      marker.bindPopup(`<b>${escapeHtml(tr.label)}</b><br>SET ${tr.trSetId}<br>${escapeHtml(txName)}`);
       state.markers.push(marker);
     });
-
-    state.routedPaths.forEach(path => {
-      if (path.length < 2) return;
-      const routeLine = L.polyline(
-        path.map(p => [p.lat, p.lng]),
-        { color: "#3ecf6e", weight: 5, opacity: 0.55 }
-      ).addTo(state.map);
-      state.polylines.push(routeLine);
-    });
-
-    if (state.controlPoints.length > 1) {
-      const ctrlLine = L.polyline(
-        state.controlPoints.map(c => [c.lat, c.lng]),
-        { color: "#f5c96a", weight: 2, dashArray: "4 6" }
-      ).addTo(state.map);
-      state.polylines.push(ctrlLine);
-    }
-
-    if (state.poles.length > 1) {
-      const poleLine = L.polyline(
-        state.poles.map(p => [p.lat, p.lng]),
-        { color: "#71e8ff", weight: 3, dashArray: "6 8" }
-      ).addTo(state.map);
-      state.polylines.push(poleLine);
-    }
   }
 
   function renderSetOptions(sets, selectedId) {
@@ -1801,16 +2491,120 @@
     `).join("");
   }
 
+  function getSectionCatalogsForConfig(config, sectionKey) {
+    if (!config || !config[sectionKey]) {
+      return { headSets: [], cables: [], ohgwSets: [] };
+    }
+    const section = config[sectionKey];
+    return {
+      headSets: presetsApi.getSetOptions(section.headSetIds),
+      cables: presetsApi.getCableOptions(config, sectionKey),
+      ohgwSets: presetsApi.getSetOptions(section.ohgwSetIds)
+    };
+  }
+
+  function buildPoleSpecCardHtml(pole, seg, poleCatalog) {
+    const config = presetsApi.getConfig(seg.type, seg.phase);
+    const configKey = presetsApi.getConfigKey(seg.type, seg.phase);
+    const isStart = pole.source === "start";
+    const specialKind = getSpecialPoleKind(pole);
+    const specialRule = specialKind ? presetsApi.getSpecialPoleRule(configKey, specialKind) : null;
+    const sectionKey = isCurvePole(pole) ? "curve" : "straight";
+    const catalogs = getSectionCatalogsForConfig(config, sectionKey);
+    const headSets = isStart
+      ? presetsApi.getSetOptions(config?.startHeadSetIds || [])
+      : specialRule
+        ? presetsApi.getSetOptions(specialRule.headSetIds || [])
+        : catalogs.headSets;
+    const ohgwSets = specialRule && config?.hasOhgw
+      ? presetsApi.getSetOptions(specialRule.ohgwSetIds || [])
+      : catalogs.ohgwSets;
+    const guySets = specialRule ? presetsApi.getSetOptions(specialRule.guySetIds || []) : [];
+    const headLabel = pole.headMaterialId ? getSetLabel(pole.headMaterialId) : "";
+    const autoNotes = [];
+
+    if (specialRule?.concrete?.materialId) {
+      autoNotes.push(`คอนกรีต ${specialRule.concrete.materialId} × ${specialRule.concrete.qty}`);
+    }
+    if (specialKind === "end" && specialRule?.groundingSetId) {
+      autoNotes.push(`Grounding SET ${specialRule.groundingSetId}`);
+    }
+    if (specialKind === "end" && specialRule?.surgeSetId) {
+      autoNotes.push(`Surge SET ${specialRule.surgeSetId}`);
+    }
+    if (specialKind === "end" && specialRule?.surgeArresterId) {
+      autoNotes.push(`Surge ${specialRule.surgeArresterId} × ${specialRule.surgeArresterQty}`);
+    }
+
+    return `
+      <div class="survey-pole-card ${isStart ? "is-start" : ""} ${specialKind ? "is-special" : ""}" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+        <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}${specialKind ? ` <span class="survey-tag">${specialKind === "end" ? "เสาต้นสุดท้าย" : "เสาโค้ง"}</span>` : ""}</div>
+        ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${escapeHtml(headLabel)} (กำหนดตอนปักหมุด 0)</div>` : `
+        <div class="survey-field">
+          <label>เสา (รหัสพัสดุ)</label>
+          <select data-field="poleMaterialId" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+            <option value="">-- เลือกเสา --</option>
+            ${renderCatalogOptions(poleCatalog, pole.poleMaterialId)}
+          </select>
+        </div>`}
+        <div class="survey-field">
+          <label>หัวเสา (ชุด Set)</label>
+          <select data-field="headMaterialId" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+            <option value="">-- เลือกหัวเสา (ชุด Set) --</option>
+            ${renderSetOptions(headSets, pole.headMaterialId)}
+          </select>
+        </div>
+        ${specialRule ? `
+        <div class="survey-field">
+          <label>Guy (ชุด Set)</label>
+          <select data-field="guySetId" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+            <option value="">-- เลือก Guy --</option>
+            ${renderSetOptions(guySets, pole.guySetId)}
+          </select>
+        </div>` : ""}
+        <div class="survey-field">
+          <label>สายไฟ (รหัสพัสดุ)</label>
+          <select data-field="cableMaterialId" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+            <option value="">-- เลือกสายไฟ --</option>
+            ${renderCableOptions(catalogs.cables, pole.cableMaterialId)}
+          </select>
+        </div>
+        ${config?.hasOhgw ? `
+        <div class="survey-field">
+          <label>OHGW (ชุด Set)</label>
+          <select data-field="ohgwSetId" data-pole-id="${pole.id}" data-segment-id="${seg.id}">
+            <option value="">-- ไม่ติดตั้ง --</option>
+            ${renderSetOptions(ohgwSets, pole.ohgwSetId)}
+          </select>
+        </div>` : ""}
+        ${autoNotes.length ? `<div class="survey-pole-meta survey-auto-spec">${autoNotes.map(n => escapeHtml(n)).join(" · ")}</div>` : ""}
+      </div>
+    `;
+  }
+
   function renderPoleList() {
     if (!els.poleList) return;
 
-    if (!state.poles.length) {
-      els.poleList.innerHTML = `<div class="survey-empty">1) เลือก Span → 2) ปักหมุด 0 + หัวเสา → 3) ปักหมุดถัดไป</div>`;
+    syncActiveSegmentToStore();
+    const lineSegs = state.segments.filter(s => s.kind === "line");
+    const totalPoles = lineSegs.reduce((n, s) => n + (s.poles?.length || 0), 0);
+
+    if (!totalPoles && !state.trInstalls.length) {
+      els.poleList.innerHTML = `<div class="survey-empty">1) เพิ่ม MV/LV/TR → 2) ปักหมุด 0 + หัวเสา → 3) ปักหมุดถัดไป</div>`;
       return;
     }
 
     if (state.phase === "surveying") {
-      els.poleList.innerHTML = state.poles.map(pole => `
+      const active = getActiveLineSegment();
+      const poles = active?.poles?.length ? active.poles : state.poles;
+      if (!poles.length) {
+        els.poleList.innerHTML = `<div class="survey-empty">เลือกส่วน MV/LV แล้วปักหมุดบนแผนที่</div>`;
+        return;
+      }
+      const header = active
+        ? `<div class="survey-segment-spec-head"><span class="survey-segment-dot" style="background:${active.color}"></span>${escapeHtml(active.label)}</div>`
+        : "";
+      els.poleList.innerHTML = header + poles.map(pole => `
         <div class="survey-pole-card ${pole.source === "start" ? "is-start" : ""}">
           <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}</div>
           <div class="survey-pole-meta">${pole.headMaterialId ? `หัวเสา: ${escapeHtml(getSetLabel(pole.headMaterialId))}` : "รอกรอกรายละเอียดหลังสำรวจเสร็จ"}</div>
@@ -1820,84 +2614,25 @@
     }
 
     const poleCatalog = surveyConfig.poleCatalog || [];
-    const config = getPresetConfig();
+    let html = "";
 
-    els.poleList.innerHTML = state.poles.map(pole => {
-      const isStart = pole.source === "start";
-      const specialKind = getSpecialPoleKind(pole);
-      const specialRule = getSpecialPoleRule(specialKind);
-      const sectionKey = isCurvePole(pole) ? "curve" : "straight";
-      const catalogs = getSectionCatalogs(sectionKey);
-      const headSets = isStart
-        ? presetsApi.getSetOptions(config?.startHeadSetIds || [])
-        : specialRule
-          ? presetsApi.getSetOptions(specialRule.headSetIds || [])
-          : catalogs.headSets;
-      const ohgwSets = specialRule && config?.hasOhgw
-        ? presetsApi.getSetOptions(specialRule.ohgwSetIds || [])
-        : catalogs.ohgwSets;
-      const guySets = specialRule ? presetsApi.getSetOptions(specialRule.guySetIds || []) : [];
-      const headLabel = pole.headMaterialId ? getSetLabel(pole.headMaterialId) : "";
-      const autoNotes = [];
+    lineSegs.forEach(seg => {
+      if (!seg.poles?.length) return;
+      html += `<div class="survey-segment-spec-head"><span class="survey-segment-dot" style="background:${seg.color}"></span>${escapeHtml(seg.label)}</div>`;
+      html += seg.poles.map(pole => buildPoleSpecCardHtml(pole, seg, poleCatalog)).join("");
+    });
 
-      if (specialRule?.concrete?.materialId) {
-        autoNotes.push(`คอนกรีต ${specialRule.concrete.materialId} × ${specialRule.concrete.qty}`);
-      }
-      if (specialKind === "end" && specialRule?.groundingSetId) {
-        autoNotes.push(`Grounding SET ${specialRule.groundingSetId}`);
-      }
-      if (specialKind === "end" && specialRule?.surgeSetId) {
-        autoNotes.push(`Surge SET ${specialRule.surgeSetId}`);
-      }
-      if (specialKind === "end" && specialRule?.surgeArresterId) {
-        autoNotes.push(`Surge ${specialRule.surgeArresterId} × ${specialRule.surgeArresterQty}`);
-      }
-
-      return `
-        <div class="survey-pole-card ${isStart ? "is-start" : ""} ${specialKind ? "is-special" : ""}" data-pole-id="${pole.id}">
-          <div class="survey-pole-title">${pole.label} — ${roleText(pole.source)}${specialKind ? ` <span class="survey-tag">${specialKind === "end" ? "เสาต้นสุดท้าย" : "เสาโค้ง"}</span>` : ""}</div>
-          ${isStart ? `<div class="survey-pole-meta">หัวเสาเริ่มต้น: ${escapeHtml(headLabel)} (กำหนดตอนปักหมุด 0)</div>` : `
-          <div class="survey-field">
-            <label>เสา (รหัสพัสดุ)</label>
-            <select data-field="poleMaterialId" data-pole-id="${pole.id}">
-              <option value="">-- เลือกเสา --</option>
-              ${renderCatalogOptions(poleCatalog, pole.poleMaterialId)}
-            </select>
-          </div>`}
-          <div class="survey-field">
-            <label>หัวเสา (ชุด Set)</label>
-            <select data-field="headMaterialId" data-pole-id="${pole.id}">
-              <option value="">-- เลือกหัวเสา (ชุด Set) --</option>
-              ${renderSetOptions(headSets, pole.headMaterialId)}
-            </select>
-          </div>
-          ${specialRule ? `
-          <div class="survey-field">
-            <label>Guy (ชุด Set)</label>
-            <select data-field="guySetId" data-pole-id="${pole.id}">
-              <option value="">-- เลือก Guy --</option>
-              ${renderSetOptions(guySets, pole.guySetId)}
-            </select>
-          </div>` : ""}
-          <div class="survey-field">
-            <label>สายไฟ (รหัสพัสดุ)</label>
-            <select data-field="cableMaterialId" data-pole-id="${pole.id}">
-              <option value="">-- เลือกสายไฟ --</option>
-              ${renderCableOptions(catalogs.cables, pole.cableMaterialId)}
-            </select>
-          </div>
-          ${config?.hasOhgw ? `
-          <div class="survey-field">
-            <label>OHGW (ชุด Set)</label>
-            <select data-field="ohgwSetId" data-pole-id="${pole.id}">
-              <option value="">-- ไม่ติดตั้ง --</option>
-              ${renderSetOptions(ohgwSets, pole.ohgwSetId)}
-            </select>
-          </div>` : ""}
-          ${autoNotes.length ? `<div class="survey-pole-meta survey-auto-spec">${autoNotes.map(n => escapeHtml(n)).join(" · ")}</div>` : ""}
+    state.trInstalls.forEach(tr => {
+      const txName = presetsApi.getTransformers?.(tr.phase)?.find(t => t.id === tr.transformerId)?.name || tr.transformerId;
+      html += `
+        <div class="survey-tr-card">
+          <div class="survey-pole-title"><span class="survey-segment-dot is-tr"></span> ${escapeHtml(tr.label)}</div>
+          <div class="survey-pole-meta">SET ${tr.trSetId} · ${escapeHtml(txName)}${tr.isExistingPole ? " · เสาเดิม (ไม่นับเสา)" : ""}</div>
         </div>
       `;
-    }).join("");
+    });
+
+    els.poleList.innerHTML = html;
   }
 
   function roleText(source) {
@@ -1919,10 +2654,10 @@
     const field = target.dataset.field;
     if (!poleId || !field) return;
 
-    const pole = state.poles.find(item => item.id === poleId);
-    if (pole) {
-      pole[field] = target.value;
-      markPoleSpecFilled(pole);
+    const found = findPoleInProject(poleId);
+    if (found) {
+      found.pole[field] = target.value;
+      markPoleSpecFilled(found.pole);
       updateUiState();
     }
   }
@@ -1930,15 +2665,22 @@
   function updateSummary() {
     if (!els.summary) return;
 
-    const totalDist = state.poles.reduce((sum, pole, index) => {
-      if (index === 0) return sum;
-      return sum + distanceMeters(state.poles[index - 1], pole);
-    }, 0);
+    syncActiveSegmentToStore();
+    let totalDist = 0;
+    let poleCount = 0;
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      const poles = seg.poles || [];
+      poleCount += poles.length;
+      for (let i = 1; i < poles.length; i++) {
+        totalDist += distanceMeters(poles[i - 1], poles[i]);
+      }
+    });
+    const segCount = state.segments.filter(s => s.kind === "line").length;
 
     els.summary.innerHTML = `
       <span>ระยะรวม</span>
       <strong>${Math.round(totalDist)} ม.</strong>
-      <span style="margin-top:6px;">หมุด ${state.poles.length} | Span ${state.selectedSpan || "-"} ม.</span>
+      <span style="margin-top:6px;">${segCount} ส่วน · ${poleCount} หมุด · TR ${state.trInstalls.length}</span>
     `;
   }
 
@@ -2011,42 +2753,45 @@
   }
 
   function buildBomLines() {
-    const counts = {};
-    const wireMult = getWireMultiplier();
+    syncActiveSegmentToStore();
 
-    state.poles.forEach((pole, index) => {
-      if (pole.source !== "start" && pole.poleMaterialId) {
-        addMaterialToCounts(counts, pole.poleMaterialId, 1);
-      }
-      if (pole.headMaterialId) {
-        addSetToCounts(counts, pole.headMaterialId, 1);
-      }
-      if (index > 0 && pole.cableMaterialId) {
-        const span = distanceMeters(state.poles[index - 1], pole);
-        const key = `cable:${pole.cableMaterialId}`;
-        counts[key] = (counts[key] || 0) + (span * wireMult);
-      }
-      if (pole.ohgwSetId) {
-        addSetToCounts(counts, pole.ohgwSetId, 1);
-      }
-      if (pole.guySetId) {
-        addSetToCounts(counts, pole.guySetId, 1);
-      }
-      if (pole.concreteMaterialId && pole.concreteQty) {
-        addMaterialToCounts(counts, pole.concreteMaterialId, pole.concreteQty);
-      }
-      if (pole.groundingSetId) {
-        addSetToCounts(counts, pole.groundingSetId, 1);
-      }
-      if (pole.surgeSetId) {
-        addSetToCounts(counts, pole.surgeSetId, 1);
-      }
-      if (pole.surgeArresterId && pole.surgeArresterQty) {
-        addMaterialToCounts(counts, pole.surgeArresterId, pole.surgeArresterQty);
-      }
-    });
-
-    addLvIntervalSurges(counts);
+    let counts = {};
+    if (projectApi) {
+      counts = projectApi.buildProjectBom(
+        { segments: state.segments, trInstalls: state.trInstalls },
+        {
+          presetsApi,
+          distanceMeters,
+          getSpecialPoleKind,
+          getSpecialPoleRule,
+          getSpecialPoleRulesRoot
+        }
+      );
+    } else {
+      const wireMult = getWireMultiplier();
+      state.poles.forEach((pole, index) => {
+        if (pole.source !== "start" && pole.poleMaterialId) {
+          addMaterialToCounts(counts, pole.poleMaterialId, 1);
+        }
+        if (pole.headMaterialId) addSetToCounts(counts, pole.headMaterialId, 1);
+        if (index > 0 && pole.cableMaterialId) {
+          const span = distanceMeters(state.poles[index - 1], pole);
+          const key = `cable:${pole.cableMaterialId}`;
+          counts[key] = (counts[key] || 0) + (span * wireMult);
+        }
+        if (pole.ohgwSetId) addSetToCounts(counts, pole.ohgwSetId, 1);
+        if (pole.guySetId) addSetToCounts(counts, pole.guySetId, 1);
+        if (pole.concreteMaterialId && pole.concreteQty) {
+          addMaterialToCounts(counts, pole.concreteMaterialId, pole.concreteQty);
+        }
+        if (pole.groundingSetId) addSetToCounts(counts, pole.groundingSetId, 1);
+        if (pole.surgeSetId) addSetToCounts(counts, pole.surgeSetId, 1);
+        if (pole.surgeArresterId && pole.surgeArresterQty) {
+          addMaterialToCounts(counts, pole.surgeArresterId, pole.surgeArresterQty);
+        }
+      });
+      addLvIntervalSurges(counts);
+    }
 
     const lines = [];
     Object.entries(counts).forEach(([key, qty]) => {
@@ -2069,15 +2814,55 @@
     return store.find(item => String(item.id).trim() === idKey) || null;
   }
 
+  function updateSurveyWorkflowUi() {
+    if (!els.saveProjectBtn) return;
+    const showSave = state.phase === "spec" && state.surveyEstimateImported && !state.surveyProjectSaved;
+    els.saveProjectBtn.classList.toggle("hidden", !showSave);
+    if (els.generateBtn && state.surveyEstimateImported) {
+      els.generateBtn.disabled = true;
+    }
+  }
+
+  function shouldWarnLeavingSurvey() {
+    if (state.phase !== "spec" || state.surveyProjectSaved) return false;
+    syncActiveSegmentToStore();
+    return projectCanComplete();
+  }
+
+  async function confirmLeaveTab() {
+    if (!shouldWarnLeavingSurvey()) return true;
+
+    const text = state.surveyEstimateImported
+      ? "ยังไม่ได้บันทึกโครงการ — รายการที่นำเข้างบจะไม่ถูกเก็บในประวัติ"
+      : "สำรวจเสร็จแล้วแต่ยังไม่ได้สร้างรายการประมาณการหรือบันทึกโครงการ";
+
+    const { isConfirmed } = await Swal.fire({
+      title: "ออกจากหน้าสำรวจ?",
+      text,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ออก (ไม่บันทึก)",
+      cancelButtonText: "อยู่ต่อ"
+    });
+
+    if (!isConfirmed) return false;
+    resetSurvey();
+    return true;
+  }
+
+  function markProjectSaved() {
+    state.surveyProjectSaved = true;
+    updateSurveyWorkflowUi();
+  }
+
   async function generateEstimate() {
     if (!allSpecsFilled()) {
       Swal.fire("กรอกไม่ครบ", "กรุณาเลือกรหัสพัสดุให้ครบทุกหมุด", "warning");
       return;
     }
 
-    const budgets = window.AppCore ? window.AppCore.getBudgets() : [];
-    if (!budgets.length) {
-      Swal.fire("ยังไม่มีงบ", "ไปที่แท็บสร้างงานใหม่เพื่อเพิ่มงบก่อน", "info");
+    if (!window.AppCore?.pickOrCreateBudgetIndex) {
+      Swal.fire("ระบบไม่พร้อม", "ไม่พบตัวจัดการงบ", "error");
       return;
     }
 
@@ -2105,34 +2890,43 @@
       return;
     }
 
-    const budgetOptions = {};
-    budgets.forEach((budget, index) => { budgetOptions[index] = `งบ ${budget.type}`; });
-
-    const { value: budgetIndex } = await Swal.fire({
-      title: "เลือกงบที่จะนำเข้า",
-      input: "select",
-      inputOptions: budgetOptions,
-      showCancelButton: true
-    });
-    if (budgetIndex === undefined) return;
+    const budgetIndex = await window.AppCore.pickOrCreateBudgetIndex();
+    if (budgetIndex === null) return;
 
     for (const line of ready) {
-      await window.AppCore.addItemWithLabor(Number(budgetIndex), line.item, line.qty);
+      await window.AppCore.addItemWithLabor(budgetIndex, line.item, line.qty);
     }
 
-    Swal.fire("นำเข้าสำเร็จ", "รายการจากการสำรวจถูกเพิ่มเข้างบแล้ว", "success");
-    window.AppCore.switchToCreateTab();
+    state.surveyEstimateImported = true;
+    updateSurveyWorkflowUi();
+
+    Swal.fire({
+      title: "นำเข้าสำเร็จ",
+      text: "รายการถูกเพิ่มเข้างบแล้ว — กด「บันทึกโครงการ」ด้านล่างเพื่อเก็บลงประวัติ",
+      icon: "success",
+      timer: 3200,
+      showConfirmButton: true,
+      confirmButtonText: "เข้าใจแล้ว"
+    });
   }
 
   function resetSurvey() {
     state.controlPoints = [];
     state.poles = [];
+    state.segments = [];
+    state.trInstalls = [];
+    state.activeSegmentId = null;
     state.selectedSpan = null;
     state.placeMode = null;
     state.pendingCurveSpan = null;
     state.phase = "surveying";
     state.sessionActive = false;
     state.surveyMeta = null;
+    state.surveyEstimateImported = false;
+    state.surveyProjectSaved = false;
+    state.voltageType = null;
+    state.phaseType = null;
+    state.presetConfig = null;
     state.attachFiles = [];
     state.routedPaths = [];
     state.routedLegs = [];
@@ -2155,6 +2949,8 @@
 
     setMapActiveMode(false);
     collapseMobileToolbar();
+    hideAimOverlay();
+    hideDefaultsPanel();
 
     resetDefaultMaterialSelects();
     resetSystemSelection();
@@ -2162,6 +2958,8 @@
       window.AppCore.clearSurveyFiles();
     }
     renderAttachList();
+    renderSegmentList();
+    updateActiveSegmentLabel();
     renderAll();
   }
 
@@ -2201,5 +2999,11 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  window.SurveyModule = { onTabOpen, resetSurvey, getSurveyMeta };
+  window.SurveyModule = {
+    onTabOpen,
+    resetSurvey,
+    getSurveyMeta,
+    confirmLeaveTab,
+    markProjectSaved
+  };
 })();

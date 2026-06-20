@@ -1,4 +1,4 @@
-/* Auto-generated survey presets — Prompt 2026-06-19 + GUY/SURGE/GROUND */
+/* Auto-generated survey presets — MV/LV + GUY/SURGE/GROUND + TR */
 window.SURVEY_PRESETS = {
   "sets": {
     "10001": {
@@ -3540,6 +3540,1686 @@ window.SURVEY_PRESETS = {
           "qty": 1
         }
       ]
+    },
+    "40201": {
+      "id": "40201",
+      "name": "TR.INST., 1-P, 22 KV. ON SINGLE POLE, X-ARM.(ASSEMBLY NO.2701B)",
+      "items": [
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 20
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 9
+        },
+        {
+          "id": "1020200002",
+          "name": "TIE WIRE,AL 4 mm.",
+          "unit": "กก.",
+          "qty": 1
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1030030000",
+          "name": "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1050100003",
+          "name": "BRACKET,STEEL,FOR TRANSFORMER SECONDARY LEAD",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ],
+      "installType": "single_pole",
+      "phase": "1p",
+      "arm": "x"
+    },
+    "40202": {
+      "id": "40202",
+      "name": "TR.INST., 1-P, 22 KV. ON SINGLE POLE, A-ARM.(ASSEMBLY NO.2701B)",
+      "items": [
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 20
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 10
+        },
+        {
+          "id": "1020200002",
+          "name": "TIE WIRE,AL 4 mm.",
+          "unit": "กก.",
+          "qty": 1
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1030030000",
+          "name": "INSULATOR,SPOOL,TYPE B (CLASS 53-2)TIS.227",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1050100003",
+          "name": "BRACKET,STEEL,FOR TRANSFORMER SECONDARY LEAD",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ],
+      "installType": "single_pole",
+      "phase": "1p",
+      "arm": "a"
+    },
+    "40205": {
+      "id": "40205",
+      "name": "TR. INST., 3-P 22 KV. ON SINGLE POLE X-ARM,50-250 KVA.(ASSEMBLY NO.2719A)",
+      "items": [
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 24
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 15
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 12
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ],
+      "installType": "single_pole",
+      "phase": "3p",
+      "arm": "x",
+      "kvaRange": "50-250"
+    },
+    "40206": {
+      "id": "40206",
+      "name": "TR. INST., 3-P 22 KV. ON SINGLE POLE A-ARM 50-250 KVA.(ASSEMBLY NO.2719A)",
+      "items": [
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 24
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 15
+        },
+        {
+          "id": "1020180001",
+          "name": "TAPE,ELECTRICAL,PVC.PLASTIC,OUTDOOR TYPE,ROLL SIZE 0.18X19X10,000 MM. TIS.386",
+          "unit": "ม้วน",
+          "qty": 12
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 3
+        }
+      ],
+      "installType": "single_pole",
+      "phase": "3p",
+      "arm": "a",
+      "kvaRange": "50-250"
+    },
+    "40212": {
+      "id": "40212",
+      "name": "TR.INST., 3-P, 22 KV. ON PLATFORM, X-ARM., ARIAL CABLE(ASSEMBLY NO.2725A)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210000",
+          "name": "BEAM,SPUN PRESTRESSED CONCRETE 100X100X3,200 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1000210003",
+          "name": "REAM, PRESTRESSED CONCRETE, 150 X 250 X 3,500 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 1.3
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 50
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 5
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 12
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 22
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 10
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020440102",
+          "name": "CLAMP,GUY,TRIPLE BOLT",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090010026",
+          "name": "CONCRETE 1/3 (50 KG./SET)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "arm": "x",
+      "cableType": "aerial",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
+    },
+    "40213": {
+      "id": "40213",
+      "name": "TR.INST., 3-P, 22 KV. ON PLATFORM, X-ARM., UNDER GRD.CABLE(ASSEMBLY NO.2727)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210000",
+          "name": "BEAM,SPUN PRESTRESSED CONCRETE 100X100X3,200 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1000210003",
+          "name": "REAM, PRESTRESSED CONCRETE, 150 X 250 X 3,500 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 0.85
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 50
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 12
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 13
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 10
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 30
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1020310001",
+          "name": "CONNECTOR,DEAD END,AL 50-70 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090010026",
+          "name": "CONCRETE 1/3 (50 KG./SET)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "arm": "x",
+      "cableType": "ug",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
+    },
+    "40222": {
+      "id": "40222",
+      "name": "TR.INST., 3-P, 22 KV. ON PLATFORM, A-ARM., ARIAL CABLE(ASSEMBLY NO.2725A)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210000",
+          "name": "BEAM,SPUN PRESTRESSED CONCRETE 100X100X3,200 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1000210003",
+          "name": "REAM, PRESTRESSED CONCRETE, 150 X 250 X 3,500 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 1.3
+        },
+        {
+          "id": "1010100006",
+          "name": "WIRE,STEEL STRANDED 95 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 50
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110201",
+          "name": "BOLT,MACHINE M.16x170 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 5
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 12
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 21
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 10
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330005",
+          "name": "HOTLINE BAIL-CLAMP,MAIN 35-70 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330104",
+          "name": "HOTLINE CLAMP,MAIN35-185,TAP50-185SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020440102",
+          "name": "CLAMP,GUY,TRIPLE BOLT",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090010026",
+          "name": "CONCRETE 1/3 (50 KG./SET)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "arm": "a",
+      "cableType": "aerial",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
+    },
+    "40223": {
+      "id": "40223",
+      "name": "TR.INST., 3-P, 22 KV. ON PLATRORM, A-ARM., UNDER GRD.CABLE(ASSEMBLY NO.2727)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210000",
+          "name": "BEAM,SPUN PRESTRESSED CONCRETE 100X100X3,200 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1000210003",
+          "name": "REAM, PRESTRESSED CONCRETE, 150 X 250 X 3,500 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 1.2
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 50
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110203",
+          "name": "BOLT,MACHINE M.16x250 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 5
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 12
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 15
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010200004",
+          "name": "BRACE,ALLEY ARM 40x40x5 mm. 2,120 mm.LONG",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 10
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 30
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1020310001",
+          "name": "CONNECTOR,DEAD END,AL 50-70 sq.mm.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090010026",
+          "name": "CONCRETE 1/3 (50 KG./SET)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "arm": "a",
+      "cableType": "ug",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
+    },
+    "40241": {
+      "id": "40241",
+      "name": "TR.INST., 3-P, 22 KV. ON PLATFORM, AT DEAD END(ASSEMBLY NO.2725A)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210000",
+          "name": "BEAM,SPUN PRESTRESSED CONCRETE 100X100X3,200 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1000210003",
+          "name": "REAM, PRESTRESSED CONCRETE, 150 X 250 X 3,500 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 0.85
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 50
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 4
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 12
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 13
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 5
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 10
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040001",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x2500 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 8
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090010026",
+          "name": "CONCRETE 1/3 (50 KG./SET)",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "layout": "dead_end",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
+    },
+    "40242": {
+      "id": "40242",
+      "name": "TR.INST., 3-P, 22 kV. ON PLATFORM, NOT EXCEED 1500 kVA (<4500 kg)",
+      "items": [
+        {
+          "id": "1000010004",
+          "name": "POLE,CONCRETE, 12 M.LONG",
+          "unit": "ต้น",
+          "qty": 1
+        },
+        {
+          "id": "1000110001",
+          "name": "CROSSARM,PRESTRESSED CONCRETE,SPUN,H.T. 100X100X2,500 MM.",
+          "unit": "ชิ้น",
+          "qty": 1
+        },
+        {
+          "id": "1000210004",
+          "name": "REAM,PRESTRESSED CONCRETE,150X300X4,600 MM.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010000103",
+          "name": "STEEL CHANNEL,100X50X5 MM.4,200 MM.LONG",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010060013",
+          "name": "STEEL SUPPORT,FOR CONCRETE PLATFORM,ACCORDING TO DWG.SA2-015/42006",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010100000",
+          "name": "WIRE,STEEL SOLID DIA. 4.0 mm.TIS.71",
+          "unit": "กก.",
+          "qty": 0.4
+        },
+        {
+          "id": "1010100004",
+          "name": "WIRE,STEEL STRANDED 50/7 sq.mm.TIS.404",
+          "unit": "ม.",
+          "qty": 30
+        },
+        {
+          "id": "1010110200",
+          "name": "BOLT,MACHINE M.16x130 mm.",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010110202",
+          "name": "BOLT,MACHINE M.16x200 mm.",
+          "unit": "ชุด",
+          "qty": 1
+        },
+        {
+          "id": "1010110204",
+          "name": "BOLT,MACHINE M.16x300 mm.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1010110205",
+          "name": "BOLT,MACHINE M.16x350 mm.",
+          "unit": "ชุด",
+          "qty": 6
+        },
+        {
+          "id": "1010110401",
+          "name": "BOLT,MACHINE,HEXAGON,M.16x550 mm.",
+          "unit": "ชุด",
+          "qty": 8
+        },
+        {
+          "id": "1010180100",
+          "name": "WASHER,PLAIN,SQUARE,LARGE 52x52x4.5 mm.HOLE DIA. 18 MM. TIS.258",
+          "unit": "ชิ้น",
+          "qty": 13
+        },
+        {
+          "id": "1010180201",
+          "name": "WASHER,SQUARE,CURVED 60x60x5 mm.HOLE DIA. 22 mm.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1010180301",
+          "name": "WASHER,LOCK,SPRING,SIZE 16 mm.,GENERAL PURPOSE,TIS.259",
+          "unit": "ชิ้น",
+          "qty": 4
+        },
+        {
+          "id": "1010200001",
+          "name": "BRACE,FLAT,FOR CROSSARM 30x6x760 mm.",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1010200006",
+          "name": "BRACE,ANGLE STEEL 50X50X6 MM. 1,500 MM.WIDE 440 MM. DROP",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010220002",
+          "name": "ROD,GROUND,60x60x5 mm. 2 m.LONG",
+          "unit": "ชุด",
+          "qty": 2
+        },
+        {
+          "id": "1010230000",
+          "name": "CLAMP,SINGLE U-BOLT,M.8 (WIRE ROPE CLIP)",
+          "unit": "ชุด",
+          "qty": 11
+        },
+        {
+          "id": "1020050000",
+          "name": "CABLE,AERIAL,AL 22 kV. 1x50 sq.mm.",
+          "unit": "ม.",
+          "qty": 18
+        },
+        {
+          "id": "1020300102",
+          "name": "CONNECTOR,PARALLEL GROOVE,DOUBLE BOLT,AL,AL-ALLOY AND ACSR 25-95 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1020330001",
+          "name": "CLAMP,STIRRUP OR BAIL,HOT LINE,MAIN LINE,AL 70-185 SQ.MM. STIRRUP OR BAIL AL-ALLOY/CU. DIA 9.25 MM.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1020330102",
+          "name": "HOTLINE CLAMP,PIERCING TYPE FOR MAIN LINE PIC.22-33 KV. 50-185 SQ.MM. TAP LINE AL-CONDUCTOR 25-50 SQ.MM.",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1020420400",
+          "name": "PIN TERMINAL,FOR AL 50 SQ.MM.",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1030010101",
+          "name": "INSULATOR,PIN POST TYPE 22 KV. POWER ARC TEST",
+          "unit": "ชิ้น",
+          "qty": 6
+        },
+        {
+          "id": "1040000007",
+          "name": "S.A., 21 KV.5 KA.,WITHOUT BRACKET",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "1040010002",
+          "name": "CUT-OUT,FUSE,OPEN TYPE,SINGLE INSULATOR DROPUOT 22 KV. 100 A. 12 KA. ASYM",
+          "unit": "ชุด",
+          "qty": 3
+        },
+        {
+          "id": "1080040002",
+          "name": "CONDUIT,PVC,RIGID,DIA. 20x4000 mm.TIS.216",
+          "unit": "ชิ้น",
+          "qty": 2
+        },
+        {
+          "id": "1090250040",
+          "name": "DROPOUT FUSE CUTOUT COVERS",
+          "unit": "ชิ้น",
+          "qty": 3
+        },
+        {
+          "id": "9090011007",
+          "name": "WELDING POWDER, ST. WIRE 50 SQ.MM. TO GD",
+          "unit": "ชิ้น",
+          "qty": 6
+        }
+      ],
+      "installType": "platform",
+      "phase": "3p",
+      "kvaRange": "up-to-1500",
+      "skipOnExistingHost": [
+        "1000010004"
+      ]
     }
   },
   "configs": {
@@ -4548,6 +6228,147 @@ window.SURVEY_PRESETS = {
       "surgeIntervalM": 400,
       "intervalSurgeSetId": "14003"
     }
+  },
+  "transformers": [
+    {
+      "id": "1050000011",
+      "name": "TR., 30KVA,1P,22-0.48/0.24KV, SC",
+      "phase": "1p",
+      "kva": 30
+    },
+    {
+      "id": "1050010066",
+      "name": "TR.,50KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 50
+    },
+    {
+      "id": "1050010067",
+      "name": "TR.,100KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 100
+    },
+    {
+      "id": "1050010068",
+      "name": "TR.,160KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 160
+    },
+    {
+      "id": "1050010069",
+      "name": "TR.,250KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 250
+    },
+    {
+      "id": "1050010070",
+      "name": "TR.,315KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 315
+    },
+    {
+      "id": "1050010071",
+      "name": "TR.,400KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 400
+    },
+    {
+      "id": "1050010072",
+      "name": "TR.,500KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 500
+    },
+    {
+      "id": "1050010073",
+      "name": "TR.,630KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 630
+    },
+    {
+      "id": "1050010074",
+      "name": "TR.,800KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 800
+    },
+    {
+      "id": "1050010075",
+      "name": "TR.,1000KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 1000
+    },
+    {
+      "id": "1050010076",
+      "name": "TR.,1250KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 1250
+    },
+    {
+      "id": "1050010077",
+      "name": "TR.,1500KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 1500
+    },
+    {
+      "id": "1050010078",
+      "name": "TR.,2000KVA,3P,22-0.416/0.24KV,DYN11, SC",
+      "phase": "3p",
+      "kva": 2000
+    }
+  ],
+  "trInstallCatalog": {
+    "singlePole": {
+      "1p": {
+        "setIds": [
+          "40201",
+          "40202"
+        ],
+        "defaultSetId": "40201",
+        "transformerIds": [
+          "1050000011"
+        ]
+      },
+      "3p": {
+        "setIds": [
+          "40205",
+          "40206"
+        ],
+        "defaultSetId": "40205",
+        "transformerIds": [
+          "1050010066",
+          "1050010067",
+          "1050010068",
+          "1050010069"
+        ]
+      }
+    },
+    "platform": {
+      "3p": {
+        "setIds": [
+          "40212",
+          "40213",
+          "40222",
+          "40223",
+          "40241",
+          "40242"
+        ],
+        "defaultSetId": "40212",
+        "transformerIds": [
+          "1050010066",
+          "1050010067",
+          "1050010068",
+          "1050010069",
+          "1050010070",
+          "1050010071",
+          "1050010072",
+          "1050010073",
+          "1050010074",
+          "1050010075",
+          "1050010076",
+          "1050010077",
+          "1050010078"
+        ]
+      }
+    }
   }
 };
 
@@ -4584,5 +6405,24 @@ window.SurveyPresetsApi = {
   getSpecialPoleRule(configKey, kind) {
     const rules = this.getSpecialPoleRules(configKey);
     return rules?.[kind] || null;
+  },
+  getTrInstallCatalog() {
+    return window.SURVEY_PRESETS.trInstallCatalog || null;
+  },
+  getTransformers(phase) {
+    const list = window.SURVEY_PRESETS.transformers || [];
+    return phase ? list.filter(t => t.phase === phase) : list;
+  },
+  getTrSetOptions(installType, phase) {
+    const catalog = this.getTrInstallCatalog();
+    if (!catalog || !installType || !phase) return [];
+    const group = catalog[installType]?.[phase];
+    return this.getSetOptions(group?.setIds || []);
+  },
+  expandTrSetItems(setId, options = {}) {
+    const setObj = this.getSet(setId);
+    if (!setObj) return [];
+    const skip = options.isExistingHost ? (setObj.skipOnExistingHost || []) : [];
+    return setObj.items.filter(item => !skip.includes(item.id));
   }
 };

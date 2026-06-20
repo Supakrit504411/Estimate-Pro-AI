@@ -19,6 +19,9 @@
   async function init() {
     cacheElements();
     bindEvents();
+    document.querySelectorAll("[data-tab-nav]").forEach(btn => {
+      btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === 1);
+    });
     await loadMasterData();
     checkInput();
   }
@@ -50,6 +53,9 @@
     els.t1.addEventListener("click", () => switchTab(1));
     els.t2.addEventListener("click", () => switchTab(2));
     if (els.t3) els.t3.addEventListener("click", () => switchTab(3));
+    document.querySelectorAll("[data-tab-nav]").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(Number(btn.dataset.tabNav)));
+    });
     els.pjName.addEventListener("input", checkInput);
     els.scanBtn.addEventListener("click", () => els.aiFile.click());
     els.aiFile.addEventListener("change", event => handleAIUpload(event.target));
@@ -89,19 +95,88 @@
     els.aiSection.classList.toggle("hidden", !ready);
   }
 
-  function switchTab(n) {
+  async function switchTab(n) {
+    const onSurvey = els.view3 && !els.view3.classList.contains("hidden");
+    if (onSurvey && n !== 3 && window.SurveyModule?.confirmLeaveTab) {
+      const ok = await window.SurveyModule.confirmLeaveTab();
+      if (!ok) return;
+    }
+
     els.view1.classList.toggle("hidden", n !== 1);
     els.view2.classList.toggle("hidden", n !== 2);
     if (els.view3) els.view3.classList.toggle("hidden", n !== 3);
     els.t1.classList.toggle("active", n === 1);
     els.t2.classList.toggle("active", n === 2);
     if (els.t3) els.t3.classList.toggle("active", n === 3);
+    document.querySelectorAll("[data-tab-nav]").forEach(btn => {
+      btn.classList.toggle("is-active", Number(btn.dataset.tabNav) === n);
+    });
     if (n === 2) fetchHistory();
     if (n !== 3) {
       document.body.classList.remove("survey-map-active");
     }
 
     if (n === 3 && window.SurveyModule) window.SurveyModule.onTabOpen();
+  }
+
+  const BUDGET_TYPE_OPTIONS = {
+    "01.1": "งบ 01.1 (PEA 100%)",
+    "02.1": "งบ 02.1 (CUS 100%)",
+    "02.2": "งบ 02.2 (CUS 100%)",
+    "03.1": "งบ 03.1 (PEA 50% + CUS 50%)"
+  };
+
+  async function ensureProjectNameForBudget() {
+    if (els.pjName.value.trim()) return true;
+    const { value, isDismissed } = await Swal.fire({
+      title: "ชื่อโครงการ",
+      text: "กรอกชื่อโครงการก่อนเพิ่มงบ",
+      input: "text",
+      inputPlaceholder: "ระบุชื่อโครงการ / สถานที่",
+      showCancelButton: true,
+      inputValidator: val => {
+        if (!val || !val.trim()) return "กรุณากรอกชื่อโครงการ";
+        return undefined;
+      }
+    });
+    if (isDismissed || !value) return false;
+    els.pjName.value = value.trim();
+    checkInput();
+    return true;
+  }
+
+  async function pickOrCreateBudgetIndex() {
+    if (state.budgets.length === 1) return 0;
+
+    if (state.budgets.length > 1) {
+      const budgetOptions = {};
+      state.budgets.forEach((budget, index) => { budgetOptions[index] = `งบ ${budget.type}`; });
+      const { value: budgetIndex } = await Swal.fire({
+        title: "เลือกงบที่จะนำเข้า",
+        input: "select",
+        inputOptions: budgetOptions,
+        showCancelButton: true
+      });
+      if (budgetIndex === undefined) return null;
+      return Number(budgetIndex);
+    }
+
+    const ready = await ensureProjectNameForBudget();
+    if (!ready) return null;
+
+    const { value: budgetType } = await Swal.fire({
+      title: "สร้างงบใหม่",
+      text: "ยังไม่มีงบในโครงการ — เลือกประเภทงบเพื่อเริ่มนำเข้ารายการ",
+      input: "select",
+      inputOptions: BUDGET_TYPE_OPTIONS,
+      inputValue: "01.1",
+      showCancelButton: true,
+      confirmButtonText: "สร้างงบ"
+    });
+    if (!budgetType) return null;
+
+    addBudget(budgetType);
+    return state.budgets.length - 1;
   }
 
   function addBudget(type) {
@@ -786,20 +861,30 @@
     els.saveZone.classList.toggle("hidden", state.budgets.length === 0);
   }
 
-  function confirmSave() {
-    Swal.fire({
+  function confirmSave(options = {}) {
+    return Swal.fire({
       title: "บันทึกโครงการ?",
       text: "ระบบจะบันทึกรายการงบ วัสดุ และไฟล์สแกนทั้งหมดของโครงการนี้",
       icon: "question",
       showCancelButton: true
     }).then(result => {
       if (result.isConfirmed) {
-        saveProject();
+        return saveProject(options);
       }
+      return false;
     });
   }
 
-  async function saveProject() {
+  async function saveProject(options = {}) {
+    if (!els.pjName.value.trim()) {
+      const ready = await ensureProjectNameForBudget();
+      if (!ready) return false;
+    }
+    if (!state.budgets.length) {
+      Swal.fire("ยังไม่มีรายการงบ", "สร้างรายการประมาณการก่อนบันทึกโครงการ", "info");
+      return false;
+    }
+
     Swal.fire({
       title: "กำลังบันทึก...",
       allowOutsideClick: false,
@@ -820,11 +905,34 @@
 
     try {
       await window.ApiService.saveProject(payload);
-      await Swal.fire("สำเร็จ", "", "success");
+      await Swal.fire("สำเร็จ", "บันทึกโครงการเรียบร้อย", "success");
+
+      if (options.fromSurvey) {
+        window.SurveyModule?.markProjectSaved?.();
+        state.currentJobId = null;
+        state.currentFileUrl = "";
+        state.tempFileList = [];
+        state.budgets = [];
+        els.pjName.value = "";
+        els.formTitle.innerText = "Project Control";
+        state.historyCache = null;
+        render();
+        checkInput();
+        window.SurveyModule?.resetSurvey?.();
+        if (options.stayOnSurvey) {
+          switchTab(3);
+        } else {
+          switchTab(2);
+        }
+        return true;
+      }
+
       resetForm();
+      return true;
     } catch (error) {
       console.error(error);
       Swal.fire("บันทึกไม่สำเร็จ", error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "error");
+      return false;
     }
   }
 
@@ -835,6 +943,10 @@
     state.budgets = [];
     els.pjName.value = "";
     els.formTitle.innerText = "Project Control";
+    if (window.SurveyModule && window.SurveyModule.resetSurvey) {
+      window.SurveyModule.resetSurvey();
+    }
+    state.historyCache = null;
     render();
     checkInput();
     switchTab(2);
@@ -942,7 +1054,8 @@
       Swal.fire({
         title: name,
         html,
-        width: "95%",
+        width: window.innerWidth < 720 ? "94%" : "min(920px, 95%)",
+        customClass: { popup: "pea-swal-popup swal-detail", htmlContainer: "pea-swal-body swal-detail-body" },
         confirmButtonText: "ปิด"
       });
     } catch (error) {
@@ -1071,21 +1184,86 @@
     `;
   }
 
+  function buildSurveyMetaDetailHtml(meta) {
+    if (!meta || meta.startLat == null) return "";
+
+    if (meta.version === 2) {
+      const segRows = (meta.segments || [])
+        .filter(seg => (seg.poleCount ?? 0) > 0)
+        .map(seg => `
+        <tr>
+          <td><span class="survey-meta-dot" style="background:${escapeHtml(seg.color || "#71e8ff")}"></span> ${escapeHtml(seg.label)}</td>
+          <td>${escapeHtml(String(seg.type || "").toUpperCase())} ${escapeHtml(String(seg.phase || "").toUpperCase())}</td>
+          <td style="text-align:center;">${seg.poleCount ?? 0}</td>
+          <td style="text-align:right;">${seg.distanceM ?? 0} ม.</td>
+        </tr>
+      `).join("");
+
+      const trRows = (meta.trInstalls || []).map(tr => `
+        <tr>
+          <td>${escapeHtml(tr.label || "TR")}</td>
+          <td>${escapeHtml(tr.trSetId || "-")}</td>
+          <td>${escapeHtml(tr.transformerId || "-")}</td>
+          <td>${tr.isExistingPole ? "เสาเดิม" : "สำรวจ"}</td>
+        </tr>
+      `).join("");
+
+      const junctionRows = (meta.junctions || []).map(j => `
+        <tr>
+          <td>${j.type === "tr" ? "TR" : "LV←TR"}</td>
+          <td>${escapeHtml(j.label || "-")}</td>
+          <td>${j.lat != null ? Number(j.lat).toFixed(5) : "-"}, ${j.lng != null ? Number(j.lng).toFixed(5) : "-"}</td>
+          <td>${j.lvBranchCount != null ? `LV ${j.lvBranchCount} สาย` : escapeHtml(j.segmentLabel || "-")}</td>
+        </tr>
+      `).join("");
+
+      return `
+        <div class="survey-meta-box survey-meta-v2">
+          <strong>สำรวจหลายส่วน (MV/LV/TR)</strong>
+          <div class="survey-meta-summary">
+            ${meta.segmentCount || 0} ส่วน · ${meta.poleCount || 0} หมุด · TR ${meta.trCount || 0} · รวม ${meta.totalDistanceM || 0} ม.
+          </div>
+          ${segRows ? `
+            <div class="survey-meta-section-title">ส่วนงาน</div>
+            <table class="survey-meta-table">
+              <thead><tr><th>ชื่อ</th><th>ระบบ</th><th>หมุด</th><th>ระยะ</th></tr></thead>
+              <tbody>${segRows}</tbody>
+            </table>
+          ` : ""}
+          ${trRows ? `
+            <div class="survey-meta-section-title">TR</div>
+            <table class="survey-meta-table">
+              <thead><tr><th>จุด</th><th>SET</th><th>หม้อ</th><th>เสา</th></tr></thead>
+              <tbody>${trRows}</tbody>
+            </table>
+          ` : ""}
+          ${junctionRows ? `
+            <div class="survey-meta-section-title">Junction (จุดเชื่อม)</div>
+            <table class="survey-meta-table">
+              <thead><tr><th>ประเภท</th><th>ชื่อ</th><th>พิกัด</th><th>เชื่อม</th></tr></thead>
+              <tbody>${junctionRows}</tbody>
+            </table>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="survey-meta-box">
+        <strong>ข้อมูลเส้นทางสำรวจ</strong><br>
+        จุดเริ่ม (${escapeHtml(meta.startLabel || "หมุด 0")}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
+        จุดสิ้นสุด (${escapeHtml(meta.endLabel || "-")}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
+        หมุดทั้งหมด: ${meta.poleCount || "-"} | ระยะรวม: ${meta.totalDistanceM || "-"} ม. | Span: ${meta.spanM || "-"} ม.
+      </div>
+    `;
+  }
+
   function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews) {
     let surveyMetaHtml = "";
     if (surveyMetaStr) {
       try {
         const meta = JSON.parse(surveyMetaStr);
-        if (meta && meta.startLat != null) {
-          surveyMetaHtml = `
-            <div class="survey-meta-box">
-              <strong>ข้อมูลเส้นทางสำรวจ</strong><br>
-              จุดเริ่ม (${meta.startLabel || "หมุด 0"}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
-              จุดสิ้นสุด (${meta.endLabel || "-"}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
-              หมุดทั้งหมด: ${meta.poleCount || "-"} | ระยะรวม: ${meta.totalDistanceM || "-"} ม. | Span: ${meta.spanM || "-"} ม.
-            </div>
-          `;
-        }
+        surveyMetaHtml = buildSurveyMetaDetailHtml(meta);
       } catch (error) {
         console.warn("survey meta parse failed", error);
       }
@@ -1388,6 +1566,9 @@
     },
     getProjectFileCount: () => state.tempFileList.length,
     addItemWithLabor: (budgetIndex, item, qty) => hideAndAsk(budgetIndex, item, qty),
+    pickOrCreateBudgetIndex,
+    confirmSaveProject: options => confirmSave(options),
+    addBudgetType: type => addBudget(type),
     switchToCreateTab: () => switchTab(1),
     render
   };

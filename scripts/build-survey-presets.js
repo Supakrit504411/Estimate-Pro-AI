@@ -2,6 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const { specialSets, specialPoleRules } = require("./special-pole-data");
+const { trSets, transformers, trInstallCatalog } = require("./tr-preset-data");
 
 function set(id, name, items) {
   return {
@@ -642,10 +643,10 @@ const configs = {
   }
 };
 
-Object.assign(sets, specialSets);
+Object.assign(sets, specialSets, trSets);
 
-const output = `/* Auto-generated survey presets — Prompt 2026-06-19 + GUY/SURGE/GROUND */
-window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables, specialPoleRules }, null, 2)};
+const output = `/* Auto-generated survey presets — MV/LV + GUY/SURGE/GROUND + TR */
+window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables, specialPoleRules, transformers, trInstallCatalog }, null, 2)};
 
 window.SurveyPresetsApi = {
   getConfigKey(voltage, phase) {
@@ -680,6 +681,25 @@ window.SurveyPresetsApi = {
   getSpecialPoleRule(configKey, kind) {
     const rules = this.getSpecialPoleRules(configKey);
     return rules?.[kind] || null;
+  },
+  getTrInstallCatalog() {
+    return window.SURVEY_PRESETS.trInstallCatalog || null;
+  },
+  getTransformers(phase) {
+    const list = window.SURVEY_PRESETS.transformers || [];
+    return phase ? list.filter(t => t.phase === phase) : list;
+  },
+  getTrSetOptions(installType, phase) {
+    const catalog = this.getTrInstallCatalog();
+    if (!catalog || !installType || !phase) return [];
+    const group = catalog[installType]?.[phase];
+    return this.getSetOptions(group?.setIds || []);
+  },
+  expandTrSetItems(setId, options = {}) {
+    const setObj = this.getSet(setId);
+    if (!setObj) return [];
+    const skip = options.isExistingHost ? (setObj.skipOnExistingHost || []) : [];
+    return setObj.items.filter(item => !skip.includes(item.id));
   }
 };
 `;

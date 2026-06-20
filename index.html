@@ -10,6 +10,25 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    if (window.Swal) {
+      window.Swal = window.Swal.mixin({
+        buttonsStyling: false,
+        customClass: {
+          popup: "pea-swal-popup",
+          title: "pea-swal-title",
+          htmlContainer: "pea-swal-body",
+          confirmButton: "pea-swal-btn pea-swal-btn-confirm",
+          cancelButton: "pea-swal-btn pea-swal-btn-cancel",
+          denyButton: "pea-swal-btn pea-swal-btn-cancel",
+          actions: "pea-swal-actions",
+          input: "pea-swal-input",
+          validationMessage: "pea-swal-validation",
+          closeButton: "pea-swal-close"
+        }
+      });
+    }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -138,7 +157,21 @@
             <span class="mini-tag">Span Map</span>
           </div>
 
-          <div id="surveySystemPanel" class="survey-system-panel">
+          <div id="surveySegmentPanel" class="survey-segment-panel">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">ส่วนงานในโครงการ</span>
+              <span class="optional-tag">เพิ่มได้หลายส่วน</span>
+            </div>
+            <p class="survey-defaults-note">เพิ่ม MV / LV / TR ก่อนหรือหลังเข้าแผนที่ก็ได้ — ลำดับใดก่อนก็ได้</p>
+            <div id="surveySegmentList" class="survey-segment-list"></div>
+            <div class="survey-segment-add-row">
+              <button type="button" class="ghost-btn survey-seg-add" data-add-segment="mv">+ MV</button>
+              <button type="button" class="ghost-btn survey-seg-add" data-add-segment="lv">+ LV</button>
+              <button type="button" class="ghost-btn survey-seg-add is-tr" data-add-segment="tr">+ TR</button>
+            </div>
+          </div>
+
+          <div id="surveySystemPanel" class="survey-system-panel hidden">
             <div id="surveyVoltageStep" class="survey-system-step">
               <div class="survey-system-step-head">
                 <span class="survey-system-step-num">1</span>
@@ -243,6 +276,11 @@
         <div id="surveyMapStage" class="survey-map-stage hidden">
           <div class="survey-map-shell">
             <div id="surveyMap" class="survey-map"></div>
+            <div id="surveyMapAim" class="survey-map-aim hidden" aria-hidden="true">
+              <div class="survey-map-aim-crosshair"></div>
+            </div>
+            <div id="surveyMapAimDist" class="survey-map-aim-distance hidden"></div>
+            <button id="surveyPlaceAimBtn" class="survey-place-aim-btn hidden" type="button">ปักที่กากบาท</button>
             <button id="surveyToolbarToggle" class="survey-toolbar-toggle" type="button" aria-expanded="false">เครื่องมือ ▾</button>
 
             <aside id="surveyToolbar" class="survey-toolbar is-collapsed-mobile">
@@ -256,6 +294,12 @@
               <button id="surveyCurveWaypointBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_waypoint" disabled>จุดบนโค้ง</button>
               <button id="surveyCurveOutBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_out" disabled>ออกโค้ง</button>
               <div class="survey-toolbar-divider"></div>
+              <div id="surveyActiveSegment" class="survey-active-segment">—</div>
+              <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
+              <button id="surveyAddLvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv">+ LV</button>
+              <button id="surveyTrBtn" class="survey-tool-btn is-tr" type="button" data-survey-tool="tr_pick">ติด TR</button>
+              <button id="surveyAddLvFromTrBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv_tr">+ LV จาก TR</button>
+              <div class="survey-toolbar-divider"></div>
               <button id="surveyAttachBtnMap" class="survey-tool-btn" type="button" data-survey-tool="attach">แนบรูป</button>
               <div id="surveySummary" class="survey-toolbar-stat"></div>
               <button id="surveyCompleteBtn" class="survey-tool-btn is-primary" type="button" data-survey-tool="complete" disabled>สำรวจเสร็จ</button>
@@ -267,7 +311,9 @@
 
           <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
           <div class="survey-actions secondary hidden" id="surveySpecActions">
+            <button id="surveyExportKmlBtn" class="ghost-btn" type="button">ส่งออก KML</button>
             <button id="surveyGenerateBtn" class="primary-btn" type="button" disabled>สร้างรายการประมาณการ</button>
+            <button id="surveySaveProjectBtn" class="primary-btn is-gold hidden" type="button">บันทึกโครงการ</button>
           </div>
         </div>
 
@@ -318,11 +364,27 @@
       <div>Developed by PEA Nakhon Phanom - Customer Service and Relations Section</div>
       <div>(นายศุภกฤษ ทะวัง ชผ.บส.กฟจ.นพ.)</div>
     </footer>
+
+    <nav class="app-bottom-nav" id="appBottomNav" aria-label="เมนูหลัก">
+      <button type="button" class="bottom-nav-item" data-tab-nav="1" aria-label="สร้างงานใหม่">
+        <span class="bottom-nav-icon" aria-hidden="true">✎</span>
+        <span class="bottom-nav-label">งานใหม่</span>
+      </button>
+      <button type="button" class="bottom-nav-item is-center" data-tab-nav="3" aria-label="สำรวจหน้างาน">
+        <span class="bottom-nav-bubble"><span class="bottom-nav-icon">⌖</span></span>
+        <span class="bottom-nav-label">สำรวจ</span>
+      </button>
+      <button type="button" class="bottom-nav-item" data-tab-nav="2" aria-label="ประวัติโครงการ">
+        <span class="bottom-nav-icon" aria-hidden="true">☰</span>
+        <span class="bottom-nav-label">ประวัติ</span>
+      </button>
+    </nav>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="./config.js"></script>
   <script src="./survey-presets.js"></script>
+  <script src="./survey-project.js"></script>
   <script src="./services.js"></script>
   <script src="./app.js"></script>
   <script src="./survey.js"></script>
