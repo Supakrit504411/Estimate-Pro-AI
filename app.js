@@ -7,6 +7,7 @@
     historyCache: null,
     historyRowCache: {},
     adminCache: null,
+    shareUserList: null,
     currentJobId: null,
     currentFileUrl: "",
     tempFileList: [],
@@ -49,14 +50,23 @@
     if (errorEl) errorEl.classList.add("hidden");
     if (submitBtn) submitBtn.disabled = true;
 
+    Swal.fire({
+      title: "กำลังเข้าสู่ระบบ...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading()
+    });
+
     try {
       const result = await window.ApiService.login(username, password);
       if (!result?.ok || !result.user) {
         throw new Error(result?.message || "เข้าสู่ระบบไม่สำเร็จ");
       }
       window.AuthSession.save(result.user);
+      Swal.close();
       await bootstrapApp();
     } catch (error) {
+      Swal.close();
       if (errorEl) {
         errorEl.textContent = error.message || "เข้าสู่ระบบไม่สำเร็จ";
         errorEl.classList.remove("hidden");
@@ -1805,6 +1815,7 @@
 
     try {
       state.historyCache = await window.ApiService.getSavedProjects();
+      await loadShareUserList();
       renderHistory(state.historyCache || []);
     } catch (error) {
       console.error(error);
@@ -1833,14 +1844,122 @@
     };
   }
 
+  function parseUserList(value) {
+    return String(value || "")
+      .split(/[,;|/\s]+/)
+      .map(part => part.trim())
+      .filter(Boolean);
+  }
+
   function userInShareList(listValue, username) {
     const me = String(username || "").trim().toLowerCase();
     if (!me) return false;
-    return String(listValue || "")
-      .split(/[,;|/\s]+/)
-      .map(part => part.trim().toLowerCase())
-      .filter(Boolean)
-      .includes(me);
+    return parseUserList(listValue).some(name => name.toLowerCase() === me);
+  }
+
+  async function loadShareUserList(force = false) {
+    if (!force && state.shareUserList) return state.shareUserList;
+    try {
+      const res = await window.ApiService.getShareUsers();
+      if (res?.error) throw new Error(res.msg || "โหลดรายชื่อผู้ใช้ไม่สำเร็จ");
+      state.shareUserList = res.users || [];
+    } catch (error) {
+      console.warn("share users load failed", error);
+      state.shareUserList = state.shareUserList || [];
+    }
+    return state.shareUserList;
+  }
+
+  function getShareCoverageStatus(cached, shareUsers) {
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(cached?.isPublic || ""));
+    if (isPublic) {
+      return { complete: true, remaining: [], coveredCount: shareUsers.length, total: shareUsers.length };
+    }
+
+    const viewSet = new Set(parseUserList(cached?.sharedView).map(u => u.toLowerCase()));
+    const editSet = new Set(parseUserList(cached?.sharedEdit).map(u => u.toLowerCase()));
+    const remaining = (shareUsers || []).filter(user => {
+      const key = user.username.toLowerCase();
+      return !viewSet.has(key) && !editSet.has(key);
+    });
+
+    return {
+      complete: shareUsers.length === 0 ? true : remaining.length === 0,
+      remaining,
+      coveredCount: shareUsers.length - remaining.length,
+      total: shareUsers.length
+    };
+  }
+
+  function buildSharePickerHtml(cached, shareUsers, coverage) {
+    const viewSet = new Set(parseUserList(cached.sharedView).map(u => u.toLowerCase()));
+    const editSet = new Set(parseUserList(cached.sharedEdit).map(u => u.toLowerCase()));
+    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(cached.isPublic || ""));
+
+    const rows = (shareUsers || []).map(user => {
+      const key = user.username.toLowerCase();
+      const viewChecked = viewSet.has(key) ? "checked" : "";
+      const editChecked = editSet.has(key) ? "checked" : "";
+      return `
+        <div class="share-user-row">
+          <span class="share-user-name">${escapeHtml(user.username)}</span>
+          <span class="share-user-role">${escapeHtml(user.role || "user")}</span>
+          <label class="share-user-check">
+            <input type="checkbox" class="share-cb-view" data-user="${escapeHtml(user.username)}" ${viewChecked}>
+            <span>ดู</span>
+          </label>
+          <label class="share-user-check">
+            <input type="checkbox" class="share-cb-edit" data-user="${escapeHtml(user.username)}" ${editChecked}>
+            <span>แก้ไข</span>
+          </label>
+        </div>
+      `;
+    }).join("");
+
+    const remainingHint = coverage.remaining.length
+      ? `<p class="share-remaining">ยังไม่ได้แชร์: ${coverage.remaining.map(u => escapeHtml(u.username)).join(", ")}</p>`
+      : `<p class="share-remaining share-remaining-done">แชร์ครบทุกผู้ใช้แล้ว</p>`;
+
+    return `
+      <div class="share-form share-picker">
+        <p class="share-label">เลือกผู้ใช้จากชีต Config (ติ๊กสิทธิ์ ดู / แก้ไข)</p>
+        <div class="share-user-grid">${rows || `<div class="share-empty">ไม่มีผู้ใช้อื่นในระบบ</div>`}</div>
+        ${shareUsers.length ? remainingHint : ""}
+        <label class="share-check">
+          <input id="sharePublic" type="checkbox" ${isPublic ? "checked" : ""}>
+          เปิดให้ทุกคนในระบบเห็น (Public)
+        </label>
+      </div>
+    `;
+  }
+
+  function collectSharePickerValues(popup) {
+    const viewUsers = [];
+    const editUsers = [];
+    popup.querySelectorAll(".share-cb-view:checked").forEach(input => {
+      if (input.dataset.user) viewUsers.push(input.dataset.user);
+    });
+    popup.querySelectorAll(".share-cb-edit:checked").forEach(input => {
+      if (input.dataset.user) {
+        editUsers.push(input.dataset.user);
+        if (!viewUsers.includes(input.dataset.user)) viewUsers.push(input.dataset.user);
+      }
+    });
+    return {
+      sharedView: viewUsers.join(","),
+      sharedEdit: editUsers.join(","),
+      isPublic: popup.querySelector("#sharePublic")?.checked === true
+    };
+  }
+
+  function wireSharePickerEvents(popup) {
+    popup.querySelectorAll(".share-cb-edit").forEach(editBox => {
+      editBox.addEventListener("change", () => {
+        if (!editBox.checked) return;
+        const viewBox = popup.querySelector(`.share-cb-view[data-user="${editBox.dataset.user}"]`);
+        if (viewBox) viewBox.checked = true;
+      });
+    });
   }
 
   function canManageHistoryProject(cached) {
@@ -1894,34 +2013,34 @@
       return;
     }
 
-    const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(cached.isPublic || ""));
-    const html = `
-      <div class="share-form">
-        <label class="share-label" for="shareViewUsers">แชร์ดู (View) — คั่นด้วย comma</label>
-        <input id="shareViewUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedView || "")}" placeholder="user1, user2">
-        <label class="share-label" for="shareEditUsers">แชร์แก้ไข (Edit) — คั่นด้วย comma</label>
-        <input id="shareEditUsers" class="quick-pick-filter" value="${escapeHtml(cached.sharedEdit || "")}" placeholder="user3, user4">
-        <label class="share-check">
-          <input id="sharePublic" type="checkbox" ${isPublic ? "checked" : ""}>
-          เปิดให้ทุกคนในระบบเห็น (Public)
-        </label>
-      </div>
-    `;
+    Swal.fire({
+      title: "กำลังโหลดรายชื่อ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const shareUsers = await loadShareUserList();
+    const coverage = getShareCoverageStatus(cached, shareUsers);
+    Swal.close();
+
+    if (coverage.complete && !shareUsers.length) {
+      Swal.fire("ไม่มีผู้ใช้อื่น", "ใน Config มีเพียงบัญชีของคุณ", "info");
+      return;
+    }
+
+    const html = buildSharePickerHtml(cached, shareUsers, coverage);
 
     const { isConfirmed } = await Swal.fire({
       title: "แชร์โครงการ",
       html,
+      width: "min(100%, 440px)",
       showCancelButton: true,
-      confirmButtonText: "บันทึก",
+      confirmButtonText: coverage.complete ? "อัปเดตการแชร์" : "บันทึกการแชร์",
       cancelButtonText: "ยกเลิก",
-      preConfirm: () => {
-        const popup = Swal.getPopup();
-        return {
-          sharedView: popup.querySelector("#shareViewUsers")?.value || "",
-          sharedEdit: popup.querySelector("#shareEditUsers")?.value || "",
-          isPublic: popup.querySelector("#sharePublic")?.checked === true
-        };
-      }
+      didOpen: () => {
+        wireSharePickerEvents(Swal.getPopup());
+      },
+      preConfirm: () => collectSharePickerValues(Swal.getPopup())
     });
 
     if (!isConfirmed) return;
@@ -1964,7 +2083,7 @@
       return;
     }
 
-    els.histContent.innerHTML = data.map(row => {
+    els.histContent.innerHTML = data.map((row, index) => {
       const dateDisplay = safeDateDisplay(row[1]);
       const projectId = String(row[0] || "");
       const shareFields = parseHistoryShareFields(row);
@@ -1980,8 +2099,11 @@
       const cached = state.historyRowCache[projectId];
       const canManage = canManageHistoryProject(cached);
       const canShare = canShareHistoryProject(cached);
-      const manageActions = canShare
-        ? `<button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}">แชร์</button>`
+      const coverage = getShareCoverageStatus(cached, state.shareUserList || []);
+      const shareBtn = canShare
+        ? (coverage.complete
+          ? `<button class="action-btn is-disabled" type="button" disabled title="แชร์ครบทุกผู้ใช้แล้ว">แชร์ครบ</button>`
+          : `<button class="action-btn" type="button" data-action="share-project" data-project-id="${escapeHtml(projectId)}" title="ยังไม่ได้แชร์ ${coverage.remaining.length} คน">แชร์ (${coverage.remaining.length})</button>`)
         : "";
       const editActions = canManage
         ? `
@@ -1989,8 +2111,12 @@
               <button class="action-btn danger" type="button" onclick="window.AppActions.askDel('${escapeJs(projectId)}')">ลบ</button>
             `
         : "";
+      const shareSummary = canShare && coverage.total
+        ? `<span class="history-share-chip">${coverage.complete ? "แชร์ครบ" : `แชร์แล้ว ${coverage.coveredCount}/${coverage.total}`}</span>`
+        : "";
       return `
         <div class="history-card">
+          <div class="history-index">${index + 1}</div>
           <div class="history-top">
             <div style="min-width:0;">
               <h3 class="history-name">${escapeHtml(row[2])}</h3>
@@ -1998,6 +2124,7 @@
                 <span class="status-chip">${escapeHtml(dateDisplay)}</span>
                 <span class="type-chip">ID ${escapeHtml(projectId)}</span>
                 ${getHistoryAccessBadge(row, shareFields)}
+                ${shareSummary}
               </div>
               <div class="history-amount">
                 ${parseFloat(row[3] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
@@ -2005,7 +2132,7 @@
             </div>
             <div class="history-actions">
               <button class="action-btn" type="button" onclick="window.AppActions.viewDetail('${escapeJs(projectId)}')">ดู</button>
-              ${manageActions}
+              ${shareBtn}
               ${editActions}
             </div>
           </div>

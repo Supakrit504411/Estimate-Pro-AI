@@ -11,6 +11,7 @@ window.APP_CONFIG = {
     login: "login",
     shareProject: "share-project",
     adminDashboard: "admin-dashboard",
+    shareUsers: "share-users",
     health: "health",
     lineIntake: "line-intake",
     lineSearch: "line-search",

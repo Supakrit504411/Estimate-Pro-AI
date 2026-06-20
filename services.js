@@ -75,6 +75,10 @@
       return request(config.endpoints.adminDashboard, {});
     },
 
+    getShareUsers() {
+      return request(config.endpoints.shareUsers, {});
+    },
+
     verifyPassword(password) {
       return request(config.endpoints.verifyPassword, { password });
     },
