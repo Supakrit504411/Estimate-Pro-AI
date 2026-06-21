@@ -126,6 +126,10 @@
     return null;
   }
 
+  const CONCRETE_WORD = "เทโคน";
+  const CONCRETE_RE = /(?:เทโคน|เทคอน|คอนกรีต|concrete)/;
+  const CONCRETE_NEG_RE = /ไม่(?:เอา|รวม|ใส่|ต้อง).*(?:เทโคน|เทคอน|คอน)/;
+
   function detectScope(text) {
     if (/ไม่พาดสาย|ไม่มีสาย|ไม่ลากสาย|ไม่.*(?:พาด|ลาก).*สาย|pole only/.test(text)) {
       return "pole_only";
@@ -139,7 +143,7 @@
 
   function parseAssemblyOptions(text) {
     const t = normalizeText(text);
-    const wantsConcrete = /(?:เทคอน|คอนกรีต|concrete)/.test(t) && !/ไม่(?:เอา|รวม|ใส่|ต้อง).*(?:เทคอน|คอน)/.test(t);
+    const wantsConcrete = CONCRETE_RE.test(t) && !CONCRETE_NEG_RE.test(t);
     const rejectsHead = /ไม่(?:เอา|รวม|ใส่|ต้อง|มี).*หัว(?:เสา)?|without head|no head/.test(t);
     const materialOnly = rejectsHead
       || /(?:แค่|เฉพาะ|วัสดุ)\s*เสา|เสา(?:อย่าง)?เดียว(?!\s*(?:\+|และ|พร้อม))/.test(t)
@@ -410,7 +414,7 @@
         options: [
           { value: "full", label: "ครบชุด (เสา + หัวเสา SET + OHGW ตามระบบ)" },
           { value: "pole_material", label: "แค่วัสดุเสา (ไม่รวมหัวเสา / OHGW / สาย)" },
-          { value: "pole_concrete", label: "เสา + เทคอนกรีต (ไม่รวมหัวเสา / สาย)" }
+          { value: "pole_concrete", label: `เสา + ${CONCRETE_WORD} (ไม่รวมหัวเสา / สาย)` }
         ]
       });
     }
@@ -729,7 +733,7 @@
     if (materialOnly) {
       const concrete = includeConcrete ? resolveConcreteForParams(params) : null;
       const parts = [`เสา ${poleId} × ${layout.totalPoles} ต้น`];
-      if (concrete) parts.push(`เทคอนกรีต ${concrete.materialId} × ${concrete.qty * layout.totalPoles}`);
+      if (concrete) parts.push(`${CONCRETE_WORD} ${concrete.materialId} × ${concrete.qty * layout.totalPoles}`);
       sections.push(`${parts.join(" + ")} (ไม่รวมหัวเสา SET / OHGW / Guy / สาย)`);
     } else if (layout.straightPoleCount > 0) {
       const rackNote = params.rackLabel ? ` · ${params.rackLabel}` : "";
@@ -745,7 +749,7 @@
       sections.push(
         `เสาทางโค้ง ${layout.curvePoleCount} ต้น: เสา ${poleId} + หัวโค้ง SET ${curveHeadId} (${getSetName(curveHeadId)})` +
         ` + Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}` +
-        ` + เทคอน ${curveRule.concrete?.materialId || "9090010025"} × ${curveRule.concrete?.qty || 1}` +
+        ` + ${CONCRETE_WORD} ${curveRule.concrete?.materialId || "9090010025"} × ${curveRule.concrete?.qty || 1}` +
         (params.voltage === "mv" && curveRule.ohgwDefault ? ` + OHGW SET ${curveRule.ohgwDefault}` : "") +
         (params.voltage === "lv" && curveRule.surgeSetId ? "" : "")
       );
@@ -755,7 +759,7 @@
       const extras = [
         `หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`,
         `ยึด Guy SET ${guySetId} (${getSetName(guySetId)})`,
-        `เทคอนกรีต ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`
+        `${CONCRETE_WORD} ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`
       ];
       if (params.voltage === "mv") {
         if (endRule.ohgwDefault) extras.push(`OHGW SET ${endRule.ohgwDefault}`);

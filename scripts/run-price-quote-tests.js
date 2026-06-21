@@ -167,8 +167,8 @@ runCase("pole material only — 12.20m 1 ต้น ไม่เอาหัว�
   assert("no set in breakdown", !breakdownText.includes("หัวเสา SET"));
 });
 
-runCase("pole + concrete — เสา 12.2 + เทคอน", () => {
-  const q = "ปักเสา 12.2 ม. 1 ต้น พร้อมเทคอน ไม่เอาหัวเสา";
+runCase("pole + concrete — เสา 12.2 + เทโคน", () => {
+  const q = "ปักเสา 12.2 ม. 1 ต้น พร้อมเทโคน ไม่เอาหัวเสา";
   const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
   assert("pole_concrete", intent.assemblyMode === "pole_concrete");
   assert("includeConcrete", intent.includeConcrete === true);
