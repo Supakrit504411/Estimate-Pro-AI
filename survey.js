@@ -4,6 +4,11 @@
 
   const presetsApi = window.SurveyPresetsApi || {};
 
+  const SURVEY_SWAL_COMPACT = {
+    width: "min(92vw, 320px)",
+    customClass: { popup: "pea-swal-popup swal-survey-compact" }
+  };
+
   const state = {
     map: null,
     markers: [],
@@ -791,7 +796,8 @@
         existing: "เสาเดิมหน้างาน (ไม่นับเสาใน BOM)"
       },
       inputValue: hostInfo ? "surveyed" : "existing",
-      showCancelButton: true
+      showCancelButton: true,
+      ...SURVEY_SWAL_COMPACT
     });
     if (!isExisting) return;
 
@@ -803,7 +809,8 @@
         platform: "แท่นหม้อ (Platform)"
       },
       inputValue: "singlePole",
-      showCancelButton: true
+      showCancelButton: true,
+      ...SURVEY_SWAL_COMPACT
     });
     if (!installType) return;
 
@@ -813,7 +820,8 @@
         input: "select",
         inputOptions: { "1p": "1P", "3p": "3P" },
         inputValue: "3p",
-        showCancelButton: true
+        showCancelButton: true,
+        ...SURVEY_SWAL_COMPACT
       })
       : { value: "3p" };
     const phase = phaseResult.value;
@@ -828,7 +836,8 @@
       input: "select",
       inputOptions: setOptions,
       inputValue: group?.defaultSetId,
-      showCancelButton: true
+      showCancelButton: true,
+      ...SURVEY_SWAL_COMPACT
     });
     if (!trSetId) return;
 
@@ -840,7 +849,8 @@
       title: "หม้อแปลง",
       input: "select",
       inputOptions: txOptions,
-      showCancelButton: true
+      showCancelButton: true,
+      ...SURVEY_SWAL_COMPACT
     });
     if (!transformerId) return;
 

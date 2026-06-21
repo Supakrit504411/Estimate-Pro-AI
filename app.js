@@ -1902,7 +1902,7 @@
 
     const rows = (shareUsers || []).map(user => {
       const key = user.username.toLowerCase();
-      const viewChecked = viewSet.has(key) ? "checked" : "";
+      const viewChecked = (viewSet.has(key) || editSet.has(key)) ? "checked" : "";
       const editChecked = editSet.has(key) ? "checked" : "";
       return `
         <div class="share-user-row">
@@ -2128,7 +2128,7 @@
 
     const html = buildSharePickerHtml(cached, shareUsers, coverage);
 
-    const { isConfirmed } = await Swal.fire({
+    const shareDialog = await Swal.fire({
       title: "แชร์โครงการ",
       html,
       width: "min(100%, 440px)",
@@ -2144,7 +2144,9 @@
       preConfirm: () => collectSharePickerValues(Swal.getPopup())
     });
 
-    if (!isConfirmed) return;
+    if (!shareDialog.isConfirmed) return;
+
+    const picked = shareDialog.value || {};
 
     Swal.fire({
       title: "กำลังบันทึก...",
@@ -2155,9 +2157,9 @@
     try {
       const result = await window.ApiService.shareProject({
         projectId,
-        sharedView: isConfirmed.sharedView,
-        sharedEdit: isConfirmed.sharedEdit,
-        isPublic: isConfirmed.isPublic
+        sharedView: picked.sharedView || "",
+        sharedEdit: picked.sharedEdit || "",
+        isPublic: picked.isPublic === true
       });
       if (result.status !== "success") {
         throw new Error(result.msg || "แชร์ไม่สำเร็จ");

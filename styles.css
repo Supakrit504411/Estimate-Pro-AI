@@ -1659,6 +1659,60 @@ div:where(.swal2-container).swal2-backdrop-show {
   background: rgba(116, 4, 95, 0.28) !important;
 }
 
+.pea-swal-popup.swal-survey-compact {
+  width: min(92vw, 320px) !important;
+  max-width: 320px !important;
+  padding: 14px 16px 12px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-title,
+.pea-swal-popup.swal-survey-compact .pea-swal-title {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  padding: 0 0 8px !important;
+  margin-bottom: 0 !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-html-container,
+.pea-swal-popup.swal-survey-compact .pea-swal-body {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  font-size: 12px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-radio {
+  gap: 6px !important;
+  margin-top: 4px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-radio label {
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  border-radius: 10px !important;
+  gap: 8px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-select,
+.pea-swal-popup.swal-survey-compact .pea-swal-input {
+  margin-top: 6px !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .swal2-actions,
+.pea-swal-popup.swal-survey-compact .pea-swal-actions {
+  margin-top: 10px !important;
+  gap: 8px !important;
+}
+
+.pea-swal-popup.swal-survey-compact .pea-swal-btn,
+.pea-swal-popup.swal-survey-compact .swal2-styled {
+  min-width: 72px !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
 .pea-swal-popup .swal2-checkbox label,
 .swal2-popup .swal2-checkbox label {
   color: #f7f0f4 !important;
