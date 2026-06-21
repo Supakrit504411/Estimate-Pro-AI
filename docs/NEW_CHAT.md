@@ -1,7 +1,7 @@
 # เริ่มแชทใหม่ — Copy ข้อความด้านล่างไปวาง
 
 > เปิด Chat ใหม่ (`Ctrl+L` → New Chat) แล้ว paste ทั้งบล็อกนี้  
-> หรือพิมพ์: `@docs/NEW_CHAT.md @skill.md อ่านแล้วช่วยทำงานต่อ`
+> หรือพิมพ์: `@docs/NEW_CHAT.md อ่านแล้วช่วยทำงานต่อ`
 
 ---
 
@@ -11,50 +11,42 @@
 โปรเจกต์: PEA Estimation AI Pro 2026
 Workspace: D:\9-WebApp2025\17-PEA Estimate\Codex-Estimate Pro
 Production: https://pro-ai.vercel.app
-GitHub (frontend): https://github.com/Supakrit504411/Estimate-Pro-AI
+GitHub: https://github.com/Supakrit504411/Estimate-Pro-AI
 
-Local only (ห้าม push): GAS.txt, docs/, skill.md, README.md
+Local only (ห้าม push): GAS.txt, skill.md, .env*
 
-Stack: Vanilla JS, Vercel, Google Apps Script, Gemini 2.5 Flash, Google Sheets, Google Drive
+Stack: Vanilla JS, Vercel, Google Apps Script, Gemini, Google Sheets, Drive, Leaflet, OSRM
 
 ไฟล์หลัก:
-- app.js — AI, งบ, ประวัติ, save, viewDetail, historyRowCache
-- survey.js — สำรวจ, MV/LV/1P/3P, SET BOM, Guy/Surge/Ground
-- survey-presets.js — auto-generated (72 SET, configs, specialPoleRules)
-- scripts/build-survey-presets.js + scripts/special-pole-data.js
+- app.js — tabs, BOQ, history, share, admin, price ask, AI scan
+- auth.js — login, RBAC, session
+- survey.js — map survey, MV/LV/TR, KML, estimate → budget
 - config.js, services.js, styles.css, index.html, api/gas.js
-- GAS.txt — copy ไป Apps Script แล้ว Deploy version ใหม่ทุกครั้งที่แก้
+- GAS.txt — copy ไป Apps Script → Deploy version ใหม่ทุกครั้งที่แก้
 
-Sheet Project_Database:
-- A=ID, B=วันที่, C=ชื่อ, D=ยอดรวม
-- E=ลิงก์ไฟล์ Drive (|) — AI scan, รูปหน้างาน, Survey_Map
-- F=surveyMeta JSON — พิกัด, จำนวนหมุด, ระยะทาง, Span, voltageType, phaseType
+เอกสาร (ใน git): README.md, docs/ — โดยเฉพาะ docs/ROADMAP.md, docs/DEPLOYMENT.md
 
-Survey configs: mv1p, mv3p, lv1p, lv3p
-- wireMultiplier: 2/3/2/4
-- MV มี OHGW; LV ไม่มี
-- หัวเสา = SET id → BOM expand items
+Sheet Project_Database (10 cols):
+- G=CreatedBy, H=SharedView, I=SharedEdit, J=IsPublic
+- E=Drive URLs, F=surveyMeta JSON
 
-เสาพิเศษ (specialPoleRules):
-- end: Guy (เลือก), DE head, OHGW 25256 (MV), คอนกรีต, Grounding 20509 + Surge MV / SET 14001|14003 LV
-- curve_in/out: Guy, DDE head, OHGW 25258 (MV)
-- LV: Surge SET ทุก 400m ตามเส้นทาง (addLvIntervalSurges)
+GAS routes: login, save-project, saved-projects, share-project, share-users,
+  admin-dashboard, master-data, process-image-ai, parse-price-query, drive-file-previews
 
-GAS API: save-project, saved-projects, project-details, drive-file-previews
-
-ทำเสร็จแล้ว (2026-06-19):
-- MV/LV survey workflow + SET presets + OHGW (b89550c)
-- GUY/SURGE/GROUND special poles + LV 400m surge (e7e3101)
-- โหมดสำรวจ OSRM, Default, จับภาพ Survey_Map, UI มือถือ
-- ประวัติ: ปุ่ม "ดู", รูปมือถือผ่าน GAS proxy
-- docs/ + skill.md อัปเดต
+ทำเสร็จแล้ว (ล่าสุด ~2026-06-21):
+- Login + RBAC (Config sheet)
+- แชร์ view/edit + Public + Audit log + Admin tab
+- Timeline history (2-row cards, sort/filter)
+- Fix share preConfirm → บันทึก user ถูกต้อง (re-share โครงการเก่าที่ว่าง)
+- ถามราคา export Excel/PDF, master cache 8 นาที
+- Quick pick + SET MV/TR/LV
 
 กฎ:
-- อ่าน skill.md และ docs/technical/SURVEY.md ก่อนแก้ survey
-- แก้ preset → scripts/ แล้ว node scripts/build-survey-presets.js
+- อ่าน docs/technical/SURVEY.md ก่อนแก้ survey
+- preset → node scripts/build-survey-presets.js
 - GAS แก้ใน GAS.txt local → user deploy เอง
 - Frontend push GitHub → Vercel auto deploy
-- อย่า commit/push docs/GAS ถ้าไม่ได้สั่ง (docs local only)
+- commit docs ได้; อย่า commit GAS.txt / .env
 
 งานถัดไปที่ต้องการ: [ใส่งานของคุณที่นี่]
 ```
@@ -63,14 +55,8 @@ GAS API: save-project, saved-projects, project-details, drive-file-previews
 
 ## วิธีเปิดแชทใหม่ใน Cursor
 
-1. กด **`Ctrl + L`** เปิด Chat
-2. กด **`+`** หรือ **New Chat** มุมบน panel แชท
-3. Paste ข้อความด้านบน (หรือพิมพ์ `@docs/NEW_CHAT.md`)
-4. แก้บรรทัด `งานถัดไปที่ต้องการ:` ให้ชัดเจน
+1. **`Ctrl + L`** → Chat
+2. **New Chat**
+3. Paste ข้อความด้านบน หรือ `@docs/NEW_CHAT.md`
+4. แก้ `งานถัดไปที่ต้องการ:`
 5. ส่ง
-
----
-
-## แชทเก่า (อ้างอิง)
-
-แชทเดิม: **MV/LV Survey + GUY/SURGE/GROUND** — ดูใน Chat History ได้

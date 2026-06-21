@@ -1,25 +1,40 @@
 # เอกสารโปรเจกต์ — Index
 
-| เอกสาร | อ่านเมื่อ |
-|--------|-----------|
-| [../README.md](../README.md) | เริ่มต้น / overview |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | เข้าใจโครงสร้างระบบ |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Deploy Vercel + GAS |
-| [CONFIG-SHEET.md](CONFIG-SHEET.md) | ตั้งค่า Google Sheets |
-| [API.md](API.md) | GAS endpoints |
-| [ROADMAP.md](ROADMAP.md) | แผนพัฒนา / ข้อเสนอแนะ |
-| [CHANGELOG-NOTES.md](CHANGELOG-NOTES.md) | บันทึกเหตุการณ์สำคัญ |
+## เริ่มต้น
 
-## ไฟล์อื่นที่เกี่ยวข้อง
+| เอกสาร | เนื้อหา |
+|--------|---------|
+| [../README.md](../README.md) | Overview + quick start |
+| [NEW_CHAT.md](NEW_CHAT.md) | Prompt เริ่มแชท Cursor ใหม่ |
+| [CHANGELOG-NOTES.md](CHANGELOG-NOTES.md) | เหตุการณ์สำคัญ / bug ที่แก้แล้ว |
+
+## Technical
+
+| เนทาง | ไฟล์ |
+|-------|------|
+| สั้น (root) | [ARCHITECTURE.md](ARCHITECTURE.md), [DEPLOYMENT.md](DEPLOYMENT.md), [API.md](API.md), [CONFIG-SHEET.md](CONFIG-SHEET.md) |
+| ละเอียด | [technical/ARCHITECTURE.md](technical/ARCHITECTURE.md), [technical/DEPLOYMENT.md](technical/DEPLOYMENT.md), [technical/SURVEY.md](technical/SURVEY.md) |
+
+## Roadmap & Pitch
 
 | ไฟล์ | หมายเหตุ |
 |------|----------|
-| `../.env.example` | Template env Vercel |
-| `../vercel.json` | Routing + security headers |
-| `../GAS.txt` | **Local only** — backend source |
+| [ROADMAP.md](ROADMAP.md) | **แนะนำอ่าน** — ข้อเสนอพัฒนา 2026-06-21 |
+| [roadmap/ROADMAP.md](roadmap/ROADMAP.md) | Phase 1–3 แบบเดิม (survey-focused) |
+| [pitch/INNOVATION_PITCH.md](pitch/INNOVATION_PITCH.md) | Pitch / innovation |
+| [project/SUMMARY.md](project/SUMMARY.md) | สรุปโปรเจกต์ |
 
-## ก่อน Deploy ทุกครั้ง
+## ไฟล์ config
 
-1. แก้โค้ด frontend → push GitHub → Vercel auto
-2. แก้ `GAS.txt` → copy ไป Apps Script → **New version** deploy
-3. ทดสอบตาม checklist ใน [DEPLOYMENT.md](DEPLOYMENT.md)
+| ไฟล์ | หมายเหตุ |
+|------|----------|
+| `../.env.example` | Template Vercel env |
+| `technical/env.example` | สำเนา/อ้างอิง |
+| `../vercel.json` | Routing + headers |
+| `../GAS.txt` | **Local only** — backend |
+
+## Checklist ก่อน Deploy
+
+1. Frontend → push GitHub → Vercel
+2. GAS.txt → Apps Script → **New version** deploy
+3. ทดสอบตาม [DEPLOYMENT.md](DEPLOYMENT.md)
