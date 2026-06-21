@@ -317,7 +317,7 @@
     if (m) return Math.round(Number(m[1]) * 100000);
     m = t.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*บาท/);
     if (m) return Number(m[1].replace(/,/g, ""));
-    m = t.match(/(?:มีเงิน|งบ|งบประมาณ)\s*(\d+(?:,\d{3})*(?:\.\d+)?)/);
+    m = t.match(/(?:มีเงิน|มีงบ|งบ|งบประมาณ)\s*(\d+(?:,\d{3})*(?:\.\d+)?)/);
     if (m) return Number(m[1].replace(/,/g, ""));
     return null;
   }

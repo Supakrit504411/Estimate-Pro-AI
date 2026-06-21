@@ -70,6 +70,21 @@
         ],
         requires: ["มีเงิน", "หม้อแปลง", "งบ", "ล้าน", "บาท"]
       },
+      tr_install_with_set: {
+        phrases: [
+          "ชุดติดตั้ง",
+          "อุปกรณ์ประกอบ",
+          "พร้อมอุปกรณ์",
+          "รวมอุปกรณ์",
+          "ชุดประกอบ",
+          "พร้อมชุด",
+          "รวมชุด",
+          "อุปกรณ์ครบ",
+          "set ติดตั้ง",
+          "assembly"
+        ],
+        requires: ["หม้อแปลง", "kva"]
+      },
       pole_material_only: {
         phrases: ["ไม่เอาหัวเสา", "ไม่รวมหัวเสา", "วัสดุเสาอย่างเดียว", "เสาอย่างเดียว"],
         assemblyMode: "pole_material"
@@ -115,7 +130,15 @@
       concrete: { label: "เทโคน/ฐานเสา" },
       wire: { label: "สายไฟฟ้า" },
       transformer: { label: "หม้อแปลง" },
-      set: { label: "ชุดประกอบ SET" }
+      set: { label: "ชุดประกอบ SET" },
+      manhole: { label: "บ่อ/ฝครอบ" }
+    },
+    /** คำค้นกว้าง — มีหลายรหัสใน master ต้องให้เลือก */
+    materialKeywords: {
+      manhole: {
+        label: "บ่อ manhole / ฝครอบ",
+        searchTerms: ["manhole", "man hole", "ฝครอบ", "บ่อพัก", "บ่อ manhole"]
+      }
     },
     goldenQueries: [
       {
@@ -157,6 +180,52 @@
           budgetBaht: 5000000,
           wantsUnitCount: true,
           wantsMaxSize: true
+        }
+      },
+      {
+        name: "tr budget 5M fixed 30 kVA units",
+        query: "มีงบ 5 ล้านบาท ติดหม้อแปลง 30 ได้กี่เครื่อง",
+        budgetType: "01.1",
+        expect: {
+          intent: "tr_budget_check",
+          budgetBaht: 5000000,
+          kva: 30,
+          wantsUnitCount: true,
+          wantsMaxSize: false
+        }
+      },
+      {
+        name: "tr install 315 platform",
+        query: "ประเมินราคาติดตั้งหม้อแปลงขนาด 315 kVA (ระบบ 3 เฟส) พร้อมอุปกรณ์ประกอบ",
+        budgetType: "02.2",
+        expect: {
+          intent: "tr_install",
+          kva: 315,
+          phase: "3p",
+          installType: "platform",
+          includeTrSet: true,
+          trSetId: "40212"
+        }
+      },
+      {
+        name: "tr install 50 set synonyms",
+        query: "หม้อแปลง 50 kVA พร้อมอุปกรณ์ประกอบ ราคาเท่าไร",
+        budgetType: "02.2",
+        expect: {
+          intent: "tr_install",
+          kva: 50,
+          installType: "singlePole",
+          includeTrSet: true,
+          trSetId: "40205"
+        }
+      },
+      {
+        name: "manhole ambiguous",
+        query: "ขอราคา manhole",
+        budgetType: "02.2",
+        expect: {
+          intent: "material_only",
+          materialSearchKey: "manhole"
         }
       }
     ]

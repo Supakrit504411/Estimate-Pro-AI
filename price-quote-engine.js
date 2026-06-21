@@ -111,6 +111,92 @@
     return (group.setIds || [])[0] || null;
   }
 
+  function isTrInstallLanguage(text) {
+    return wantsTrInstallSet(text);
+  }
+
+  function wantsTrInstallSet(text) {
+    const t = normalizeText(text);
+    return /ติดตั้ง|install|ประเมินราคา|ราคาติดตั้ง|ชุดติดตั้ง|ชุดประกอบ|รวมชุด|พร้อมชุด|อุปกรณ์ประกอบ|อุปกรณ์ครบ|พร้อมอุปกรณ์|รวมอุปกรณ์|assembly|แอสเซมบลี|\bset\b|tr\.?\s*inst|ชุด\s*\d{5}/.test(t);
+  }
+
+  function inferPhaseFromQuery(text, kva, fallback) {
+    const t = normalizeText(text);
+    if (/1p|1 p|single|เฟสเดียว|1\s*เฟส/.test(t)) return "1p";
+    if (/3p|3 p|three|สามเฟส|3\s*เฟส/.test(t)) return "3p";
+    if (kva === 30) return "1p";
+    return fallback || "3p";
+  }
+
+  function resolveTrInstallTypeForKva(kva, phase, series, queryText) {
+    const text = normalizeText(queryText || "");
+    if (/platform|ยก|แพลต|แพลตฟอร์ม/.test(text)) return "platform";
+    if (/single\s*pole|เสาเดี่ยว|single_pole/.test(text)) return "singlePole";
+
+    const catalog = window.SurveyPresetsApi?.getTrInstallCatalog?.()
+      || window.SURVEY_PRESETS?.trInstallCatalog;
+    const normalizedPhase = phase || (kva === 30 ? "1p" : "3p");
+    const transformer = findTransformerByKva(kva, normalizedPhase, series);
+    if (catalog && transformer?.id) {
+      const inSingle = catalog.singlePole?.[normalizedPhase]?.transformerIds?.includes(transformer.id);
+      const inPlatform = catalog.platform?.[normalizedPhase]?.transformerIds?.includes(transformer.id);
+      if (inSingle && inPlatform) {
+        return kva >= 315 ? "platform" : "singlePole";
+      }
+      if (inPlatform) return "platform";
+      if (inSingle) return "singlePole";
+    }
+    return kva >= 315 ? "platform" : "singlePole";
+  }
+
+  function applyTrInstallDefaults(intent, query) {
+    const kva = Number(intent.kva);
+    if (!kva) return intent;
+
+    const phase = inferPhaseFromQuery(query || intent.summary || "", kva, intent.phase);
+    const series = detectTransformerSeries(query || intent.summary || "");
+    const installType = resolveTrInstallTypeForKva(kva, phase, series, query || intent.summary || "");
+
+    intent.phase = phase;
+    intent.installType = installType;
+    intent.includeTrSet = intent.includeTrSet !== false;
+    intent.trSetId = intent.trSetId || resolveDefaultTrSetId(installType, phase, kva);
+
+    if (normalizeInstallType(installType) === "singlePole") {
+      intent.poleMaterialId = intent.poleMaterialId || "1000010012";
+      intent.poleQty = Number(intent.poleQty) || 1;
+    } else {
+      delete intent.poleMaterialId;
+      intent.poleQty = 0;
+    }
+    return intent;
+  }
+
+  function preferLocalTrInstallIntent(query, budgetType, intent, parseSource) {
+    const aiWeak = !intent
+      || intent.intent === "material_only"
+      || parseSource === "gemini"
+      || parseSource === "gemini-lite";
+
+    const local = parseQueryLocal(query, budgetType);
+    if (local) {
+      const localSanitized = sanitizeIntent(local, query);
+      const localStrong = localSanitized?.intent === "tr_install" && localSanitized.includeTrSet !== false;
+      if (localStrong && aiWeak) {
+        return { intent: localSanitized, parseSource: localSanitized.source || "local" };
+      }
+    }
+
+    if (intent && query && aiWeak) {
+      const coerced = sanitizeIntent({ ...intent, summary: query }, query);
+      if (coerced?.intent === "tr_install" && coerced.includeTrSet !== false) {
+        return { intent: coerced, parseSource: "local" };
+      }
+    }
+
+    return { intent, parseSource };
+  }
+
   function searchMaster(master, terms, limit = 12) {
     const tokens = (terms || [])
       .map(normalizeText)
@@ -127,6 +213,151 @@
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map(entry => entry.item);
+  }
+
+  function searchMasterByKeyword(master, keyword, limit = 50) {
+    const token = normalizeText(keyword);
+    if (!token) return [];
+    return (master || [])
+      .filter(item => normalizeText(`${item.id} ${item.name}`).includes(token))
+      .slice(0, limit);
+  }
+
+  function getMaterialKeywordDefs() {
+    return window.PRICE_ASK_GLOSSARY?.materialKeywords || {};
+  }
+
+  function detectMaterialSearchKeyword(text) {
+    const t = normalizeText(text);
+    let best = null;
+    Object.entries(getMaterialKeywordDefs()).forEach(([key, def]) => {
+      const terms = [key, ...(def.searchTerms || [])];
+      terms.forEach(term => {
+        const normalized = normalizeText(term);
+        if (!normalized || !t.includes(normalized)) return;
+        if (!best || normalized.length > best.matchLength) {
+          best = { key, def, matchLength: normalized.length };
+        }
+      });
+    });
+    return best;
+  }
+
+  function collectMaterialCandidates(master, materialKey, def) {
+    const terms = [materialKey, ...(def?.searchTerms || [])];
+    const seen = new Set();
+    const results = [];
+    terms.forEach(term => {
+      searchMasterByKeyword(master, term, 80).forEach(item => {
+        if (seen.has(item.id)) return;
+        seen.add(item.id);
+        results.push(item);
+      });
+    });
+    return results.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  }
+
+  function queryNarrowsToSingleMaterial(text, candidates) {
+    const t = normalizeText(text);
+    const narrowed = (candidates || []).filter(item => {
+      const hay = normalizeText(`${item.id} ${item.name}`);
+      const tokens = hay.split(/[^a-z0-9./-]+/).filter(tok =>
+        tok.length >= 3
+        && !["manhole", "with", "pile", "ib1"].includes(tok)
+      );
+      return tokens.some(tok => t.includes(tok));
+    });
+    return narrowed.length === 1 ? narrowed[0] : null;
+  }
+
+  function buildMaterialClarificationFields(intent) {
+    const candidates = intent.materialCandidates || [];
+    return [{
+      key: "materialId",
+      label: "เลือกรายการพัสดุ",
+      type: "select",
+      options: candidates.map(item => ({
+        value: String(item.id),
+        label: `${item.id} — ${item.name}`
+      }))
+    }];
+  }
+
+  function mergeMaterialIntent(intent, answers = {}) {
+    const materialId = String(answers.materialId || intent.items?.[0]?.materialId || "").trim();
+    return sanitizeIntent({
+      ...intent,
+      intent: "material_only",
+      items: [{
+        materialId,
+        qty: Number(intent.items?.[0]?.qty) || 1,
+        laborHint: intent.items?.[0]?.laborHint || intent.laborHint || "ติดตั้ง"
+      }],
+      userConfirmedMaterialId: true,
+      needsClarification: false,
+      clarificationType: null,
+      clarificationFields: [],
+      clarificationQuestion: null,
+      materialCandidates: null
+    }, intent.summary || "");
+  }
+
+  function resolveMaterialAmbiguity(intent, master, query) {
+    if (!intent || intent.intent !== "material_only" || !master?.length) return intent;
+    if (intent.userConfirmedMaterialId && intent.items?.[0]?.materialId) return intent;
+
+    const text = normalizeText(query || intent.summary || "");
+    const keywordHit = intent.materialSearchKey
+      ? { key: intent.materialSearchKey, def: getMaterialKeywordDefs()[intent.materialSearchKey] }
+      : detectMaterialSearchKeyword(text);
+
+    let candidates = intent.materialCandidates?.length
+      ? intent.materialCandidates
+      : (keywordHit ? collectMaterialCandidates(master, keywordHit.key, keywordHit.def) : []);
+
+    if (!candidates.length && intent.items?.[0]?.searchTerms?.length) {
+      candidates = searchMaster(master, intent.items[0].searchTerms, 50);
+    }
+
+    if (!candidates.length) return intent;
+
+    const narrowed = queryNarrowsToSingleMaterial(text, candidates);
+    if (narrowed) {
+      intent.items = [{
+        materialId: narrowed.id,
+        qty: Number(intent.items?.[0]?.qty) || 1,
+        laborHint: intent.items?.[0]?.laborHint || intent.laborHint || "ติดตั้ง"
+      }];
+      intent.materialSearchKey = keywordHit?.key || intent.materialSearchKey || null;
+      intent.needsClarification = false;
+      intent.bundleNote = candidates.length > 1
+        ? `ระบุจากคำถาม → ${narrowed.id} (มี ${candidates.length} แบบใน master)`
+        : null;
+      return intent;
+    }
+
+    if (candidates.length === 1) {
+      intent.items = [{
+        materialId: candidates[0].id,
+        qty: Number(intent.items?.[0]?.qty) || 1,
+        laborHint: intent.items?.[0]?.laborHint || intent.laborHint || "ติดตั้ง"
+      }];
+      intent.needsClarification = false;
+      return intent;
+    }
+
+    const presetId = intent.items?.[0]?.materialId;
+    if (presetId && candidates.some(item => String(item.id) === String(presetId)) && !keywordHit) {
+      return intent;
+    }
+
+    intent.needsClarification = true;
+    intent.clarificationType = "material_pick";
+    intent.materialCandidates = candidates;
+    intent.materialSearchKey = keywordHit?.key || intent.materialSearchKey || null;
+    intent.clarificationFields = buildMaterialClarificationFields(intent);
+    intent.clarificationQuestion = `พบ ${keywordHit?.def?.label || keywordHit?.key || "พัสดุ"} ${candidates.length} แบบใน master — เลือกรายการที่ต้องการ (ไม่เดาให้อัตโนมัติ)`;
+    return intent;
   }
 
   function mergeLineMap(lineMap, materialId, qty, laborHint, master) {
@@ -293,8 +524,24 @@
   }
 
   function extractKvaFromQuery(query) {
-    const m = normalizeText(query).match(/(\d+)\s*kva/);
-    return m ? Number(m[1]) : null;
+    const t = normalizeText(query);
+    let m = t.match(/(\d+(?:\.\d+)?)\s*kva/);
+    if (m) return Number(m[1]);
+
+    const known = new Set();
+    const catalog = window.PRICE_QUOTE_CATALOG?.TRANSFORMER_BY_KVA || {};
+    Object.values(catalog).forEach(phaseMap => {
+      Object.keys(phaseMap || {}).forEach(kva => known.add(Number(kva)));
+    });
+
+    const contextual = t.match(
+      /(?:หม้อแปลง|แปลงไฟ|ติดหม้อแปลง|ติดตั้งหม้อแปลง|แปลง)\s*(\d+(?:\.\d+)?)(?!\s*(?:ล้าน|แส|บาท|เมตร|ม\.|m\b|ต้น|จุด))/ 
+    );
+    if (contextual) {
+      const kva = Number(contextual[1]);
+      if (known.size ? known.has(kva) : kva >= 15 && kva <= 5000) return kva;
+    }
+    return null;
   }
 
   const TR_BUDGET_PRESETS = [
@@ -382,7 +629,7 @@
     const text = normalizeText(query);
     if (!parseBudgetBahtFromQuery(query)) return false;
     if (!window.PriceQuotePole?.isTransformerBudgetQuery?.(text)) return false;
-    return /มีเงิน|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้ไหม|ทำได้|ได้กี่|กี่ kva|กี่เครื่อง|สูงสุด/.test(text);
+    return /มีเงิน|มีงบ|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้ไหม|ทำได้|ได้กี่|กี่ kva|กี่เครื่อง|สูงสุด/.test(text);
   }
 
   function parseTrBudgetQuery(query, budgetType = "01.1") {
@@ -395,7 +642,7 @@
       ? "1p"
       : (/3p|3 p|three|3\s*เฟส/.test(text) ? "3p" : null);
     const wantsUnitCount = /กี่เครื่อง|กี่\s*ตัว|กี่\s*ตู้|ได้กี่เครื่อง|จำนวน.*เครื่อง/.test(text);
-    const wantsMaxSize = /สูงสุด|ใหญ่สุด|max|ขนาดใหญ่|ใหญ่ที่สุด|ขนาดสูงสุด/.test(text);
+    const wantsMaxSize = !kva && /สูงสุด|ใหญ่สุด|max|ขนาดใหญ่|ใหญ่ที่สุด|ขนาดสูงสุด/.test(text);
 
     return {
       intent: "tr_budget_check",
@@ -403,7 +650,7 @@
       budgetBaht,
       kva,
       phase,
-      wantsUnitCount: wantsUnitCount || wantsMaxSize,
+      wantsUnitCount,
       wantsMaxSize,
       includeTrSet: true,
       installType: "single_pole",
@@ -450,35 +697,44 @@
     const bestFit = fitting.length
       ? fitting.slice().sort((a, b) => b.kva - a.kva || b.total - a.total)[0]
       : null;
-    const selected = intent.kva ? priced.find(item => item.kva === intent.kva) || priced[0] : (bestFit || cheapest);
-    const budgetDelta = budgetBaht - selected.total;
-    const enough = budgetDelta >= 0;
-    const label = `หม้อแปลง ${selected.kva} kVA ${selected.phase.toUpperCase()}`;
-    const maxUnits = bestFit && bestFit.total > 0 ? Math.floor(budgetBaht / bestFit.total) : 0;
-    const usedBudget = maxUnits > 0 ? maxUnits * bestFit.total : 0;
-    const remainingBudget = maxUnits > 0 ? budgetBaht - usedBudget : budgetDelta;
+    const selected = intent.kva
+      ? priced.find(item => item.kva === intent.kva && (!intent.phase || item.phase === intent.phase))
+        || priced.find(item => item.kva === intent.kva)
+        || priced[0]
+      : (bestFit || cheapest);
 
-    let verdict;
-    if (intent.kva) {
-      verdict = enough
-        ? `✓ งบพอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — เหลือ buffer ~${Math.round(budgetDelta).toLocaleString()} บาท`
-        : `✗ งบไม่พอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — ขาด ~${Math.round(-budgetDelta).toLocaleString()} บาท`;
-    } else if (bestFit && (intent.wantsUnitCount || intent.wantsMaxSize) && maxUnits > 0) {
-      verdict = `✓ งบ ${budgetBaht.toLocaleString()} บาท — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} (~${Math.round(bestFit.total).toLocaleString()} บาท/เครื่อง) · ได้ ~${maxUnits} เครื่อง (ใช้งบ ~${Math.round(usedBudget).toLocaleString()} บาท · เหลือ ~${Math.round(remainingBudget).toLocaleString()} บาท)`;
-    } else if (bestFit) {
-      verdict = `✓ งบพอ — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} ประมาณ ${Math.round(bestFit.total).toLocaleString()} บาท/เครื่อง` +
-        (fitting.length > 1 ? ` (ขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ~${Math.round(cheapest.total).toLocaleString()} บาท)` : "");
-    } else {
-      verdict = `✗ งบไม่พอ — ติดตั้งขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ประมาณ ${Math.round(cheapest.total).toLocaleString()} บาท — ขาด ~${Math.round(cheapest.total - budgetBaht).toLocaleString()} บาท`;
+    if (!selected) {
+      return { error: "ไม่พบรายการหม้อแปลงที่คำนวณได้ — ลองระบุ kVA เช่น 50 kVA" };
     }
 
-    const displayItem = intent.kva ? selected : (bestFit || cheapest);
+    const perUnitTotal = selected.total;
+    const budgetDelta = budgetBaht - perUnitTotal;
+    const enough = perUnitTotal <= budgetBaht;
+    const fixedKvaUnits = Boolean(intent.kva && intent.wantsUnitCount);
+    const maxKvaUnits = Boolean(!intent.kva && (intent.wantsUnitCount || intent.wantsMaxSize) && bestFit);
+
+    let maxUnits = 1;
+    let usedBudget = perUnitTotal;
+    let remainingBudget = budgetDelta;
+
+    if (fixedKvaUnits && enough) {
+      maxUnits = Math.max(1, Math.floor(budgetBaht / perUnitTotal));
+      usedBudget = maxUnits * perUnitTotal;
+      remainingBudget = budgetBaht - usedBudget;
+    } else if (maxKvaUnits && bestFit?.total > 0) {
+      maxUnits = Math.floor(budgetBaht / bestFit.total);
+      usedBudget = maxUnits * bestFit.total;
+      remainingBudget = budgetBaht - usedBudget;
+    }
+
+    const displayItem = fixedKvaUnits || intent.kva ? selected : (bestFit || cheapest);
     const breakdown = [
-      verdict,
       `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(displayItem.total).toLocaleString()} บาท/เครื่อง`
     ];
 
-    if (maxUnits > 1 && (intent.wantsUnitCount || intent.wantsMaxSize)) {
+    if (fixedKvaUnits && maxUnits > 0) {
+      breakdown.push(`สรุป: ${maxUnits} × ${selected.kva} kVA ${selected.phase.toUpperCase()} = ความจุรวม ~${(maxUnits * selected.kva).toLocaleString()} kVA`);
+    } else if (maxKvaUnits && maxUnits > 1) {
       breakdown.push(
         `ความจุรวมสูงสุด ~${(maxUnits * bestFit.kva).toLocaleString()} kVA (${maxUnits} × ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()})`
       );
@@ -501,15 +757,17 @@
         type: "tr_budget_check",
         budgetBaht,
         budgetVerdict: enough ? "enough" : "short",
-        budgetDelta: intent.kva ? budgetDelta : (bestFit ? budgetBaht - bestFit.total : budgetBaht - cheapest.total),
+        budgetDelta: fixedKvaUnits || intent.kva ? remainingBudget : (bestFit ? budgetBaht - bestFit.total : budgetBaht - cheapest.total),
         targetTotal: displayItem.total,
         kva: displayItem.kva,
         phase: displayItem.phase,
-        maxUnits: maxUnits || 1,
+        maxUnits,
         perUnitTotal: displayItem.total,
-        usedBudget: maxUnits > 0 ? usedBudget : displayItem.total,
-        remainingBudget: maxUnits > 0 ? remainingBudget : budgetDelta,
-        wantsUnitCount: Boolean(intent.wantsUnitCount || intent.wantsMaxSize),
+        usedBudget,
+        remainingBudget,
+        fixedKvaUnits,
+        wantsMaxSize: Boolean(intent.wantsMaxSize),
+        wantsUnitCount: Boolean(intent.wantsUnitCount),
         transformerId: displayItem.trResult.transformerId,
         trSetId: displayItem.trResult.trSetId,
         trSetName: displayItem.trResult.trSetName,
@@ -652,11 +910,7 @@
       }
 
       result.transformerId = transformer.id;
-      result.trSetId = result.trSetId || resolveDefaultTrSetId(
-        result.installType || "single_pole",
-        phase,
-        kva
-      );
+      applyTrInstallDefaults(result, query || result.summary || "");
       result.needsClarification = false;
       result.clarificationQuestion = null;
       result.clarificationFields = [];
@@ -702,29 +956,30 @@
 
     const text = normalizeText(query);
     const kva = extractKvaFromQuery(query) ?? intent.kva;
-    const isInstall = /ติดตั้ง|install/.test(text);
+    const isInstall = isTrInstallLanguage(text)
+      || wantsTrInstallSet(text)
+      || intent.intent === "tr_install"
+      || intent.includeTrSet === true;
     const isTransformer = TRANSFORMER_KWS.some(kw => text.includes(kw))
       || intent.intent === "tr_install"
       || Boolean(intent.kva || intent.transformerId);
 
-    if (isTransformer && kva) {
-      const phase = /1p|1 p|single|เฟสเดียว/.test(text) ? "1p" : (intent.phase || "3p");
+    const protectedIntent = ["tr_budget_check", "budget_capacity", "pole_run"].includes(intent.intent);
+
+    if (isTransformer && kva && !protectedIntent) {
+      const phase = inferPhaseFromQuery(text, kva, intent.phase);
       const series = detectTransformerSeries(query);
       const transformer = findTransformerByKva(kva, phase, series);
       if (transformer) {
         intent.kva = kva;
         intent.phase = transformer.phase;
         intent.transformerId = transformer.id;
-        intent.includeTrSet = isInstall;
         intent.intent = isInstall ? "tr_install" : "material_only";
         if (isInstall) {
-          intent.installType = intent.installType || "single_pole";
-          intent.trSetId = intent.trSetId || resolveDefaultTrSetId(
-            intent.installType,
-            transformer.phase,
-            kva
-          );
+          intent.includeTrSet = true;
+          applyTrInstallDefaults(intent, query);
         } else {
+          intent.includeTrSet = false;
           intent.items = [{ materialId: transformer.id, qty: 1, laborHint: "ติดตั้ง" }];
         }
         intent.needsClarification = false;
@@ -768,25 +1023,29 @@
     const trBudgetIntent = parseTrBudgetQuery(query, budgetType);
     if (trBudgetIntent) return trBudgetIntent;
 
-    const kvaMatch = text.match(/(\d+)\s*kva/);
-    const kva = kvaMatch ? Number(kvaMatch[1]) : null;
-    const isTransformer = TRANSFORMER_KWS.some(kw => text.includes(kw));
-    const isInstall = /ติดตั้ง|install/.test(text);
+    const kvaMatch = text.match(/(\d+(?:\.\d+)?)\s*kva/);
+    const kva = extractKvaFromQuery(query) || (kvaMatch ? Number(kvaMatch[1]) : null);
+    const isTransformer = TRANSFORMER_KWS.some(kw => text.includes(kw)) || (kva && /kva|หม้อ|transformer|\btr\b/.test(text));
+    const isInstall = isTrInstallLanguage(text);
+    const isPriceQuery = /ราคา|กี่บาท|เท่าไร|เท่าไหร่|ประเมิน|estimate|cost|price/.test(text);
 
-    if (isTransformer && kva) {
-      const phase = /1p|1 p|single|เฟสเดียว/.test(text) ? "1p" : "3p";
+    if (kva && (isTransformer || isInstall || isPriceQuery)) {
+      const phase = inferPhaseFromQuery(text, kva);
       const series = detectTransformerSeries(query);
-      const installType = /platform|ยก|แพลต/.test(text) ? "platform" : "single_pole";
+      const installType = resolveTrInstallTypeForKva(kva, phase, series, query);
       const transformer = findTransformerByKva(kva, phase, series);
+      const wantsInstall = wantsTrInstallSet(text);
       return {
-        intent: isInstall ? "tr_install" : "material_only",
+        intent: wantsInstall ? "tr_install" : "material_only",
         budgetType,
         kva,
         phase,
         installType,
-        includeTrSet: isInstall,
+        includeTrSet: wantsInstall,
         transformerId: transformer?.id || null,
-        trSetId: resolveDefaultTrSetId(installType, phase, kva),
+        trSetId: wantsInstall ? resolveDefaultTrSetId(installType, phase, kva) : null,
+        poleMaterialId: wantsInstall && normalizeInstallType(installType) === "singlePole" ? "1000010012" : undefined,
+        poleQty: wantsInstall && normalizeInstallType(installType) === "singlePole" ? 1 : 0,
         items: transformer ? [{ materialId: transformer.id, qty: 1, laborHint: "ติดตั้ง" }] : [],
         summary: query,
         needsClarification: !transformer,
@@ -801,6 +1060,23 @@
         intent: "material_only",
         budgetType,
         items: [{ materialId: materialIdMatch[1], qty: 1, laborHint: "ติดตั้ง" }],
+        summary: query,
+        needsClarification: false,
+        source: "local"
+      };
+    }
+
+    const materialHit = detectMaterialSearchKeyword(text);
+    if (materialHit && isPriceQuery) {
+      return {
+        intent: "material_only",
+        budgetType,
+        materialSearchKey: materialHit.key,
+        items: [{
+          qty: 1,
+          laborHint: "ติดตั้ง",
+          searchTerms: [materialHit.key, ...(materialHit.def.searchTerms || [])]
+        }],
         summary: query,
         needsClarification: false,
         source: "local"
@@ -837,6 +1113,21 @@
         clarificationType: "tr_install",
         clarificationFields: intent.clarificationFields || [],
         question: intent.clarificationQuestion || "กรุณาระบุขนาดหม้อแปลง",
+        intent
+      };
+    }
+
+    if (intent.intent === "material_only") {
+      intent = resolveMaterialAmbiguity(intent, master, intent.summary);
+    }
+
+    if (intent.needsClarification && intent.clarificationType === "material_pick") {
+      return {
+        ok: false,
+        needsClarification: true,
+        clarificationType: "material_pick",
+        clarificationFields: intent.clarificationFields || buildMaterialClarificationFields(intent),
+        question: intent.clarificationQuestion || "กรุณาเลือกรายการพัสดุ",
         intent
       };
     }
@@ -914,6 +1205,14 @@
     } else {
       const materialResult = buildMaterialLines(intent, master);
       lines = materialResult.lines;
+      if (intent.intent === "material_only") {
+        bundle = {
+          type: "material_only",
+          materialSearchKey: intent.materialSearchKey || null,
+          alternateCount: intent.materialCandidates?.length || null,
+          bundleNote: intent.bundleNote || null
+        };
+      }
     }
 
     if (!lines.length) {
@@ -954,8 +1253,12 @@
     parseTrBudgetQuery,
     buildTrBudgetQuote,
     buildTrClarificationFields,
+    buildMaterialClarificationFields,
     mergeTrIntent,
+    mergeMaterialIntent,
+    resolveMaterialAmbiguity,
     buildQuote,
+    preferLocalTrInstallIntent,
     calculateQuoteTotal,
     findMasterItem,
     searchMaster,

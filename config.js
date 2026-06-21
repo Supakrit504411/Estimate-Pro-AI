@@ -74,6 +74,20 @@ window.APP_CONFIG = {
         needsClarification: false
       }
     },
+    "tr-install-315": {
+      label: "ราคาติดตั้งหม้อแปลง 315 kVA",
+      example: "ประเมินราคาติดตั้งหม้อแปลง 315 kVA 3 เฟส พร้อมอุปกรณ์ประกอบ",
+      intent: {
+        intent: "tr_install",
+        kva: 315,
+        phase: "3p",
+        installType: "platform",
+        includeTrSet: true,
+        transformerId: "1050010070",
+        trSetId: "40212",
+        needsClarification: false
+      }
+    },
     "line-mv-200": {
       label: "ขยายเขต MV 200 ม.",
       example: "ขยายเขตแรงสูง ระยะทาง 200 เมตรกี่บาท",

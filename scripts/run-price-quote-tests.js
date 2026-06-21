@@ -39,6 +39,7 @@ vm.createContext(sandbox);
 
 load("budget-formula.js");
 load("price-quote-catalog.js");
+load("survey-presets.js");
 load("price-ask-glossary.js");
 load("price-ask-nlu.js");
 load("price-quote-pole.js");
@@ -148,6 +149,139 @@ runCase("tr_budget — 5M max kVA + กี่เครื่อง", () => {
   assert("multiple units or large tr", Number(quote.bundle?.maxUnits) >= 1);
   const breakdownText = Array.isArray(quote.poleBreakdown) ? quote.poleBreakdown.join(" ") : "";
   assert("mentions units", /เครื่อง/.test(breakdownText));
+});
+
+runCase("tr_budget — 5M หม้อแปลง 30 กี่เครื่อง", () => {
+  const q = "มีงบ 5 ล้านบาท ติดหม้อแปลง 30 ได้กี่เครื่อง";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "01.1"), q);
+  assert("tr_budget_check", intent.intent === "tr_budget_check");
+  assert("budget 5M", Number(intent.budgetBaht) === 5000000);
+  assert("kva 30", Number(intent.kva) === 30);
+  assert("wants units", intent.wantsUnitCount === true);
+  assert("not max size", intent.wantsMaxSize !== true);
+
+  const catalog = sandbox.window.PRICE_QUOTE_CATALOG?.TRANSFORMER_BY_KVA || {};
+  const master = [{ id: "1000010012", name: "POLE", unit: "ต้น", matPrice: 8000, labPrice: 3000 }];
+  Object.entries(catalog["1p"] || {}).forEach(([kva, id]) => {
+    master.push({ id, name: `TR ${kva} 1P`, unit: "ตู้", matPrice: Number(kva) * 1500, labPrice: 40000 });
+  });
+  Object.entries(catalog["3p"] || {}).forEach(([kva, id]) => {
+    master.push({ id, name: `TR ${kva} 3P`, unit: "ตู้", matPrice: Number(kva) * 1500, labPrice: 40000 });
+  });
+
+  const quote = Engine.buildQuote(intent, master);
+  assert("quote ok", quote.ok === true);
+  assert("kva 30 not 2000", Number(quote.bundle?.kva) === 30);
+  assert("many units", Number(quote.bundle?.maxUnits) > 2);
+  assert("fixed kva mode", quote.bundle?.fixedKvaUnits === true);
+  const breakdownText = Array.isArray(quote.poleBreakdown) ? quote.poleBreakdown.join(" ") : "";
+  assert("no 2000 kVA", !/2000\s*kva/i.test(breakdownText));
+  assert("mentions 30 kVA", /30\s*kva/i.test(breakdownText));
+});
+
+runCase("tr_install — 315 kVA platform + SET 40212", () => {
+  const q = "ประเมินราคาติดตั้งหม้อแปลงขนาด 315 kVA (ระบบ 3 เฟส) พร้อมอุปกรณ์ประกอบ";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.2"), q);
+  assert("tr_install", intent.intent === "tr_install");
+  assert("kva 315", Number(intent.kva) === 315);
+  assert("platform", intent.installType === "platform");
+  assert("set 40212", intent.trSetId === "40212");
+  assert("include set", intent.includeTrSet === true);
+
+  const setObj = sandbox.window.SurveyPresetsApi.getSet("40212");
+  const master = [{ id: "1000010012", name: "POLE", unit: "ต้น", matPrice: 8000, labPrice: 3000 }];
+  master.push({ id: "1050010070", name: "TR315", unit: "ตู้", matPrice: 516300, labPrice: 11059 });
+  (setObj?.items || []).forEach(entry => {
+    master.push({
+      id: entry.id,
+      name: `ITEM ${entry.id}`,
+      unit: "ชิ้น",
+      matPrice: 500,
+      labPrice: 50
+    });
+  });
+
+  const quote = Engine.buildQuote(intent, master);
+  assert("quote ok", quote.ok === true);
+  assert("many lines", quote.lines.length > 10);
+  assert("has tr set bundle", quote.bundle?.trSetId === "40212");
+  assert("not transformer only", quote.lines.length > 1);
+});
+
+runCase("preferLocalTrInstall — Gemini material_only → local install", () => {
+  const q = "ประเมินราคาติดตั้งหม้อแปลง 315 kVA 3 เฟส";
+  const aiIntent = {
+    intent: "material_only",
+    budgetType: "02.2",
+    items: [{ materialId: "1050010070", qty: 1, laborHint: "ติดตั้ง" }],
+    summary: q,
+    source: "gemini-lite"
+  };
+  const preferred = Engine.preferLocalTrInstallIntent(q, "02.2", aiIntent, "gemini-lite");
+  assert("upgraded", preferred.intent.intent === "tr_install");
+  assert("platform", preferred.intent.installType === "platform");
+  assert("local source", preferred.parseSource === "local");
+});
+
+runCase("tr_install — 50 kVA คำพ้องชุดติดตั้ง", () => {
+  const cases = [
+    ["ชุดติดตั้ง", "หม้อแปลง 50 + ชุดติดตั้งราคาเท่าไร"],
+    ["อุปกรณ์ประกอบ", "หม้อแปลง 50 + อุปกรณ์ประกอบ ราคาเท่าไร"],
+    ["พร้อมชุดประกอบ", "หม้อแปลง 50 kVA พร้อมชุดประกอบ ราคาเท่าไร"],
+    ["รวมอุปกรณ์", "หม้อแปลง 50 kVA รวมอุปกรณ์ ราคาเท่าไร"],
+    ["SET", "หม้อแปลง 50 kVA + SET ราคา"]
+  ];
+
+  cases.forEach(([label, q]) => {
+    const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.2"), q);
+    assert(`${label} → tr_install`, intent.intent === "tr_install");
+    assert(`${label} → set 40205`, intent.trSetId === "40205");
+    assert(`${label} → singlePole`, intent.installType === "singlePole");
+    assert(`${label} → includeTrSet`, intent.includeTrSet === true);
+  });
+
+  const aiIntent = {
+    intent: "material_only",
+    budgetType: "02.2",
+    items: [{ materialId: "1050010066", qty: 1, laborHint: "ติดตั้ง" }],
+    summary: "หม้อแปลง 50 kVA พร้อมชุดประกอบ ราคาเท่าไร",
+    source: "gemini-lite"
+  };
+  const preferred = Engine.preferLocalTrInstallIntent(
+    "หม้อแปลง 50 kVA พร้อมชุดประกอบ ราคาเท่าไร",
+    "02.2",
+    aiIntent,
+    "gemini-lite"
+  );
+  assert("gemini coerce tr_install", preferred.intent.intent === "tr_install");
+  assert("gemini coerce 40205", preferred.intent.trSetId === "40205");
+});
+
+runCase("manhole — หลายแบบใน master ต้องให้เลือก", () => {
+  const master = [
+    { id: "9020010001", name: "MANHOLE 2T-1 WITH PILE IB1-020/34009", unit: "ชุด", matPrice: 165200, labPrice: 62885 },
+    { id: "9020010002", name: "MANHOLE 2T-2 WITH PILE IB1-020/34010", unit: "ชุด", matPrice: 170000, labPrice: 60000 },
+    { id: "9020010003", name: "MANHOLE 3T-1 WITH PILE", unit: "ชุด", matPrice: 180000, labPrice: 65000 }
+  ];
+  const q = "ขอราคา manhole";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.2"), q);
+  assert("local material", intent.intent === "material_only");
+  assert("search key", intent.materialSearchKey === "manhole");
+
+  const blocked = Engine.buildQuote(intent, master);
+  assert("needs pick", blocked.ok === false);
+  assert("material_pick", blocked.clarificationType === "material_pick");
+  assert("3 candidates", (blocked.intent?.materialCandidates || []).length === 3);
+
+  const picked = Engine.mergeMaterialIntent(blocked.intent, { materialId: "9020010002" });
+  const quote = Engine.buildQuote(picked, master);
+  assert("quote ok", quote.ok === true);
+  assert("picked id", quote.lines[0]?.materialId === "9020010002");
+
+  const specific = Engine.sanitizeIntent(Engine.parseQueryLocal("ขอราคา manhole 2t-2", "02.2"), "ขอราคา manhole 2t-2");
+  const autoQuote = Engine.buildQuote(specific, master);
+  assert("auto narrow ok", autoQuote.ok === true);
+  assert("auto narrow id", autoQuote.lines[0]?.materialId === "9020010002");
 });
 
 runCase("budget_capacity — 100k + 300m LV 3P", () => {

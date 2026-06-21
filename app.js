@@ -361,6 +361,21 @@
       }
     }
 
+    if (query && intent) {
+      const preferred = window.PriceQuoteEngine.preferLocalTrInstallIntent(
+        query,
+        budgetType,
+        intent,
+        parseSource
+      );
+      intent = preferred.intent;
+      parseSource = preferred.parseSource;
+    }
+
+    if (intent && query) {
+      intent = window.PriceQuoteEngine.sanitizeIntent(intent, query);
+    }
+
     if (!intent) {
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
@@ -393,6 +408,14 @@
       }
     }
 
+    if (!quote.ok && quote.needsClarification && quote.clarificationType === "material_pick") {
+      const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "material_pick");
+      if (clarifiedIntent) {
+        intent = clarifiedIntent;
+        quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
+      }
+    }
+
     lastPriceQuote = quote;
     lastPriceAskContext = {
       query: query || quote.query || "",
@@ -407,11 +430,16 @@
   async function promptPriceClarification(intent, question, type) {
     const fields = type === "tr_install"
       ? (window.PriceQuoteEngine.buildTrClarificationFields?.(intent) || intent.clarificationFields || [])
-      : (window.PriceQuotePole?.buildClarificationFields?.(intent) || intent.clarificationFields || []);
+      : type === "material_pick"
+        ? (window.PriceQuoteEngine.buildMaterialClarificationFields?.(intent) || intent.clarificationFields || [])
+        : (window.PriceQuotePole?.buildClarificationFields?.(intent) || intent.clarificationFields || []);
 
     if (!fields.length) {
       if (type === "tr_install") {
         return window.PriceQuoteEngine.mergeTrIntent(intent, {});
+      }
+      if (type === "material_pick") {
+        return window.PriceQuoteEngine.mergeMaterialIntent(intent, {});
       }
       return window.PriceQuoteEngine.mergePoleIntent(intent, {});
     }
@@ -432,7 +460,9 @@
     }).join("");
 
     const result = await Swal.fire({
-      title: type === "tr_install" ? "ระบุหม้อแปลง" : "ระบุรายละเอียดงานเสา",
+      title: type === "tr_install"
+        ? "ระบุหม้อแปลง"
+        : (type === "material_pick" ? "เลือกรายการพัสดุ" : "ระบุรายละเอียดงานเสา"),
       html: `
         <p class="price-clarify-intro">${escapeHtml(question || "")}</p>
         <div class="price-clarify-form">${fieldHtml}</div>
@@ -459,6 +489,9 @@
     if (!result.isConfirmed || !result.value) return null;
     if (type === "tr_install") {
       return window.PriceQuoteEngine.mergeTrIntent(intent, result.value);
+    }
+    if (type === "material_pick") {
+      return window.PriceQuoteEngine.mergeMaterialIntent(intent, result.value);
     }
     return window.PriceQuoteEngine.mergePoleIntent(intent, result.value);
   }
@@ -626,7 +659,10 @@
     if (bundle.type === "tr_budget_check") {
       const cls = bundle.budgetVerdict === "short" ? " price-ask-verdict-short" : " price-ask-verdict-ok";
       const label = `หม้อแปลง ${bundle.kva} kVA ${String(bundle.phase || "").toUpperCase()}`;
-      if (bundle.wantsUnitCount && bundle.maxUnits > 1) {
+      if (bundle.fixedKvaUnits && bundle.maxUnits >= 1) {
+        return `<div class="price-ask-bundle${cls}">✓ งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → ${label} · ติดตั้งได้ ~${bundle.maxUnits} เครื่อง (~${Math.round(bundle.perUnitTotal).toLocaleString()} บาท/เครื่อง)</div>`;
+      }
+      if (bundle.wantsUnitCount && bundle.wantsMaxSize && bundle.maxUnits > 1) {
         return `<div class="price-ask-bundle${cls}">✓ งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → สูงสุด ${bundle.kva} kVA · ติดตั้งได้ ~${bundle.maxUnits} เครื่อง (~${Math.round(bundle.perUnitTotal).toLocaleString()} บาท/เครื่อง)</div>`;
       }
       if (bundle.budgetVerdict === "enough") {
@@ -645,7 +681,9 @@
         ? `<p class="price-ask-clarify-hint">ระบบต้องการข้อมูลเพิ่ม — ลองถามใหม่หรือระบุ MV/LV, 1P/3P ในประโยคเดียว</p>`
         : (quote.clarificationType === "tr_install"
           ? `<p class="price-ask-clarify-hint">ระบุ kVA ในประโยค เช่น 「ติดตั้งหม้อแปลง 50 kVA」หรือเลือกจากคำถามที่พบบ่อย</p>`
-          : "");
+          : (quote.clarificationType === "material_pick"
+            ? `<p class="price-ask-clarify-hint">มีหลายรหัสใน master — เลือกจากรายการ หรือระบุรุ่นในประโยค เช่น 「manhole 2T-1」</p>`
+            : ""));
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
           <div class="price-ask-summary-top">
@@ -660,6 +698,9 @@
     }
 
     const bundleNote = renderBudgetVerdictBundle(quote.bundle)
+      || (quote.bundle?.bundleNote
+        ? `<div class="price-ask-bundle price-ask-bundle-note">${escapeHtml(quote.bundle.bundleNote)}</div>`
+        : "")
       || (quote.bundle?.trSetName
       ? `<div class="price-ask-bundle">ชุดติดตั้ง: ${escapeHtml(quote.bundle.trSetId)} — ${escapeHtml(quote.bundle.trSetName)}${
           quote.bundle.poleMaterialId

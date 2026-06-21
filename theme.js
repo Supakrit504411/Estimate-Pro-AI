@@ -32,6 +32,17 @@
     });
   }
 
+  function updateThemeColor(effective) {
+    const color = effective === "light" ? "#f7f3f5" : "#000000";
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    meta.content = color;
+  }
+
   function applyTheme(preference, options = {}) {
     const pref = normalizeMode(preference);
     const effective = resolveEffective(pref);
@@ -40,6 +51,7 @@
     root.setAttribute("data-theme-pref", pref);
     root.setAttribute("data-theme", effective);
     root.style.colorScheme = effective;
+    updateThemeColor(effective);
 
     if (!options.silent) {
       try {
