@@ -126,6 +126,30 @@ runCase("tr_budget — มีเงิน 50k หม้อแปลง", () => {
   assert("ready", intent.needsClarification === false);
 });
 
+runCase("tr_budget — 5M max kVA + กี่เครื่อง", () => {
+  const q = "มีเงิน 5,000,000 บาทติดหม้อแปลงขนาดสูงสุดได้กี่ kVA ได้กี่เครื่อง";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.2"), q);
+  assert("tr_budget_check", intent.intent === "tr_budget_check");
+  assert("budget 5M", Number(intent.budgetBaht) === 5000000);
+  assert("wants units", intent.wantsUnitCount === true);
+
+  const catalog = sandbox.window.PRICE_QUOTE_CATALOG?.TRANSFORMER_BY_KVA || {};
+  const master = [{ id: "1000010012", name: "POLE", unit: "ต้น", matPrice: 8000, labPrice: 3000 }];
+  Object.entries(catalog["1p"] || {}).forEach(([kva, id]) => {
+    master.push({ id, name: `TR ${kva} 1P`, unit: "ตู้", matPrice: Number(kva) * 1500, labPrice: 40000 });
+  });
+  Object.entries(catalog["3p"] || {}).forEach(([kva, id]) => {
+    master.push({ id, name: `TR ${kva} 3P`, unit: "ตู้", matPrice: Number(kva) * 1500, labPrice: 40000 });
+  });
+
+  const quote = Engine.buildQuote(intent, master);
+  assert("quote ok", quote.ok === true);
+  assert("max kva > 100", Number(quote.bundle?.kva) > 100);
+  assert("multiple units or large tr", Number(quote.bundle?.maxUnits) >= 1);
+  const breakdownText = Array.isArray(quote.poleBreakdown) ? quote.poleBreakdown.join(" ") : "";
+  assert("mentions units", /เครื่อง/.test(breakdownText));
+});
+
 runCase("budget_capacity — 100k + 300m LV 3P", () => {
   const q = "มีเงิน 1 แสนบาท ขยายเขตแรงต่ำ 300 เมตร 3 เฟส พอไหม";
   const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "01.1"), q);

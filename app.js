@@ -627,8 +627,11 @@
     if (bundle.type === "tr_budget_check") {
       const cls = bundle.budgetVerdict === "short" ? " price-ask-verdict-short" : " price-ask-verdict-ok";
       const label = `หม้อแปลง ${bundle.kva} kVA ${String(bundle.phase || "").toUpperCase()}`;
+      if (bundle.wantsUnitCount && bundle.maxUnits > 1) {
+        return `<div class="price-ask-bundle${cls}">✓ งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → สูงสุด ${bundle.kva} kVA · ติดตั้งได้ ~${bundle.maxUnits} เครื่อง (~${Math.round(bundle.perUnitTotal).toLocaleString()} บาท/เครื่อง)</div>`;
+      }
       if (bundle.budgetVerdict === "enough") {
-        return `<div class="price-ask-bundle${cls}">✓ งบพอ: ${label} (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · เหลือ ~${Math.round(bundle.budgetDelta).toLocaleString()} บาท</div>`;
+        return `<div class="price-ask-bundle${cls}">✓ งบพอ: ${label} (~${Math.round(bundle.targetTotal).toLocaleString()} บาท/เครื่อง) · เหลือ ~${Math.round(bundle.budgetDelta).toLocaleString()} บาท</div>`;
       }
       return `<div class="price-ask-bundle${cls}">✗ งบไม่พอ: ${label} (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · ขาด ~${Math.round(-bundle.budgetDelta).toLocaleString()} บาท</div>`;
     }

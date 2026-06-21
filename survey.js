@@ -1484,14 +1484,31 @@
     }
   }
 
+  function getMapTileUrl(theme) {
+    return theme === "light"
+      ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  }
+
+  function applyMapTheme(theme) {
+    if (!state.map || !window.L) return;
+    const nextTheme = theme === "light" ? "light" : "dark";
+    if (state.tileLayer) {
+      state.map.removeLayer(state.tileLayer);
+    }
+    state.tileLayer = L.tileLayer(getMapTileUrl(nextTheme), {
+      attribution: nextTheme === "light"
+        ? "&copy; OpenStreetMap"
+        : "&copy; OpenStreetMap &copy; CARTO"
+    }).addTo(state.map);
+  }
+
   function initMap() {
     if (!window.L || !els.mapEl) return;
     const center = surveyConfig.defaultCenter || [17.4081, 104.7762];
     state.map = L.map(els.mapEl, { zoomControl: false }).setView(center, surveyConfig.defaultZoom || 15);
     L.control.zoom({ position: "bottomleft" }).addTo(state.map);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(state.map);
+    applyMapTheme(window.PEATheme?.getEffective?.() || "dark");
     state.map.on("click", handleMapClick);
     state.map.on("move", updateAimOverlay);
     state.map.on("moveend", updateAimOverlay);
@@ -3025,6 +3042,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", init);
+
+  window.addEventListener("pea-theme-change", event => {
+    applyMapTheme(event.detail?.theme || "dark");
+  });
 
   window.SurveyModule = {
     onTabOpen,

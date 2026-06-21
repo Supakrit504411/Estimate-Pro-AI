@@ -327,49 +327,29 @@
     }
   ];
 
-  function parseBudgetBahtFromQuery(query) {
-    return window.PriceQuotePole?.parseBudgetBaht?.(query) ?? null;
-  }
+  function buildTrBudgetCandidates(intent) {
+    const catalog = window.PRICE_QUOTE_CATALOG?.TRANSFORMER_BY_KVA || {};
+    const fromCatalog = [];
 
-  function isTrBudgetQuery(query) {
-    const text = normalizeText(query);
-    if (!parseBudgetBahtFromQuery(query)) return false;
-    if (!window.PriceQuotePole?.isTransformerBudgetQuery?.(text)) return false;
-    return /มีเงิน|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้ไหม|ทำได้/.test(text);
-  }
+    ["1p", "3p"].forEach(phase => {
+      Object.entries(catalog[phase] || {}).forEach(([kvaRaw, transformerId]) => {
+        const kva = Number(kvaRaw);
+        if (!kva || !transformerId) return;
+        fromCatalog.push({
+          kva,
+          phase,
+          installType: intent.installType || "single_pole",
+          transformerId,
+          trSetId: resolveDefaultTrSetId(intent.installType || "single_pole", phase, kva),
+          poleMaterialId: intent.poleMaterialId || "1000010012",
+          poleQty: Number(intent.poleQty) || 1
+        });
+      });
+    });
 
-  function parseTrBudgetQuery(query, budgetType = "01.1") {
-    if (!isTrBudgetQuery(query)) return null;
+    const base = fromCatalog.length ? fromCatalog : TR_BUDGET_PRESETS.map(preset => ({ ...preset }));
+    let candidates = base.sort((a, b) => a.kva - b.kva || a.phase.localeCompare(b.phase));
 
-    const text = normalizeText(query);
-    const budgetBaht = parseBudgetBahtFromQuery(query);
-    const kva = extractKvaFromQuery(query);
-    const phase = /1p|1 p|single|เฟสเดียว|1\s*เฟส/.test(text)
-      ? "1p"
-      : (/3p|3 p|three|3\s*เฟส/.test(text) ? "3p" : null);
-
-    return {
-      intent: "tr_budget_check",
-      budgetType,
-      budgetBaht,
-      kva,
-      phase,
-      includeTrSet: true,
-      installType: "single_pole",
-      summary: query,
-      needsClarification: false,
-      source: "local"
-    };
-  }
-
-  function buildTrBudgetQuote(intent, master) {
-    const budgetBaht = Number(intent.budgetBaht);
-    const budgetType = BUDGET_TYPES.includes(intent.budgetType) ? intent.budgetType : "01.1";
-    if (!budgetBaht || budgetBaht <= 0) {
-      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 50,000 บาท" };
-    }
-
-    let candidates = TR_BUDGET_PRESETS.map(preset => ({ ...preset }));
     if (intent.phase) {
       candidates = candidates.filter(item => item.phase === intent.phase);
     }
@@ -390,6 +370,57 @@
         poleQty: Number(intent.poleQty) || 1
       }];
     }
+
+    return candidates;
+  }
+
+  function parseBudgetBahtFromQuery(query) {
+    return window.PriceQuotePole?.parseBudgetBaht?.(query) ?? null;
+  }
+
+  function isTrBudgetQuery(query) {
+    const text = normalizeText(query);
+    if (!parseBudgetBahtFromQuery(query)) return false;
+    if (!window.PriceQuotePole?.isTransformerBudgetQuery?.(text)) return false;
+    return /มีเงิน|งบ|พอไหม|เงินพอ|ทำได้ไหม|ขาด|เกิน|ได้ไหม|ทำได้|ได้กี่|กี่ kva|กี่เครื่อง|สูงสุด/.test(text);
+  }
+
+  function parseTrBudgetQuery(query, budgetType = "01.1") {
+    if (!isTrBudgetQuery(query)) return null;
+
+    const text = normalizeText(query);
+    const budgetBaht = parseBudgetBahtFromQuery(query);
+    const kva = extractKvaFromQuery(query);
+    const phase = /1p|1 p|single|เฟสเดียว|1\s*เฟส/.test(text)
+      ? "1p"
+      : (/3p|3 p|three|3\s*เฟส/.test(text) ? "3p" : null);
+    const wantsUnitCount = /กี่เครื่อง|กี่\s*ตัว|กี่\s*ตู้|ได้กี่เครื่อง|จำนวน.*เครื่อง/.test(text);
+    const wantsMaxSize = /สูงสุด|ใหญ่สุด|max|ขนาดใหญ่|ใหญ่ที่สุด|ขนาดสูงสุด/.test(text);
+
+    return {
+      intent: "tr_budget_check",
+      budgetType,
+      budgetBaht,
+      kva,
+      phase,
+      wantsUnitCount: wantsUnitCount || wantsMaxSize,
+      wantsMaxSize,
+      includeTrSet: true,
+      installType: "single_pole",
+      summary: query,
+      needsClarification: false,
+      source: "local"
+    };
+  }
+
+  function buildTrBudgetQuote(intent, master) {
+    const budgetBaht = Number(intent.budgetBaht);
+    const budgetType = BUDGET_TYPES.includes(intent.budgetType) ? intent.budgetType : "01.1";
+    if (!budgetBaht || budgetBaht <= 0) {
+      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 50,000 บาท" };
+    }
+
+    let candidates = buildTrBudgetCandidates(intent);
 
     const priced = candidates.map(preset => {
       const trIntent = {
@@ -416,19 +447,26 @@
 
     const fitting = priced.filter(item => item.total <= budgetBaht);
     const cheapest = priced[0];
-    const bestFit = fitting.length ? fitting[fitting.length - 1] : null;
+    const bestFit = fitting.length
+      ? fitting.slice().sort((a, b) => b.kva - a.kva || b.total - a.total)[0]
+      : null;
     const selected = intent.kva ? priced.find(item => item.kva === intent.kva) || priced[0] : (bestFit || cheapest);
     const budgetDelta = budgetBaht - selected.total;
     const enough = budgetDelta >= 0;
     const label = `หม้อแปลง ${selected.kva} kVA ${selected.phase.toUpperCase()}`;
+    const maxUnits = bestFit && bestFit.total > 0 ? Math.floor(budgetBaht / bestFit.total) : 0;
+    const usedBudget = maxUnits > 0 ? maxUnits * bestFit.total : 0;
+    const remainingBudget = maxUnits > 0 ? budgetBaht - usedBudget : budgetDelta;
 
     let verdict;
     if (intent.kva) {
       verdict = enough
         ? `✓ งบพอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — เหลือ buffer ~${Math.round(budgetDelta).toLocaleString()} บาท`
         : `✗ งบไม่พอ: ${label} ประมาณ ${Math.round(selected.total).toLocaleString()} บาท — ขาด ~${Math.round(-budgetDelta).toLocaleString()} บาท`;
+    } else if (bestFit && (intent.wantsUnitCount || intent.wantsMaxSize) && maxUnits > 0) {
+      verdict = `✓ งบ ${budgetBaht.toLocaleString()} บาท — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} (~${Math.round(bestFit.total).toLocaleString()} บาท/เครื่อง) · ได้ ~${maxUnits} เครื่อง (ใช้งบ ~${Math.round(usedBudget).toLocaleString()} บาท · เหลือ ~${Math.round(remainingBudget).toLocaleString()} บาท)`;
     } else if (bestFit) {
-      verdict = `✓ งบพอ — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} ประมาณ ${Math.round(bestFit.total).toLocaleString()} บาท` +
+      verdict = `✓ งบพอ — ติดตั้งได้สูงสุด ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()} ประมาณ ${Math.round(bestFit.total).toLocaleString()} บาท/เครื่อง` +
         (fitting.length > 1 ? ` (ขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ~${Math.round(cheapest.total).toLocaleString()} บาท)` : "");
     } else {
       verdict = `✗ งบไม่พอ — ติดตั้งขั้นต่ำ ${cheapest.kva} kVA ${cheapest.phase.toUpperCase()} ประมาณ ${Math.round(cheapest.total).toLocaleString()} บาท — ขาด ~${Math.round(cheapest.total - budgetBaht).toLocaleString()} บาท`;
@@ -437,11 +475,23 @@
     const displayItem = intent.kva ? selected : (bestFit || cheapest);
     const breakdown = [
       verdict,
-      `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(displayItem.total).toLocaleString()} บาท`
+      `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(displayItem.total).toLocaleString()} บาท/เครื่อง`
     ];
 
+    if (maxUnits > 1 && (intent.wantsUnitCount || intent.wantsMaxSize)) {
+      breakdown.push(
+        `ความจุรวมสูงสุด ~${(maxUnits * bestFit.kva).toLocaleString()} kVA (${maxUnits} × ${bestFit.kva} kVA ${bestFit.phase.toUpperCase()})`
+      );
+    }
+
     if (!intent.kva && fitting.length) {
-      breakdown.push(`ติดตั้งได้ในงบนี้: ${fitting.map(item => `${item.kva} kVA ${item.phase.toUpperCase()} (~${Math.round(item.total).toLocaleString()} บาท)`).join(" · ")}`);
+      const preview = fitting
+        .slice()
+        .sort((a, b) => b.kva - a.kva)
+        .slice(0, 6)
+        .reverse()
+        .map(item => `${item.kva} kVA ${item.phase.toUpperCase()} (~${Math.round(item.total).toLocaleString()} บาท/เครื่อง)`);
+      breakdown.push(`ขนาดที่ติดตั้งได้ในงบนี้ (ต่อเครื่อง): ${preview.join(" · ")}`);
     }
 
     return {
@@ -455,6 +505,11 @@
         targetTotal: displayItem.total,
         kva: displayItem.kva,
         phase: displayItem.phase,
+        maxUnits: maxUnits || 1,
+        perUnitTotal: displayItem.total,
+        usedBudget: maxUnits > 0 ? usedBudget : displayItem.total,
+        remainingBudget: maxUnits > 0 ? remainingBudget : budgetDelta,
+        wantsUnitCount: Boolean(intent.wantsUnitCount || intent.wantsMaxSize),
         transformerId: displayItem.trResult.transformerId,
         trSetId: displayItem.trResult.trSetId,
         trSetName: displayItem.trResult.trSetName,
