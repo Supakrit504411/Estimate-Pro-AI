@@ -17,12 +17,8 @@ Thumbs.db
 npm-debug.log*
 
 # ── ไม่ push ขึ้น GitHub (เก็บในเครื่องเท่านั้น) ──
-# Backend source + ค่า config จริง — copy ไป GAS Editor เอง
+# Backend source + API keys จริง — copy ไป GAS Editor เอง
 GAS.txt
 
-# เอกสารทั้งหมดรวมอยู่ที่นี่ (local only)
-docs/
-
-# ไม่ใช้ README นอก docs/
-README.md
+# เอกสาร skill ส่วนตัว (ถ้ามี)
 skill.md
