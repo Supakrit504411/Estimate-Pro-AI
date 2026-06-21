@@ -127,8 +127,8 @@
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const y = window.scrollY;
-          if (!compact && y > 80) compact = true;
-          else if (compact && y < 28) compact = false;
+          if (!compact && y > 48) compact = true;
+          else if (compact && y < 16) compact = false;
           apply();
           ticking = false;
         });
