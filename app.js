@@ -2422,12 +2422,12 @@
       return `
         <section class="report-section">
           <h2>สรุปงบ ${escapeHtml(type)}</h2>
-          <table>
+          <table class="table-kv table-compact">
             <tbody>
               ${rows.map(([label, amount]) => `
-                <tr><td>${escapeHtml(label)}</td><td class="num">${formatBudgetAmount(amount)}</td></tr>
+                <tr><td class="kv-label">${escapeHtml(label)}</td><td class="num kv-value">${formatBudgetAmount(amount)}</td></tr>
               `).join("")}
-              <tr class="total-row"><td><strong>สุทธิ (${escapeHtml(type)})</strong></td><td class="num"><strong>${formatBudgetAmount(totals.total)}</strong></td></tr>
+              <tr class="total-row"><td class="kv-label"><strong>สุทธิ (${escapeHtml(type)})</strong></td><td class="num kv-value"><strong>${formatBudgetAmount(totals.total)}</strong></td></tr>
             </tbody>
           </table>
         </section>
@@ -2446,11 +2446,11 @@
       return `
         <section class="report-section">
           <h2>ข้อมูลสำรวจ</h2>
-          <table>
+          <table class="table-kv table-compact">
             <tbody>
-              <tr><td>จุดเริ่ม</td><td>${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}</td></tr>
-              <tr><td>จุดสิ้นสุด</td><td>${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}</td></tr>
-              <tr><td>หมุด / ระยะ / Span</td><td>${poleCount} หมุด · ${totalDistanceM} ม. · Span ${spanM} ม.</td></tr>
+              <tr><td class="kv-label">จุดเริ่ม</td><td class="kv-value">${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}</td></tr>
+              <tr><td class="kv-label">จุดสิ้นสุด</td><td class="kv-value">${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}</td></tr>
+              <tr><td class="kv-label">หมุด / ระยะ / Span</td><td class="kv-value">${poleCount} หมุด · ${totalDistanceM} ม. · Span ${spanM} ม.</td></tr>
             </tbody>
           </table>
         </section>
@@ -2505,12 +2505,12 @@
 
     const lineRows = (details || []).map((item, index) => `
       <tr>
-        <td>${index + 1}</td>
-        <td>${escapeHtml(String(item.type || ""))}</td>
-        <td>${escapeHtml(String(item.id || ""))}</td>
-        <td>${escapeHtml(String(item.name || ""))}</td>
-        <td class="num">${escapeHtml(String(item.qty || ""))}</td>
-        <td class="num">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>
+        <td class="col-no">${index + 1}</td>
+        <td class="col-type">${escapeHtml(String(item.type || ""))}</td>
+        <td class="col-id">${escapeHtml(String(item.id || ""))}</td>
+        <td class="col-name">${escapeHtml(String(item.name || ""))}</td>
+        <td class="num col-qty">${escapeHtml(String(item.qty || ""))}</td>
+        <td class="num col-total">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>
       </tr>
     `).join("");
 
@@ -2528,9 +2528,46 @@
         .report-meta { color: #555; margin-bottom: 18px; font-size: 13px; }
         .report-grand { margin: 16px 0 20px; padding: 12px 14px; border: 2px solid #333; text-align: right; font-size: 18px; font-weight: 700; }
         .report-section { margin-bottom: 18px; page-break-inside: avoid; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        table { border-collapse: collapse; font-size: 11px; }
         th, td { border: 1px solid #ccc; padding: 5px 7px; vertical-align: top; }
         th { background: #f3f3f3; }
+        .table-kv {
+          width: auto;
+          max-width: 420px;
+          table-layout: fixed;
+        }
+        .table-kv .kv-label {
+          width: 108px;
+          white-space: nowrap;
+          padding: 3px 8px 3px 6px;
+        }
+        .table-kv .kv-value {
+          width: auto;
+          padding: 3px 6px;
+        }
+        .table-compact th,
+        .table-compact td {
+          padding: 3px 6px;
+          font-size: 10px;
+          line-height: 1.35;
+        }
+        .table-boq {
+          width: 100%;
+          table-layout: fixed;
+          font-size: 10px;
+        }
+        .table-boq th,
+        .table-boq td {
+          padding: 3px 5px;
+          line-height: 1.35;
+          word-wrap: break-word;
+          overflow-wrap: anywhere;
+        }
+        .table-boq .col-no { width: 28px; }
+        .table-boq .col-type { width: 42px; }
+        .table-boq .col-id { width: 72px; }
+        .table-boq .col-qty { width: 44px; }
+        .table-boq .col-total { width: 68px; }
         .num { text-align: right; white-space: nowrap; }
         .total-row td { background: #fafafa; }
         .report-map img { width: 100%; max-height: 420px; object-fit: contain; border: 1px solid #ccc; }
@@ -2547,7 +2584,15 @@
       ${buildBudgetBreakdownPrintHtml(details)}
       <section class="report-section">
         <h2>รายการพัสดุ (BOQ)</h2>
-        <table>
+        <table class="table-boq">
+          <colgroup>
+            <col class="col-no">
+            <col class="col-type">
+            <col class="col-id">
+            <col class="col-name">
+            <col class="col-qty">
+            <col class="col-total">
+          </colgroup>
           <thead><tr><th>#</th><th>งบ</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
           <tbody>${lineRows}</tbody>
         </table>
