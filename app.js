@@ -532,8 +532,7 @@
     if (parseSource === "faq") return "คู่มือ";
     if (parseSource === "glossary") return "พจนานุกรม";
     if (parseSource === "local") return "ระบบ";
-    if (parseSource === "gemini-lite") return "AI 3.1 Lite";
-    if (parseSource === "gemini") return "AI 2.5";
+    if (parseSource === "gemini-lite" || parseSource === "gemini") return "AI Answer";
     return "ระบบ";
   }
 

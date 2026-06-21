@@ -60,6 +60,16 @@
         requires: ["มีเงิน", "งบ", "ล้าน", "แส", "บาท"],
         scope: "pole_only"
       },
+      tr_budget_units: {
+        phrases: [
+          "กี่เครื่อง",
+          "ได้กี่เครื่อง",
+          "ขนาดสูงสุด",
+          "ใหญ่สุด",
+          "ใหญ่ที่สุด"
+        ],
+        requires: ["มีเงิน", "หม้อแปลง", "งบ", "ล้าน", "บาท"]
+      },
       pole_material_only: {
         phrases: ["ไม่เอาหัวเสา", "ไม่รวมหัวเสา", "วัสดุเสาอย่างเดียว", "เสาอย่างเดียว"],
         assemblyMode: "pole_material"
@@ -137,6 +147,17 @@
         query: "ขยายเขต 200 เมตร",
         budgetType: "01.1",
         expect: { intent: "pole_run", needsClarification: true }
+      },
+      {
+        name: "tr budget 5M units",
+        query: "มีเงิน 5,000,000 บาทติดหม้อแปลงขนาดสูงสุดได้กี่ kVA ได้กี่เครื่อง",
+        budgetType: "02.2",
+        expect: {
+          intent: "tr_budget_check",
+          budgetBaht: 5000000,
+          wantsUnitCount: true,
+          wantsMaxSize: true
+        }
       }
     ]
   };
