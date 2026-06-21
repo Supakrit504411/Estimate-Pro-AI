@@ -15,6 +15,7 @@
   };
 
   let lastPriceQuote = null;
+  let lastPriceAskContext = null;
   let appBootstrapped = false;
 
   const els = {};
@@ -182,6 +183,7 @@
     els.adminAuditSearch = document.getElementById("adminAuditSearch");
     els.adminAuditAction = document.getElementById("adminAuditAction");
     els.adminAuditExportBtn = document.getElementById("adminAuditExportBtn");
+    els.adminPriceAskFeedback = document.getElementById("adminPriceAskFeedback");
   }
 
   function bindEvents() {
@@ -241,6 +243,12 @@
         if (event.target.closest("[data-action='export-price-pdf']")) {
           exportPriceAskPdf();
         }
+        if (event.target.closest("[data-action='price-feedback-ok']")) {
+          handlePriceAskFeedback("ok");
+        }
+        if (event.target.closest("[data-action='price-feedback-wrong']")) {
+          handlePriceAskFeedback("wrong");
+        }
       });
     }
   }
@@ -257,7 +265,9 @@
       try {
         const cached = JSON.parse(sessionStorage.getItem(MASTER_CACHE_KEY) || "null");
         if (cached?.data && Date.now() - cached.savedAt < getMasterCacheTtlMs()) {
-          state.dataStore = cached.data;
+          state.dataStore = window.PriceAskNlu?.enrichMasterStore
+            ? window.PriceAskNlu.enrichMasterStore(cached.data)
+            : cached.data;
           return;
         }
       } catch (error) {
@@ -266,7 +276,10 @@
     }
 
     try {
-      state.dataStore = await window.ApiService.getMasterData();
+      const raw = await window.ApiService.getMasterData();
+      state.dataStore = window.PriceAskNlu?.enrichMasterStore
+        ? window.PriceAskNlu.enrichMasterStore(raw)
+        : raw;
       sessionStorage.setItem(MASTER_CACHE_KEY, JSON.stringify({
         data: state.dataStore,
         savedAt: Date.now()
@@ -356,8 +369,11 @@
         </div>
       `;
       els.priceAskBtn.disabled = false;
+      lastPriceAskContext = null;
       return;
     }
+
+    if (intent.source === "glossary") parseSource = "glossary";
 
     let quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
 
@@ -378,6 +394,12 @@
     }
 
     lastPriceQuote = quote;
+    lastPriceAskContext = {
+      query: query || quote.query || "",
+      budgetType,
+      parseSource,
+      intent
+    };
     renderPriceAskResult(quote, parseSource);
     els.priceAskBtn.disabled = false;
   }
@@ -452,17 +474,7 @@
   function renderBudgetBreakdownRowsHtml(totals, budgetType, options = {}) {
     const type = window.BudgetFormula.normalizeBudgetType(budgetType);
     const rowClass = options.rowClass || "calc-row";
-    const rows = [
-      ["พัสดุ", totals.material],
-      ["แรง", totals.labor],
-      ["คุมงาน 30%", totals.supervision],
-      ["ขนส่ง 5%", totals.transport],
-      ["\u0e40\u0e1a\u0e2d\u0e40\u0e34\u0e25\u0e32\u0e34 5%", totals.misc],
-      ["ดำเนินการ 5%", totals.overhead]
-    ];
-    if (type === "02.2") {
-      rows.push(["กำไร 30%", totals.profit]);
-    }
+    const rows = window.BudgetFormula.getBudgetBreakdownRows(totals, budgetType);
 
     const body = rows.map(([label, amount]) => `
       <div class="${rowClass}">
@@ -518,9 +530,80 @@
 
   function formatPriceAskSource(parseSource) {
     if (parseSource === "faq") return "คู่มือ";
+    if (parseSource === "glossary") return "พจนานุกรม";
+    if (parseSource === "local") return "ระบบ";
     if (parseSource === "gemini-lite") return "AI 3.1 Lite";
     if (parseSource === "gemini") return "AI 2.5";
     return "ระบบ";
+  }
+
+  function renderPriceAskConfidenceBadge(intent) {
+    if (!intent || intent.parseConfidence == null) return "";
+    const level = intent.confidenceLevel || "medium";
+    const pct = Math.round(Number(intent.parseConfidence) * 100);
+    const label = level === "high"
+      ? "มั่นใจสูง"
+      : (level === "medium" ? "ควรตรวจสอบ" : "มั่นใจต่ำ");
+    return `<span class="price-ask-confidence price-ask-confidence-${level}" title="${escapeHtml((intent.confidenceReasons || []).join(", "))}">${label} ${pct}%</span>`;
+  }
+
+  function renderPriceAskFeedbackBar() {
+    return `
+      <div class="price-ask-feedback">
+        <span class="price-ask-feedback-label">ผลลัพธ์ตรงกับที่ต้องการไหม?</span>
+        <button class="ghost-btn price-ask-feedback-btn" type="button" data-action="price-feedback-ok">ตรง</button>
+        <button class="ghost-btn price-ask-feedback-btn price-ask-feedback-wrong" type="button" data-action="price-feedback-wrong">ไม่ตรง</button>
+      </div>
+    `;
+  }
+
+  async function handlePriceAskFeedback(verdict) {
+    const ctx = lastPriceAskContext;
+    const quote = lastPriceQuote;
+    if (!ctx?.query || !window.PriceAskFeedback?.logFeedback) return;
+
+    if (verdict === "wrong") {
+      const result = await Swal.fire({
+        title: "ช่วยบอกเพิ่มเติม",
+        html: `<p class="price-ask-feedback-swalsub">คำถาม: ${escapeHtml(ctx.query)}</p>`,
+        input: "textarea",
+        inputPlaceholder: "ควรได้คำตอบแบบไหน? (เช่น เทโคน 10 จุดอย่างเดียว ไม่รวมเสา)",
+        showCancelButton: true,
+        confirmButtonText: "ส่ง feedback",
+        cancelButtonText: "ยกเลิก"
+      });
+      if (!result.isConfirmed) return;
+
+      window.PriceAskFeedback.logFeedback({
+        verdict: "wrong",
+        query: ctx.query,
+        budgetType: ctx.budgetType,
+        parseSource: ctx.parseSource,
+        parseConfidence: ctx.intent?.parseConfidence,
+        confidenceLevel: ctx.intent?.confidenceLevel,
+        intent: ctx.intent,
+        total: quote?.total,
+        note: result.value || ""
+      });
+
+      Swal.fire("บันทึกแล้ว", "ขอบคุณ — ทีมจะนำไปปรับพจนานุกรมและชุดทดสอบ", "success");
+      renderAdminPriceAskFeedback();
+      return;
+    }
+
+    window.PriceAskFeedback.logFeedback({
+      verdict: "ok",
+      query: ctx.query,
+      budgetType: ctx.budgetType,
+      parseSource: ctx.parseSource,
+      parseConfidence: ctx.intent?.parseConfidence,
+      confidenceLevel: ctx.intent?.confidenceLevel,
+      intent: ctx.intent,
+      total: quote?.total
+    });
+
+    Swal.fire({ icon: "success", title: "ขอบคุณ", text: "บันทึก feedback แล้ว", timer: 1400, showConfirmButton: false });
+    renderAdminPriceAskFeedback();
   }
 
   function renderBudgetVerdictBundle(bundle) {
@@ -534,6 +617,9 @@
         ? ` · ขยายได้สูงสุด ~${bundle.maxDistanceM} ม.`
         : "";
       return `<div class="price-ask-bundle${cls}">✗ งบไม่พอ: ระยะ ${bundle.targetDistanceM} ม. (~${Math.round(bundle.targetTotal).toLocaleString()} บาท) · ขาด ~${Math.round(-bundle.budgetDelta).toLocaleString()} บาท${maxNote}</div>`;
+    }
+    if (bundle.type === "budget_capacity" && bundle.capacityMode === "poles") {
+      return `<div class="price-ask-bundle">งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → ปักเสาได้ ~${bundle.poleCount} ต้น (วัสดุเสาอย่างเดียว)</div>`;
     }
     if (bundle.type === "budget_capacity") {
       return `<div class="price-ask-bundle">งบ ${Number(bundle.budgetBaht).toLocaleString()} บาท → ขยายได้ ~${bundle.maxDistanceM} ม. · ${bundle.poleCount} ต้น</div>`;
@@ -604,6 +690,7 @@
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
           <span class="price-ask-source">${formatPriceAskSource(parseSource)} · งบ ${escapeHtml(quote.budgetType)}</span>
+          ${renderPriceAskConfidenceBadge(quote.intent)}
           <span class="price-ask-total">${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
         </div>
         <p class="price-ask-query">${escapeHtml(quote.query || "")}</p>
@@ -628,6 +715,7 @@
         <button class="ghost-btn" type="button" data-action="export-price-pdf">Export PDF</button>
         <button class="primary-btn price-ask-import" type="button" data-action="import-price-quote">เพิ่มเข้างบประมาณการ</button>
       </div>
+      ${renderPriceAskFeedbackBar()}
     `;
   }
 
@@ -655,7 +743,7 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "PriceAsk");
     const safeName = (quote.query || "price_ask").slice(0, 40).replace(/[\\/:*?"<>|]/g, "_");
-    XLSX.writeFile(wb, `ถามราคา_${safeName}.xlsx`);
+    XLSX.writeFile(wb, `ถาม_AI_${safeName}.xlsx`);
   }
 
   function buildPriceAskPrintHtml(quote) {
@@ -669,7 +757,7 @@
       </tr>
     `).join("");
 
-    return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ถามราคา</title>
+    return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ถาม AI</title>
       <style>
         body { font-family: Sarabun, sans-serif; padding: 24px; color: #111; }
         h1 { font-size: 20px; margin: 0 0 8px; }
@@ -679,7 +767,7 @@
         th { background: #f3f3f3; }
         .total { margin-top: 12px; font-size: 16px; font-weight: 700; text-align: right; }
       </style></head><body>
-      <h1>ผลการถามราคา</h1>
+      <h1>ผลการถาม AI</h1>
       <div class="meta">งบ ${escapeHtml(quote.budgetType)} · ${escapeHtml(quote.query || "")}</div>
       <table>
         <thead><tr><th>#</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
@@ -800,7 +888,7 @@
     if (!hasPriceAskDraft()) return true;
 
     const { isConfirmed } = await Swal.fire({
-      title: "ออกจากหน้าถามราคา?",
+      title: "ออกจากหน้าถาม AI?",
       text: "ยังมีคำถามหรือผลลัพธ์ราคาที่ยังไม่ได้นำเข้างบ — ออกจากหน้านี้จะล้างผลลัพธ์",
       icon: "warning",
       showCancelButton: true,
@@ -2409,15 +2497,7 @@
 
     return Object.entries(grouped).map(([type, items]) => {
       const totals = window.BudgetFormula.computeBudgetTotalsFromItems(items, type);
-      const rows = [
-        ["พัสดุ", totals.material],
-        ["แรง", totals.labor],
-        ["คุมงาน 30%", totals.supervision],
-        ["ขนส่ง 5%", totals.transport],
-        ["เบอเหลา 5%", totals.misc],
-        ["ดำเนินการ 5%", totals.overhead]
-      ];
-      if (type === "02.2") rows.push(["กำไร 30%", totals.profit]);
+      const rows = window.BudgetFormula.getBudgetBreakdownRows(totals, type);
 
       return `
         <section class="report-section">
@@ -2778,6 +2858,13 @@
 
     const audit = data.audit || [];
     renderAdminAuditTable(audit);
+    renderAdminPriceAskFeedback();
+  }
+
+  function renderAdminPriceAskFeedback() {
+    if (!els.adminPriceAskFeedback || !window.PriceAskFeedback?.renderAdminSummaryHtml) return;
+    els.adminPriceAskFeedback.innerHTML = window.PriceAskFeedback.renderAdminSummaryHtml();
+    window.PriceAskFeedback.bindAdminPanel(els.adminPriceAskFeedback);
   }
 
   function filterHistory() {

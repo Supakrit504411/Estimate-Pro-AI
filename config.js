@@ -16,10 +16,13 @@ window.APP_CONFIG = {
     lineIntake: "line-intake",
     lineSearch: "line-search",
     parsePriceQuery: "parse-price-query",
+    priceAskFeedback: "price-ask-feedback",
     driveFilePreviews: "drive-file-previews"
   },
   lineBridgePath: "/api/line-webhook",
   masterDataCacheTtlMs: 480000,
+  /** ส่ง feedback ถามราคาไป GAS (ถ้า backend รองรับ) — localStorage เก็บเสมอ */
+  priceAskFeedbackEnabled: true,
 
   /** คำถามที่พบบ่อย — หม้อแปลง + SET ติดตั้ง + เสา 12.20 ม. 1 ต้น */
   priceFaq: {

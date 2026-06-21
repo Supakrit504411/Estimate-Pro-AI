@@ -528,6 +528,9 @@
     const budgetBaht = Number(result.budgetBaht);
 
     if (result.intent === "pole_run" || result.intent === "budget_capacity") {
+      if (window.PriceQuotePole?.inferVoltagePhaseDefaults) {
+        Object.assign(result, window.PriceQuotePole.inferVoltagePhaseDefaults(result));
+      }
       if (hasDistance) {
         result.scope = result.scope === "pole_only" ? result.scope : "with_wire";
         delete result.poleCount;
@@ -539,9 +542,12 @@
       if (result.intent === "budget_capacity" && !(budgetBaht > 0)) {
         missing.push("งบประมาณ");
       }
-      if (hasDistance || result.scope === "with_wire" || result.intent === "budget_capacity") {
+      if (hasDistance || result.scope === "with_wire"
+        || (result.intent === "budget_capacity" && result.capacityMode !== "poles")) {
         if (!result.voltage) missing.push("แรงดัน (MV/LV)");
         if (!result.phase) missing.push("ระบบเฟส (1P/3P)");
+      } else if (result.intent === "budget_capacity" && result.capacityMode === "poles" && !result.poleHeightM) {
+        missing.push("ความสูงเสา (เมตร)");
       }
       if (result.intent === "pole_run" && !hasDistance && !result.poleHeightM && !(Number(result.poleCount) > 0)) {
         missing.push("ระยะทาง (เมตร) หรือจำนวนเสา");
@@ -686,11 +692,18 @@
       intent = window.PriceQuotePole.enrichPoleIntentFromQuery(intent, query);
     }
 
-    return validateIntent(intent, query);
+    let result = validateIntent(intent, query);
+    if (window.PriceAskNlu?.applyConfidenceGate) {
+      result = window.PriceAskNlu.applyConfidenceGate(result, query);
+    }
+    return result;
   }
 
   function parseQueryLocal(query, budgetType = "01.1") {
     const text = normalizeText(query);
+
+    const glossaryIntent = window.PriceAskNlu?.tryGlossaryIntent?.(query, budgetType);
+    if (glossaryIntent) return glossaryIntent;
 
     if (window.PriceQuotePole?.parsePoleQuery) {
       const poleIntent = window.PriceQuotePole.parsePoleQuery(query, budgetType);

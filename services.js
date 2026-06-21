@@ -103,6 +103,10 @@
       return request(config.endpoints.parsePriceQuery, { query, budgetType });
     },
 
+    submitPriceAskFeedback(entry) {
+      return request(config.endpoints.priceAskFeedback, entry);
+    },
+
     getDriveFilePreviews(fileIds) {
       return request(config.endpoints.driveFilePreviews, { fileIds });
     }

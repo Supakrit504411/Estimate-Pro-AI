@@ -16,6 +16,12 @@ function load(relativePath) {
 const sandbox = {
   window: {},
   console,
+  localStorage: {
+    store: {},
+    getItem(key) { return this.store[key] ?? null; },
+    setItem(key, value) { this.store[key] = String(value); },
+    removeItem(key) { delete this.store[key]; }
+  },
   SurveyPresetsApi: {
     getConfig: () => ({ wireMultiplier: 4 }),
     getConfigKey: (v, p) => `${v}${p}`,
@@ -28,15 +34,22 @@ const sandbox = {
   APP_CONFIG: { priceFaq: {} }
 };
 sandbox.window = sandbox;
+sandbox.window.localStorage = sandbox.localStorage;
 vm.createContext(sandbox);
 
 load("budget-formula.js");
 load("price-quote-catalog.js");
+load("price-ask-glossary.js");
+load("price-ask-nlu.js");
 load("price-quote-pole.js");
 load("price-quote-engine.js");
+load("price-ask-feedback.js");
 
 const Engine = sandbox.window.PriceQuoteEngine;
 const Pole = sandbox.window.PriceQuotePole;
+const Nlu = sandbox.window.PriceAskNlu;
+const Feedback = sandbox.window.PriceAskFeedback;
+const Glossary = sandbox.window.PRICE_ASK_GLOSSARY;
 
 let passed = 0;
 let failed = 0;
@@ -184,6 +197,94 @@ runCase("budget formula — 02.2 includes profit", () => {
 runCase("budget formula — 01.1 no profit", () => {
   const totals = sandbox.window.BudgetFormula.computeBudgetTotals(100000, 8000, "01.1");
   assert("no profit", totals.profit === 0);
+});
+
+runCase("concrete only — เทโคนเสา 10 จุด", () => {
+  const q = "เทโคนเสา 10 จุด ราคาเท่าไร";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
+  assert("material_only", intent.intent === "material_only");
+  assert("qty 10", intent.items?.[0]?.qty === 10);
+  assert("concrete id", intent.items?.[0]?.materialId === "9090010025");
+  assert("no clarification", intent.needsClarification === false);
+  assert("not pole_run", intent.intent !== "pole_run");
+});
+
+runCase("budget 2M — เสา 12.2m อย่างเดียว ได้กี่ต้น", () => {
+  const q = "มีเงิน 2 ล้านบาทจะปักเสาขนาด 12.20 เมตรอย่างเดียวไม่เอาพาดสายไฟได้กี่ต้น";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
+  assert("budget_capacity", intent.intent === "budget_capacity");
+  assert("budget 2M", Number(intent.budgetBaht) === 2000000);
+  assert("capacityMode poles", intent.capacityMode === "poles");
+  assert("scope pole_only", intent.scope === "pole_only");
+  assert("assembly pole_material", intent.assemblyMode === "pole_material");
+  assert("height 12.2", Number(intent.poleHeightM) === 12.2);
+  assert("no clarification", intent.needsClarification === false);
+
+  const polePrice = 8000;
+  const poleLab = 3000;
+  const master = [{ id: "1000010012", name: "POLE 12.20", unit: "ต้น", matPrice: polePrice, labPrice: poleLab }];
+  const quote = Engine.buildQuote(intent, master);
+  assert("quote ok", quote.ok === true);
+  assert("many poles", (quote.bundle?.poleCount || 0) > 100);
+  const breakdownText = Array.isArray(quote.poleBreakdown)
+    ? quote.poleBreakdown.join(" ")
+    : String(quote.poleBreakdown || "");
+  assert("no wire line", !/102005|สายหุ้ม|สายเปล/.test(breakdownText));
+  assert("no concrete", !breakdownText.includes("เทโคน"));
+});
+
+runCase("parseBudgetBaht — ล้าน และ แสน", () => {
+  assert("2 ล้าน", Pole.parseBudgetBaht("มีเงิน 2 ล้านบาท") === 2000000);
+  assert("1.5 ล้าน", Pole.parseBudgetBaht("งบ 1.5 ล้าน") === 1500000);
+  assert("1 แสน", Pole.parseBudgetBaht("มีเงิน 1 แสนบาท") === 100000);
+});
+
+runCase("glossary — เทโคน match", () => {
+  const hints = Nlu.extractHints("เทโคนเสา 10 จุด");
+  assert("material concrete", hints.materialMatches.some(m => m.materialId === "9090010025"));
+  assert("intent concrete_only", hints.intentMatches.some(m => m.key === "concrete_only"));
+});
+
+runCase("glossary — enrich master keywords", () => {
+  const enriched = Nlu.enrichMasterItem({ id: "9090010025", name: "CONCRETE 1/3/5" });
+  assert("has keywordsTh", Array.isArray(enriched.keywordsTh) && enriched.keywordsTh.includes("เทโคน"));
+  assert("category concrete", enriched.category === "concrete");
+});
+
+runCase("confidence — line lv explicit high", () => {
+  const q = "ขยายเขตแรงต่ำ ระยะทาง 200 เมตร 3 เฟส";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "01.1"), q);
+  assert("has confidence", typeof intent.parseConfidence === "number");
+  assert("high or medium", ["high", "medium"].includes(intent.confidenceLevel));
+});
+
+runCase("feedback — log wrong + stats", () => {
+  sandbox.localStorage.removeItem(Feedback.STORAGE_KEY);
+  Feedback.logFeedback({ verdict: "wrong", query: "ทดสอบ", note: "ควรเป็นเทโคน" });
+  const stats = Feedback.stats();
+  assert("wrong count", stats.wrong === 1);
+  assert("list has entry", Feedback.list().length === 1);
+});
+
+runCase("golden queries — จาก glossary", () => {
+  (Glossary.goldenQueries || []).forEach(caseDef => {
+    const intent = Engine.sanitizeIntent(
+      Engine.parseQueryLocal(caseDef.query, caseDef.budgetType),
+      caseDef.query
+    );
+    const exp = caseDef.expect || {};
+    Object.entries(exp).forEach(([key, value]) => {
+      if (key === "qty") {
+        assert(`${caseDef.name} qty`, intent.items?.[0]?.qty === value);
+        return;
+      }
+      if (key === "materialId") {
+        assert(`${caseDef.name} materialId`, intent.items?.[0]?.materialId === value);
+        return;
+      }
+      assert(`${caseDef.name} ${key}`, intent[key] === value, `got ${intent[key]}`);
+    });
+  });
 });
 
 console.log(`\n--- สรุป: ${passed} passed, ${failed} failed ---`);

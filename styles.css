@@ -695,6 +695,78 @@ input:focus,
   line-height: 1.4;
 }
 
+.price-ask-confidence {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.price-ask-confidence-high {
+  color: #6ee7a0;
+  border-color: rgba(110, 231, 160, 0.35);
+}
+
+.price-ask-confidence-medium {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.price-ask-confidence-low {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.price-ask-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.price-ask-feedback-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.price-ask-feedback-btn {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.price-ask-feedback-wrong {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+}
+
+.price-ask-feedback-swalsub {
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.admin-feedback-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.admin-feedback-ok { color: #6ee7a0; }
+.admin-feedback-wrong { color: #f87171; }
+
+.admin-feedback-table td:nth-child(3) {
+  max-width: 280px;
+  word-break: break-word;
+}
+
 .price-ask-import {
   margin-top: 4px;
 }

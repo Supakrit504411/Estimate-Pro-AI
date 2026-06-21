@@ -149,6 +149,9 @@
       || /(?:แค่|เฉพาะ|วัสดุ)\s*เสา|เสา(?:อย่าง)?เดียว(?!\s*(?:\+|และ|พร้อม))/.test(t)
       || (/อย่างเดียว/.test(t) && rejectsHead);
 
+    const poleOnlyInstall = /อย่างเดียว|ไม่(?:เอา|พาด|ลาก).*สาย|ไม่พาดสาย|ไม่มีสาย/.test(t)
+      && !/ขยายเขต|ระยะทาง|ขยายสาย/.test(t);
+
     if (materialOnly && wantsConcrete) {
       return {
         assemblyMode: "pole_concrete",
@@ -165,7 +168,15 @@
         includeConcrete: false
       };
     }
-    if (wantsConcrete && /(?:เสา|pole)/.test(t)) {
+    if (poleOnlyInstall && !wantsConcrete) {
+      return {
+        assemblyMode: "pole_material",
+        includeHead: false,
+        includeOhgw: false,
+        includeConcrete: false
+      };
+    }
+    if (wantsConcrete && /(?:เสา|pole)/.test(t) && !poleOnlyInstall) {
       return {
         assemblyMode: "pole_concrete",
         includeHead: true,
@@ -207,11 +218,32 @@
     return null;
   }
 
+  function parsePointCount(text) {
+    const m = text.match(/(\d+)\s*จุด/);
+    return m ? Number(m[1]) : null;
+  }
+
+  function parsePoleCount(text) {
+    const pointCount = parsePointCount(text);
+    if (pointCount) return pointCount;
+    const m = text.match(/(\d+)\s*(?:ต้น|เสา(?!\s*(?:เมตร|ม\.|m\b)))/);
+    if (m) return Number(m[1]);
+    const approx = text.match(/(?:ประมาณ|ใช้|ต้องใช้|จำนวน)\s*(?:เสา[^0-9]*)?(\d+)\s*ต้น/);
+    if (approx) return Number(approx[1]);
+    return null;
+  }
+
   function parsePoleHeight(text) {
+    if (/(\d+(?:\.\d+)?)\s*(?:จุด|ต้น)/.test(text)) {
+      const countAsHeight = text.match(/(?:เสา|pole)\s*(\d+(?:\.\d+)?)\s*(?:จุด|ต้น)/);
+      if (countAsHeight) return null;
+    }
+
     const patterns = [
+      /ปักเสาขนาด\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/,
       /(?:ปักเสา|ติดตั้งเสา|เสาขนาด)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)?/,
       /(?:เสา|pole)\s*(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.|m\b)/,
-      /(?:เสา|pole)\s*(\d+(?:\.\d+)?)/
+      /(?:เสา|pole)\s*(\d+(?:\.\d+)?)(?!\s*(?:จุด|ต้น))/
     ];
     for (const re of patterns) {
       const m = text.match(re);
@@ -220,15 +252,32 @@
     return null;
   }
 
-  function parseBudgetBaht(text) {
+  function isConcreteOnlyQuery(text) {
     const t = normalizeText(text);
-    let m = t.match(/(\d+(?:\.\d+)?)\s*แส(?:นบาท|นบาท|น)?/);
-    if (m) return Math.round(Number(m[1]) * 100000);
-    m = t.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*บาท/);
-    if (m) return Number(m[1].replace(/,/g, ""));
-    m = t.match(/(?:มีเงิน|งบ|งบประมาณ)\s*(\d+(?:,\d{3})*)/);
-    if (m) return Number(m[1].replace(/,/g, ""));
-    return null;
+    if (!CONCRETE_RE.test(t)) return false;
+    if (/ขยายเขต|ขยายสาย|ลากสาย|ระยะทาง|พาดสาย|span|เมตร|ม\./.test(t)) return false;
+    if (/(\d+)\s*จุด/.test(t)) return true;
+    if (/เทโคน\s*เสา|เทโคนเสา|คอน.*?เสา|เสา.*?เทโคน/.test(t)) return true;
+    if (CONCRETE_RE.test(t) && parsePoleCount(t) && !parsePoleHeight(t)) return true;
+    return false;
+  }
+
+  function parseConcreteOnlyQuery(query, budgetType = "01.1") {
+    const text = normalizeText(query);
+    if (!isConcreteOnlyQuery(text)) return null;
+
+    const qty = parsePointCount(text) || parsePoleCount(text) || 1;
+    const concrete = resolveConcreteForParams({ voltage: "mv" });
+
+    return {
+      intent: "material_only",
+      budgetType,
+      items: [{ materialId: concrete.materialId, qty, laborHint: "ติดตั้ง" }],
+      summary: query,
+      needsClarification: false,
+      source: "local",
+      quoteNote: `${CONCRETE_WORD} ${concrete.materialId} × ${qty} จุด (วัสดุอย่างเดียว — ไม่รวมเสา/หัวเสา/สาย)`
+    };
   }
 
   function isTransformerBudgetQuery(text) {
@@ -260,11 +309,16 @@
     return null;
   }
 
-  function parsePoleCount(text) {
-    const m = text.match(/(\d+)\s*(?:ต้น|เสา(?!\s*(?:เมตร|ม\.|m\b)))/);
-    if (m) return Number(m[1]);
-    const approx = text.match(/(?:ประมาณ|ใช้|ต้องใช้|จำนวน)\s*(?:เสา[^0-9]*)?(\d+)\s*ต้น/);
-    if (approx) return Number(approx[1]);
+  function parseBudgetBaht(text) {
+    const t = normalizeText(text);
+    let m = t.match(/(\d+(?:\.\d+)?)\s*ล้าน(?:บาท)?/);
+    if (m) return Math.round(Number(m[1]) * 1000000);
+    m = t.match(/(\d+(?:\.\d+)?)\s*แส(?:นบาท|n)?/);
+    if (m) return Math.round(Number(m[1]) * 100000);
+    m = t.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*บาท/);
+    if (m) return Number(m[1].replace(/,/g, ""));
+    m = t.match(/(?:มีเงิน|งบ|งบประมาณ)\s*(\d+(?:,\d{3})*(?:\.\d+)?)/);
+    if (m) return Number(m[1].replace(/,/g, ""));
     return null;
   }
 
@@ -280,6 +334,25 @@
       || (parseDistanceM(t) != null && !parsePoleCount(t));
   }
 
+  function inferVoltagePhaseDefaults(intent) {
+    const merged = { ...intent };
+    const height = Number(merged.poleHeightM);
+    const summaryText = normalizeText(merged.summary || "");
+    if (!merged.voltage) {
+      if (height >= 12 || /แรงสูง|\bmv\b|22\s*kv/.test(summaryText)) {
+        merged.voltage = "mv";
+      } else if ((height > 0 && height <= 9) || /แรงต่ำ|\blv\b|0\.4/.test(summaryText)) {
+        merged.voltage = "lv";
+      }
+    }
+    if (!merged.phase && merged.voltage) {
+      merged.phase = "3p";
+    } else if (!merged.phase && merged.capacityMode === "poles" && height > 0) {
+      merged.phase = "3p";
+    }
+    return merged;
+  }
+
   function parseBudgetCapacityQuery(query, budgetType = "01.1") {
     const text = normalizeText(query);
     if (!isBudgetCapacityQuery(text)) return null;
@@ -287,11 +360,14 @@
     const budgetBaht = parseBudgetBaht(text);
     const targetDistanceM = parseDistanceM(text);
     const poleHeightM = parsePoleHeight(text);
-    const voltage = detectVoltage(text);
-    const phase = detectPhase(text);
-    const scope = "with_wire";
+    let voltage = detectVoltage(text);
+    let phase = detectPhase(text);
+    const wantsPoleCount = /(?:ได้|ทำได้|ปักได้).*?กี่ต้น|กี่ต้น(?:\s|$|\?)/.test(text);
+    const poleOnly = /อย่างเดียว|ไม่(?:เอา|พาด|ลาก).*สาย|ไม่พาดสาย|ไม่มีสาย|เฉพาะเสา|แค่เสา/.test(text);
+    const scope = poleOnly ? "pole_only" : "with_wire";
+    const capacityMode = wantsPoleCount && poleOnly && !targetDistanceM ? "poles" : "distance";
 
-    const intent = {
+    let intent = applyAssemblyOptions({
       intent: "budget_capacity",
       budgetType,
       budgetBaht,
@@ -300,13 +376,16 @@
       voltage,
       phase,
       scope,
+      capacityMode,
       cableSizeSqMm: 50,
       spanStraightM: DEFAULT_SPAN_M,
       spanCurveM: DEFAULT_CURVE_SPAN_M,
       summary: query,
       source: "local",
       clarificationType: "pole_run"
-    };
+    }, text);
+
+    intent = inferVoltagePhaseDefaults(intent);
 
     if (voltage) Object.assign(intent, applyLineDefaults(intent));
     if (phase) Object.assign(intent, applyPhaseDefaults(intent));
@@ -315,13 +394,16 @@
     intent.needsClarification = missing.length > 0;
     intent.clarificationFields = missing;
     intent.clarificationQuestion = buildClarificationQuestion(intent)
-      || "ระบุ 1P/3P เพื่อคำนวณว่างบนี้ขยายเขตได้กี่เมตร/กี่ต้น";
+      || (capacityMode === "poles"
+        ? "ระบุความสูงเสา (เมตร) เพื่อคำนวณว่างบนี้ปักเสาได้กี่ต้น"
+        : "ระบุ 1P/3P เพื่อคำนวณว่างบนี้ขยายเขตได้กี่เมตร/กี่ต้น");
 
     return intent;
   }
 
   function isPoleRunQuery(text) {
     const t = normalizeText(text);
+    if (isConcreteOnlyQuery(t)) return false;
     if (isLineExtensionQuery(t)) return true;
     if (/ปักเสา|ติดตั้งเสา|เสาทาง|เสาต้นทาง|pole run|pole line/.test(t)) return true;
     if (/เสา/.test(t) && parsePoleCount(t) >= 2) return true;
@@ -451,6 +533,9 @@
   function parsePoleQuery(query, budgetType = "01.1") {
     const text = normalizeText(query);
 
+    const concreteOnly = parseConcreteOnlyQuery(query, budgetType);
+    if (concreteOnly) return concreteOnly;
+
     const budgetQuery = parseBudgetCapacityQuery(query, budgetType);
     if (budgetQuery) return budgetQuery;
 
@@ -465,7 +550,7 @@
     let scope = detectScope(text);
     const cableType = detectCableType(text, voltage);
 
-    const intent = applyAssemblyOptions({
+    let intent = applyAssemblyOptions({
       intent: "pole_run",
       budgetType,
       distanceM,
@@ -482,6 +567,10 @@
       summary: query,
       source: "local"
     }, text);
+
+    intent = inferVoltagePhaseDefaults(intent);
+    if (!voltage) voltage = intent.voltage;
+    if (!phase) phase = intent.phase;
 
     if (distanceM != null && voltage) {
       Object.assign(intent, applyLineDefaults(intent));
@@ -584,7 +673,7 @@
   }
 
   function mergePoleParams(intent, answers = {}) {
-    let merged = { ...intent, ...answers };
+    let merged = inferVoltagePhaseDefaults({ ...intent, ...answers });
     merged.intent = "pole_run";
 
     if (merged.voltage) merged = applyLineDefaults(merged);
@@ -907,14 +996,84 @@
   }
 
   function buildBudgetCapacityQuote(intent, master, mergeLine, calcTotal) {
-    const params = mergePoleParams(intent, intent);
+    const params = inferVoltagePhaseDefaults(mergePoleParams(intent, intent));
     if (params.needsClarification) {
       return { error: params.clarificationQuestion, needsClarification: true };
     }
 
     const budgetBaht = Number(params.budgetBaht);
     if (!budgetBaht || budgetBaht <= 0) {
-      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 2 แสนบาท" };
+      return { error: "ไม่พบงบประมาณในคำถาม — ลองระบุ เช่น มีเงิน 2 แสนบาท หรือ 2 ล้านบาท" };
+    }
+
+    if (params.capacityMode === "poles" && params.scope === "pole_only") {
+      if (!params.poleHeightM) {
+        return {
+          error: "ระบุความสูงเสา (เมตร) เพื่อคำนวณว่างบนี้ปักเสาได้กี่ต้น",
+          needsClarification: true
+        };
+      }
+
+      let lo = 0;
+      let hi = 500000;
+      let best = null;
+
+      while (lo <= hi) {
+        const mid = Math.max(1, Math.floor((lo + hi) / 2));
+        const testParams = mergePoleParams(
+          {
+            ...params,
+            poleCount: mid,
+            distanceM: undefined,
+            scope: "pole_only",
+            assemblyMode: params.assemblyMode || "pole_material",
+            includeHead: params.includeHead === true,
+            includeConcrete: false
+          },
+          { poleCount: mid }
+        );
+        const result = buildPoleRunLines(testParams, master, mergeLine);
+        if (!result.lines?.length) {
+          hi = mid - 1;
+          continue;
+        }
+        const total = calcTotal(result.lines, params.budgetType).total;
+        if (total <= budgetBaht) {
+          best = { poleCount: mid, total, result, testParams };
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      if (!best) {
+        return {
+          error: `งบ ${budgetBaht.toLocaleString()} บาท ไม่เพียงพอสำหรับเสา ${params.poleHeightM} ม. แม้ 1 ต้น`
+        };
+      }
+
+      const layout = best.testParams.layout || computePoleCountLayout(best.poleCount);
+      const perPoleTotal = best.total / best.poleCount;
+      const breakdown = [
+        `งบที่ถาม: ${budgetBaht.toLocaleString()} บาท · ประมาณการใช้ ${Math.round(best.total).toLocaleString()} บาท`,
+        `ตอบ: ปักเสา ${params.poleHeightM} ม. (วัสดุเสาอย่างเดียว ไม่พาดสาย) ได้สูงสุด ~${best.poleCount} ต้น` +
+          ` (~${Math.round(perPoleTotal).toLocaleString()} บาท/ต้น · เหลือ buffer ~${Math.round(budgetBaht - best.total).toLocaleString()} บาท)`,
+        ...(best.result.breakdown || [])
+      ];
+
+      return {
+        lines: best.result.lines,
+        breakdown,
+        bundle: {
+          ...best.result.bundle,
+          type: "budget_capacity",
+          capacityMode: "poles",
+          budgetBaht,
+          estimatedTotal: best.total,
+          poleCount: layout.totalPoles,
+          perPoleTotal
+        }
+      };
     }
 
     let lo = 0;
@@ -1040,6 +1199,10 @@
     parseAssemblyOptions,
     applyAssemblyOptions,
     resolveConcreteForParams,
+    parseConcreteOnlyQuery,
+    parsePointCount,
+    isConcreteOnlyQuery,
+    inferVoltagePhaseDefaults,
     buildBudgetCapacityQuote,
     resolvePoleMaterialId,
     expandSetItems,

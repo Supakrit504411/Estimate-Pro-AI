@@ -82,7 +82,7 @@
 
         <div class="tab-bar">
           <button id="t1" class="tab-item active" type="button">สร้างงานใหม่</button>
-          <button id="t4" class="tab-item" type="button">ถามราคา</button>
+          <button id="t4" class="tab-item" type="button">ถาม AI</button>
           <button id="t3" class="tab-item" type="button">สำรวจหน้างาน</button>
           <button id="t2" class="tab-item" type="button">ประวัติโครงการ</button>
           <button id="t5" class="tab-item auth-hidden" type="button">Admin</button>
@@ -373,10 +373,10 @@
       <div id="priceAskPanel" class="panel price-ask-panel">
         <div class="section-head">
           <div>
-            <h2 class="section-title">ถามราคา</h2>
+            <h2 class="section-title">ถาม AI</h2>
             <p class="section-note">เลือกคำถามที่พบบ่อย หรือพิมพ์ kVA / รหัสพัสดุ — ระบบจับคู่จาก master โดยตรง</p>
           </div>
-          <span class="mini-tag">Price</span>
+          <span class="mini-tag">AI</span>
         </div>
 
         <div class="price-ask-row">
@@ -393,7 +393,7 @@
             <option value="02.2">งบ 02.2</option>
             <option value="03.1">งบ 03.1</option>
           </select>
-          <button id="priceAskBtn" class="primary-btn price-ask-btn" type="button">ถามราคา</button>
+          <button id="priceAskBtn" class="primary-btn price-ask-btn" type="button">ถาม AI</button>
         </div>
 
         <div id="priceAskChips" class="price-ask-chips"></div>
@@ -466,6 +466,11 @@
             <div id="adminProjects" class="admin-table-wrap"></div>
           </div>
           <div class="admin-block admin-block-wide">
+            <h3 class="admin-block-title">Price Ask Feedback</h3>
+            <p class="section-note">รวบรวมจากปุ่ม「ตอบไม่ตรง」ในแท็บถาม AI · เก็บในเบราว์เซอร์ + sync GAS (ถ้ามี)</p>
+            <div id="adminPriceAskFeedback" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block admin-block-wide">
             <h3 class="admin-block-title">Project Audit</h3>
             <div class="admin-audit-toolbar">
               <input type="text" id="adminAuditSearch" class="search-input admin-audit-search" placeholder="ค้นหา user / project / detail…" aria-label="ค้นหา audit">
@@ -496,9 +501,9 @@
         <span class="bottom-nav-bubble"><span class="bottom-nav-icon">⌖</span></span>
         <span class="bottom-nav-label">สำรวจ</span>
       </button>
-      <button type="button" class="bottom-nav-item" data-tab-nav="4" aria-label="ถามราคา">
+      <button type="button" class="bottom-nav-item" data-tab-nav="4" aria-label="ถาม AI">
         <span class="bottom-nav-icon" aria-hidden="true">฿</span>
-        <span class="bottom-nav-label">ราคา</span>
+        <span class="bottom-nav-label">ถาม AI</span>
       </button>
       <button type="button" class="bottom-nav-item" data-tab-nav="2" aria-label="ประวัติโครงการ">
         <span class="bottom-nav-icon" aria-hidden="true">☰</span>
@@ -513,11 +518,14 @@
   <script src="./auth.js"></script>
   <script src="./survey-presets.js"></script>
   <script src="./price-quote-catalog.js"></script>
+  <script src="./price-ask-glossary.js"></script>
+  <script src="./price-ask-nlu.js"></script>
   <script src="./budget-formula.js"></script>
   <script src="./price-quote-pole.js"></script>
   <script src="./survey-project.js"></script>
   <script src="./services.js"></script>
   <script src="./price-quote-engine.js"></script>
+  <script src="./price-ask-feedback.js"></script>
   <script src="./app.js"></script>
   <script src="./survey.js"></script>
 </body>

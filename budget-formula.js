@@ -59,10 +59,25 @@
     return computeBudgetTotals(material, labor, budgetType);
   }
 
+  function getBudgetBreakdownRows(totals, budgetType) {
+    const type = normalizeBudgetType(budgetType);
+    const rows = [
+      ["พัสดุ", totals.material],
+      ["แรง", totals.labor],
+      ["คุมงาน 30%", totals.supervision],
+      ["ขนส่ง 5%", totals.transport],
+      ["เบ็ดเตล็ด 5%", totals.misc],
+      ["ดำเนินการ 5%", totals.overhead]
+    ];
+    if (type === "02.2") rows.push(["กำไร 30%", totals.profit]);
+    return rows;
+  }
+
   window.BudgetFormula = {
     BUDGET_TYPE_ALIASES,
     normalizeBudgetType,
     computeBudgetTotals,
-    computeBudgetTotalsFromItems
+    computeBudgetTotalsFromItems,
+    getBudgetBreakdownRows
   };
 })();
