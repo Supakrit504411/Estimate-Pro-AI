@@ -2,7 +2,9 @@
 
 แอปประมาณการงานไฟฟ้า (PEA) สำหรับทีมงานภายใน — สร้าง BOQ, สำรวจหน้างานบนแผนที่, ถามราคา, แชร์โครงการ และ Admin Console
 
-**Production:** https://pro-ai.vercel.app  
+**Production:** https://estimate-pro-ai.vercel.app
+
+> หมายเหตุ: `pro-ai.vercel.app` เป็นโปรเจกต์อื่น — ใช้ URL ด้านบนเท่านั้น  
 **Repository:** https://github.com/Supakrit504411/Estimate-Pro-AI
 
 ---

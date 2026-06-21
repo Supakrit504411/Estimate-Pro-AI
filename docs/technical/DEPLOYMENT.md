@@ -54,7 +54,9 @@ GitHub → Vercel (Frontend + Proxy) → GAS Web App (Backend)
    ```
    GAS_WEB_APP_URL = https://script.google.com/macros/s/XXXX/exec
    ```
-4. Deploy → ได้ URL เช่น `https://pro-ai.vercel.app`
+4. Deploy → ได้ URL เช่น `https://estimate-pro-ai.vercel.app`
+
+> **สำคัญ:** `pro-ai.vercel.app` เป็นโปรเจกต์คนละตัว (ไม่ใช่ PEA Estimation AI Pro)
 
 ### ไฟล์ที่ขึ้น GitHub
 

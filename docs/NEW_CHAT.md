@@ -10,7 +10,7 @@
 ```
 โปรเจกต์: PEA Estimation AI Pro 2026
 Workspace: D:\9-WebApp2025\17-PEA Estimate\Codex-Estimate Pro
-Production: https://pro-ai.vercel.app
+Production: https://estimate-pro-ai.vercel.app
 GitHub: https://github.com/Supakrit504411/Estimate-Pro-AI
 
 Local only (ห้าม push): GAS.txt, skill.md, .env*
