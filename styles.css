@@ -892,6 +892,7 @@ input:focus,
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(11, 24, 43, 0.96), rgba(9, 19, 36, 0.96)), rgba(11, 24, 43, 0.96);
   border-left: 4px solid var(--purple);
+  overflow: visible;
 }
 
 .history-list {
@@ -1074,7 +1075,7 @@ input:focus,
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  z-index: 20;
+  z-index: 1400;
   flex-direction: column;
   gap: 6px;
   min-width: 132px;
@@ -2725,7 +2726,10 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
 
   .history-row-actions {
     padding-left: 0;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    overflow: visible;
   }
 
   .history-amount {
@@ -2734,12 +2738,35 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   }
 
   .history-actions-inline {
+    display: flex;
+    width: 100%;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .history-actions-inline::-webkit-scrollbar {
     display: none;
   }
 
+  .history-actions-inline .action-btn {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
   .history-more {
-    display: block;
-    margin-left: auto;
+    display: none;
+  }
+
+  #view2 .panel {
+    padding-bottom: calc(var(--bottom-nav-offset) + 8px);
+  }
+
+  .history-list {
+    padding-bottom: 8px;
   }
 
   .history-legend {
@@ -3410,19 +3437,19 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
 
   .bottom-nav-item.is-center {
     flex: 0 0 auto;
-    margin-top: -18px;
+    margin-top: -10px;
   }
 
   .bottom-nav-bubble {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     background: linear-gradient(145deg, var(--gold-soft) 0%, var(--primary-soft) 45%, var(--primary) 100%);
     box-shadow:
-      0 10px 28px rgba(116, 4, 95, 0.45),
+      0 8px 22px rgba(116, 4, 95, 0.4),
       inset 0 2px 6px rgba(255, 255, 255, 0.25);
     border: 2px solid rgba(255, 255, 255, 0.12);
   }
@@ -3432,8 +3459,12 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
     height: auto;
     border: none;
     background: transparent;
-    font-size: 20px;
+    font-size: 18px;
     color: #fff;
+  }
+
+  .bottom-nav-item.is-center .bottom-nav-label {
+    font-size: 7px;
   }
 
   .bottom-nav-item.is-active .bottom-nav-icon {
@@ -3671,6 +3702,20 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
 .admin-audit-action {
   flex: 0 0 auto;
   min-width: 120px;
+  color: var(--text);
+  background-color: rgba(18, 8, 14, 0.98);
+}
+
+.admin-panel select.search-input,
+.admin-panel select.admin-audit-action {
+  color: var(--text);
+  background-color: rgba(18, 8, 14, 0.98);
+}
+
+.admin-panel select.search-input option,
+.admin-panel select.admin-audit-action option {
+  color: #f7f0f4;
+  background-color: #1a0f18;
 }
 
 .admin-audit-wrap {

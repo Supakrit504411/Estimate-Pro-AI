@@ -2460,17 +2460,53 @@
     }
   }
 
-  function findSurveyMapPreview(imgStr, previews) {
+  function collectReportMediaItems(imgStr, previews) {
     const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
-    for (const url of urls) {
-      if (!/Survey_Map/i.test(url)) continue;
+    const sorted = [...urls].sort((a, b) => {
+      const aMap = /Survey_Map/i.test(a);
+      const bMap = /Survey_Map/i.test(b);
+      if (aMap && !bMap) return -1;
+      if (!aMap && bMap) return 1;
+      return 0;
+    });
+
+    let siteIndex = 0;
+    return sorted.map(url => {
       const fileId = extractDriveFileId(url);
       const preview = fileId && previews ? previews[fileId] : null;
+      const fileName = preview?.name ? String(preview.name) : "";
+      const isSurveyMap = /Survey_Map/i.test(url) || /Survey_Map/i.test(fileName);
+      const label = isSurveyMap
+        ? "แผนที่สำรวจ (ปักหมุด)"
+        : `รูป/ไฟล์หน้างาน ${++siteIndex}`;
+
       if (preview?.base64 && preview.mime?.startsWith("image/")) {
-        return { dataUrl: `data:${preview.mime};base64,${preview.base64}`, label: "แผนที่สำรวจ" };
+        return {
+          label,
+          dataUrl: `data:${preview.mime};base64,${preview.base64}`
+        };
       }
-    }
-    return null;
+      return null;
+    }).filter(Boolean);
+  }
+
+  function buildReportMediaPrintHtml(imgStr, previews) {
+    const items = collectReportMediaItems(imgStr, previews);
+    if (!items.length) return "";
+
+    return `
+      <section class="report-section report-media">
+        <h2>รูป/แผนที่หน้างาน</h2>
+        <div class="report-media-grid">
+          ${items.map(item => `
+            <figure class="report-media-item">
+              <figcaption>${escapeHtml(item.label)}</figcaption>
+              <img src="${item.dataUrl}" alt="${escapeHtml(item.label)}">
+            </figure>
+          `).join("")}
+        </div>
+      </section>
+    `;
   }
 
   function computeProjectGrandTotal(details, fallbackTotal) {
@@ -2514,10 +2550,7 @@
       </tr>
     `).join("");
 
-    const mapPreview = findSurveyMapPreview(imgStr, previews);
-    const mapHtml = mapPreview
-      ? `<section class="report-section report-map"><h2>${escapeHtml(mapPreview.label)}</h2><img src="${mapPreview.dataUrl}" alt="Survey map"></section>`
-      : "";
+    const mediaHtml = buildReportMediaPrintHtml(imgStr, previews);
 
     return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>${escapeHtml(name)}</title>
       <style>
@@ -2552,25 +2585,54 @@
           line-height: 1.35;
         }
         .table-boq {
-          width: 100%;
-          table-layout: fixed;
+          width: auto;
+          max-width: 100%;
+          table-layout: auto;
           font-size: 10px;
         }
         .table-boq th,
         .table-boq td {
           padding: 3px 5px;
           line-height: 1.35;
+          vertical-align: top;
+        }
+        .table-boq .col-no,
+        .table-boq .col-type,
+        .table-boq .col-id,
+        .table-boq .col-qty,
+        .table-boq .col-total {
+          width: 1%;
+          white-space: nowrap;
+        }
+        .table-boq .col-name {
+          max-width: 200px;
+          white-space: normal;
           word-wrap: break-word;
           overflow-wrap: anywhere;
         }
-        .table-boq .col-no { width: 28px; }
-        .table-boq .col-type { width: 42px; }
-        .table-boq .col-id { width: 72px; }
-        .table-boq .col-qty { width: 44px; }
-        .table-boq .col-total { width: 68px; }
         .num { text-align: right; white-space: nowrap; }
         .total-row td { background: #fafafa; }
-        .report-map img { width: 100%; max-height: 420px; object-fit: contain; border: 1px solid #ccc; }
+        .report-media-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .report-media-item {
+          margin: 0;
+          page-break-inside: avoid;
+        }
+        .report-media-item figcaption {
+          margin: 0 0 4px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #444;
+        }
+        .report-media-item img {
+          width: 100%;
+          max-height: 360px;
+          object-fit: contain;
+          border: 1px solid #ccc;
+        }
         .report-footer { margin-top: 24px; font-size: 10px; color: #777; text-align: center; }
       </style></head><body>
       <h1>${escapeHtml(name)}</h1>
@@ -2580,7 +2642,7 @@
         ออกรายงาน: ${escapeHtml(new Date().toLocaleString("th-TH"))}
       </div>
       ${buildSurveyMetaPrintHtml(surveyMetaStr)}
-      ${mapHtml}
+      ${mediaHtml}
       ${buildBudgetBreakdownPrintHtml(details)}
       <section class="report-section">
         <h2>รายการพัสดุ (BOQ)</h2>
