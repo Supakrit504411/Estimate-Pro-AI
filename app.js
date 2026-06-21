@@ -179,6 +179,9 @@
     els.adminUsers = document.getElementById("adminUsers");
     els.adminProjects = document.getElementById("adminProjects");
     els.adminAudit = document.getElementById("adminAudit");
+    els.adminAuditSearch = document.getElementById("adminAuditSearch");
+    els.adminAuditAction = document.getElementById("adminAuditAction");
+    els.adminAuditExportBtn = document.getElementById("adminAuditExportBtn");
   }
 
   function bindEvents() {
@@ -206,6 +209,9 @@
       state.adminCache = null;
       fetchAdminDashboard();
     });
+    els.adminAuditSearch?.addEventListener("input", renderAdminAuditFromCache);
+    els.adminAuditAction?.addEventListener("change", renderAdminAuditFromCache);
+    els.adminAuditExportBtn?.addEventListener("click", exportAdminAuditCsv);
     els.budgetButtons.forEach(button => {
       button.addEventListener("click", () => addBudget(button.dataset.budgetType));
     });
@@ -2208,6 +2214,8 @@
         imgStr: String(row[4] || ""),
         surveyMetaStr: String(row[5] || ""),
         createdBy: String(row[6] || ""),
+        grandTotal: parseFloat(row[3] || 0),
+        dateDisplay: safeDateDisplay(row[1]),
         sharedView: shareFields.sharedView,
         sharedEdit: shareFields.sharedEdit,
         isPublic: shareFields.isPublic
@@ -2266,6 +2274,341 @@
     }).join("")}
       </div>
     `;
+  }
+
+  function parseAuditDetailObject(detailStr) {
+    if (!detailStr) return null;
+    try {
+      const parsed = JSON.parse(detailStr);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function formatAuditDetailHtml(entry) {
+    const parsed = parseAuditDetailObject(entry.detail);
+    const action = String(entry.action || "").toLowerCase();
+
+    if (action === "share" && parsed) {
+      const viewUsers = parseUserList(parsed.sharedView);
+      const editUsers = parseUserList(parsed.sharedEdit);
+      const isPublic = /^(Y|YES|TRUE|1|ใช้งาน)$/i.test(String(parsed.isPublic || ""));
+      const parts = [];
+      if (viewUsers.length) {
+        parts.push(`<span class="audit-badge audit-badge-view">ดู: ${viewUsers.map(u => escapeHtml(u)).join(", ")}</span>`);
+      }
+      if (editUsers.length) {
+        parts.push(`<span class="audit-badge audit-badge-edit">แก้: ${editUsers.map(u => escapeHtml(u)).join(", ")}</span>`);
+      }
+      if (isPublic) {
+        parts.push(`<span class="audit-badge audit-badge-public">Public</span>`);
+      }
+      if (!parts.length) {
+        parts.push(`<span class="audit-muted">ไม่มีผู้ใช้ / ว่าง</span>`);
+      }
+      return `<div class="audit-detail-badges">${parts.join("")}</div>`;
+    }
+
+    if (action === "delete" && parsed?.name) {
+      return `<span class="audit-muted">ลบ: ${escapeHtml(parsed.name)}</span>`;
+    }
+
+    if (parsed) {
+      return `<code class="audit-raw">${escapeHtml(JSON.stringify(parsed))}</code>`;
+    }
+
+    return `<span class="audit-muted">${escapeHtml(entry.detail || "-")}</span>`;
+  }
+
+  function getAdminAuditFilters() {
+    return {
+      search: (els.adminAuditSearch?.value || "").trim().toLowerCase(),
+      action: els.adminAuditAction?.value || "all"
+    };
+  }
+
+  function filterAdminAuditRows(audit, filters) {
+    return (audit || []).filter(entry => {
+      if (filters.action !== "all" && String(entry.action || "").toLowerCase() !== filters.action) {
+        return false;
+      }
+      if (filters.search) {
+        const haystack = [
+          entry.timestamp,
+          entry.username,
+          entry.action,
+          entry.projectId,
+          entry.detail
+        ].join(" ").toLowerCase();
+        if (!haystack.includes(filters.search)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderAdminAuditTable(audit) {
+    if (!els.adminAudit) return;
+
+    const filters = getAdminAuditFilters();
+    const rows = filterAdminAuditRows(audit, filters);
+
+    els.adminAudit.innerHTML = rows.length
+      ? `<table class="admin-table admin-audit-table"><thead><tr><th>เวลา</th><th>User</th><th>Action</th><th>Project</th><th>Detail</th></tr></thead><tbody>${
+          rows.map(entry => `
+            <tr>
+              <td class="audit-time">${escapeHtml(safeDateDisplay(entry.timestamp))}</td>
+              <td>${escapeHtml(entry.username || "-")}</td>
+              <td><span class="audit-action audit-action-${escapeHtml(String(entry.action || "").toLowerCase())}">${escapeHtml(entry.action || "-")}</span></td>
+              <td class="audit-project">${escapeHtml(entry.projectId || "-")}</td>
+              <td class="audit-detail">${formatAuditDetailHtml(entry)}</td>
+            </tr>
+          `).join("")
+        }</tbody></table>`
+      : `<div class="empty-state">ไม่พบ audit ตามเงื่อนไข</div>`;
+  }
+
+  function renderAdminAuditFromCache() {
+    if (!state.adminCache) return;
+    renderAdminAuditTable(state.adminCache.audit || []);
+  }
+
+  function exportAdminAuditCsv() {
+    if (!state.adminCache?.audit?.length) {
+      Swal.fire("ไม่มีข้อมูล", "ยังไม่มี audit log", "info");
+      return;
+    }
+
+    const rows = filterAdminAuditRows(state.adminCache.audit, getAdminAuditFilters());
+    if (!rows.length) {
+      Swal.fire("ไม่มีข้อมูล", "ไม่พบรายการตามตัวกรอง", "info");
+      return;
+    }
+
+    const sheetRows = rows.map(entry => ({
+      Timestamp: entry.timestamp || "",
+      Username: entry.username || "",
+      Action: entry.action || "",
+      ProjectId: entry.projectId || "",
+      Detail: entry.detail || ""
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(sheetRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Audit");
+    XLSX.writeFile(wb, `Project_Audit_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  function buildBudgetBreakdownPrintHtml(details) {
+    const grouped = {};
+    (details || []).forEach(detail => {
+      const type = window.BudgetFormula.normalizeBudgetType(detail.type);
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(enrichDetailLineWithMaster(detail));
+    });
+
+    return Object.entries(grouped).map(([type, items]) => {
+      const totals = window.BudgetFormula.computeBudgetTotalsFromItems(items, type);
+      const rows = [
+        ["พัสดุ", totals.material],
+        ["แรง", totals.labor],
+        ["คุมงาน 30%", totals.supervision],
+        ["ขนส่ง 5%", totals.transport],
+        ["เบอเหลา 5%", totals.misc],
+        ["ดำเนินการ 5%", totals.overhead]
+      ];
+      if (type === "02.2") rows.push(["กำไร 30%", totals.profit]);
+
+      return `
+        <section class="report-section">
+          <h2>สรุปงบ ${escapeHtml(type)}</h2>
+          <table>
+            <tbody>
+              ${rows.map(([label, amount]) => `
+                <tr><td>${escapeHtml(label)}</td><td class="num">${formatBudgetAmount(amount)}</td></tr>
+              `).join("")}
+              <tr class="total-row"><td><strong>สุทธิ (${escapeHtml(type)})</strong></td><td class="num"><strong>${formatBudgetAmount(totals.total)}</strong></td></tr>
+            </tbody>
+          </table>
+        </section>
+      `;
+    }).join("");
+  }
+
+  function buildSurveyMetaPrintHtml(surveyMetaStr) {
+    if (!surveyMetaStr) return "";
+    try {
+      const meta = JSON.parse(surveyMetaStr);
+      if (!meta || meta.startLat == null) return "";
+      const poleCount = meta.poleCount ?? "-";
+      const totalDistanceM = meta.totalDistanceM ?? "-";
+      const spanM = meta.spanM ?? meta.segments?.find(seg => seg.spanM)?.spanM ?? "-";
+      return `
+        <section class="report-section">
+          <h2>ข้อมูลสำรวจ</h2>
+          <table>
+            <tbody>
+              <tr><td>จุดเริ่ม</td><td>${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}</td></tr>
+              <tr><td>จุดสิ้นสุด</td><td>${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}</td></tr>
+              <tr><td>หมุด / ระยะ / Span</td><td>${poleCount} หมุด · ${totalDistanceM} ม. · Span ${spanM} ม.</td></tr>
+            </tbody>
+          </table>
+        </section>
+      `;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function findSurveyMapPreview(imgStr, previews) {
+    const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
+    for (const url of urls) {
+      if (!/Survey_Map/i.test(url)) continue;
+      const fileId = extractDriveFileId(url);
+      const preview = fileId && previews ? previews[fileId] : null;
+      if (preview?.base64 && preview.mime?.startsWith("image/")) {
+        return { dataUrl: `data:${preview.mime};base64,${preview.base64}`, label: "แผนที่สำรวจ" };
+      }
+    }
+    return null;
+  }
+
+  function computeProjectGrandTotal(details, fallbackTotal) {
+    const parsedFallback = parseFloat(fallbackTotal);
+    if (Number.isFinite(parsedFallback) && parsedFallback > 0) return parsedFallback;
+
+    const grouped = {};
+    (details || []).forEach(detail => {
+      const type = window.BudgetFormula.normalizeBudgetType(detail.type);
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(enrichDetailLineWithMaster(detail));
+    });
+
+    return Object.entries(grouped).reduce((sum, [type, items]) => {
+      const totals = window.BudgetFormula.computeBudgetTotalsFromItems(items, type);
+      return sum + (totals.total || 0);
+    }, 0);
+  }
+
+  function buildProjectReportPrintHtml(options) {
+    const {
+      name,
+      projectId,
+      dateDisplay,
+      createdBy,
+      details,
+      surveyMetaStr,
+      previews,
+      imgStr,
+      grandTotal
+    } = options;
+
+    const lineRows = (details || []).map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(String(item.type || ""))}</td>
+        <td>${escapeHtml(String(item.id || ""))}</td>
+        <td>${escapeHtml(String(item.name || ""))}</td>
+        <td class="num">${escapeHtml(String(item.qty || ""))}</td>
+        <td class="num">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>
+      </tr>
+    `).join("");
+
+    const mapPreview = findSurveyMapPreview(imgStr, previews);
+    const mapHtml = mapPreview
+      ? `<section class="report-section report-map"><h2>${escapeHtml(mapPreview.label)}</h2><img src="${mapPreview.dataUrl}" alt="Survey map"></section>`
+      : "";
+
+    return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>${escapeHtml(name)}</title>
+      <style>
+        @page { margin: 16mm; }
+        body { font-family: Sarabun, sans-serif; padding: 0; color: #111; font-size: 12px; line-height: 1.45; }
+        h1 { font-size: 22px; margin: 0 0 6px; }
+        h2 { font-size: 15px; margin: 0 0 8px; color: #333; }
+        .report-meta { color: #555; margin-bottom: 18px; font-size: 13px; }
+        .report-grand { margin: 16px 0 20px; padding: 12px 14px; border: 2px solid #333; text-align: right; font-size: 18px; font-weight: 700; }
+        .report-section { margin-bottom: 18px; page-break-inside: avoid; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th, td { border: 1px solid #ccc; padding: 5px 7px; vertical-align: top; }
+        th { background: #f3f3f3; }
+        .num { text-align: right; white-space: nowrap; }
+        .total-row td { background: #fafafa; }
+        .report-map img { width: 100%; max-height: 420px; object-fit: contain; border: 1px solid #ccc; }
+        .report-footer { margin-top: 24px; font-size: 10px; color: #777; text-align: center; }
+      </style></head><body>
+      <h1>${escapeHtml(name)}</h1>
+      <div class="report-meta">
+        รหัสโครงการ: ${escapeHtml(projectId || "-")}<br>
+        วันที่: ${escapeHtml(dateDisplay || "-")} · เจ้าของ: ${escapeHtml(createdBy || "-")}<br>
+        ออกรายงาน: ${escapeHtml(new Date().toLocaleString("th-TH"))}
+      </div>
+      ${buildSurveyMetaPrintHtml(surveyMetaStr)}
+      ${mapHtml}
+      ${buildBudgetBreakdownPrintHtml(details)}
+      <section class="report-section">
+        <h2>รายการพัสดุ (BOQ)</h2>
+        <table>
+          <thead><tr><th>#</th><th>งบ</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
+          <tbody>${lineRows}</tbody>
+        </table>
+      </section>
+      <div class="report-grand">ยอดรวมโครงการ ${formatBudgetAmount(grandTotal)} บาท</div>
+      <div class="report-footer">PEA Estimation AI Pro — รายงาน BOQ และสำรวจ</div>
+      </body></html>`;
+  }
+
+  async function exportProjectReportPdf(projectId) {
+    const cached = state.historyRowCache[projectId] || {};
+    const name = cached.name || projectId;
+    const imgStr = cached.imgStr || "";
+    const surveyMetaStr = cached.surveyMetaStr || "";
+
+    Swal.fire({
+      title: "กำลังเตรียม PDF...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      const details = await window.ApiService.getProjectDetails(projectId);
+      if (details?.error) {
+        Swal.fire("ไม่มีสิทธิ์", details.msg || "ไม่สามารถดูโครงการนี้ได้", "warning");
+        return;
+      }
+      if (!Array.isArray(details) || !details.length) {
+        Swal.fire("ไม่พบข้อมูล", "ไม่พบรายละเอียดพัสดุ", "warning");
+        return;
+      }
+
+      const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
+      const previews = await fetchDrivePreviews(urls);
+      const grandTotal = computeProjectGrandTotal(details, cached.grandTotal);
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        Swal.fire("ไม่สามารถเปิดหน้าพิมพ์", "อนุญาต pop-up แล้วลองใหม่", "warning");
+        return;
+      }
+
+      Swal.close();
+      printWindow.document.write(buildProjectReportPrintHtml({
+        name,
+        projectId,
+        dateDisplay: cached.dateDisplay || "",
+        createdBy: cached.createdBy || "",
+        details,
+        surveyMetaStr,
+        previews,
+        imgStr,
+        grandTotal
+      }));
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 400);
+    } catch (error) {
+      console.error(error);
+      Swal.fire("สร้าง PDF ไม่สำเร็จ", error.message || "เกิดข้อผิดพลาด", "error");
+    }
   }
 
   async function fetchAdminDashboard() {
@@ -2327,19 +2670,7 @@
       : `<div class="empty-state">ไม่มีโครงการ</div>`;
 
     const audit = data.audit || [];
-    els.adminAudit.innerHTML = audit.length
-      ? `<table class="admin-table"><thead><tr><th>เวลา</th><th>User</th><th>Action</th><th>Project</th><th>Detail</th></tr></thead><tbody>${
-          audit.map(entry => `
-            <tr>
-              <td>${escapeHtml(safeDateDisplay(entry.timestamp))}</td>
-              <td>${escapeHtml(entry.username)}</td>
-              <td>${escapeHtml(entry.action)}</td>
-              <td>${escapeHtml(entry.projectId)}</td>
-              <td>${escapeHtml(entry.detail)}</td>
-            </tr>
-          `).join("")
-        }</tbody></table>`
-      : `<div class="empty-state">ยังไม่มี audit log</div>`;
+    renderAdminAuditTable(audit);
   }
 
   function filterHistory() {
@@ -2371,7 +2702,7 @@
       }
       const urls = imgStr ? imgStr.split("|").filter(Boolean) : [];
       const previews = await fetchDrivePreviews(urls);
-      const html = buildDetailHtml(details, imgStr, name, surveyMetaStr, previews);
+      const html = buildDetailHtml(details, imgStr, name, surveyMetaStr, previews, id);
       Swal.fire({
         title: name,
         html,
@@ -2526,7 +2857,7 @@
     `;
   }
 
-  function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews) {
+  function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews, projectId) {
     let surveyMetaHtml = "";
     if (surveyMetaStr) {
       try {
@@ -2587,7 +2918,10 @@
           `).join("")}
         </tbody>
       </table>
-      <button class="primary-btn" style="margin-top:14px;" type="button" onclick="window.AppActions.exportToExcel('${escapeJs(name)}', '${safePayload}')">Export Excel</button>
+      <div class="detail-export-actions">
+        <button class="primary-btn" type="button" onclick="window.AppActions.exportToExcel('${escapeJs(name)}', '${safePayload}')">Export Excel</button>
+        <button class="ghost-btn" type="button" onclick="window.AppActions.exportProjectReportPdf('${escapeJs(projectId)}')">Export PDF รายงาน</button>
+      </div>
     `;
   }
 
@@ -2805,6 +3139,7 @@
   window.AppActions = {
     viewDetail,
     exportToExcel,
+    exportProjectReportPdf,
     askEdit,
     askDel,
     askShare

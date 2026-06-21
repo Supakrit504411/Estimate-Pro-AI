@@ -464,7 +464,16 @@
           </div>
           <div class="admin-block admin-block-wide">
             <h3 class="admin-block-title">Project Audit</h3>
-            <div id="adminAudit" class="admin-table-wrap"></div>
+            <div class="admin-audit-toolbar">
+              <input type="text" id="adminAuditSearch" class="search-input admin-audit-search" placeholder="ค้นหา user / project / detail…" aria-label="ค้นหา audit">
+              <select id="adminAuditAction" class="search-input admin-audit-action" aria-label="กรอง action">
+                <option value="all">ทุก action</option>
+                <option value="share">share</option>
+                <option value="delete">delete</option>
+              </select>
+              <button id="adminAuditExportBtn" class="ghost-btn" type="button">Export CSV</button>
+            </div>
+            <div id="adminAudit" class="admin-table-wrap admin-audit-wrap"></div>
           </div>
         </div>
       </div>
