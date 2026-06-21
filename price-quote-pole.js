@@ -127,9 +127,73 @@
   }
 
   function detectScope(text) {
-    if (/ปักเสาอย่างเดียว|เฉพาะเสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(text)) return "pole_only";
+    if (/ไม่พาดสาย|ไม่มีสาย|ไม่ลากสาย|ไม่.*(?:พาด|ลาก).*สาย|pole only/.test(text)) {
+      return "pole_only";
+    }
+    if (/อย่างเดียว|เฉพาะเสา|แค่เสา|เสาอย่างเดียว|ปักเสา.*อย่างเดียว|อย่างเดียว.*(?:ไม่|ไม่เอา)/.test(text)) {
+      return "pole_only";
+    }
     if (/พาดสาย|ลากสาย|with wire|รวมสาย|ขยายเขต|ขยายสาย|ระยะทาง/.test(text)) return "with_wire";
     return null;
+  }
+
+  function parseAssemblyOptions(text) {
+    const t = normalizeText(text);
+    const wantsConcrete = /(?:เทคอน|คอนกรีต|concrete)/.test(t) && !/ไม่(?:เอา|รวม|ใส่|ต้อง).*(?:เทคอน|คอน)/.test(t);
+    const rejectsHead = /ไม่(?:เอา|รวม|ใส่|ต้อง|มี).*หัว(?:เสา)?|without head|no head/.test(t);
+    const materialOnly = rejectsHead
+      || /(?:แค่|เฉพาะ|วัสดุ)\s*เสา|เสา(?:อย่าง)?เดียว(?!\s*(?:\+|และ|พร้อม))/.test(t)
+      || (/อย่างเดียว/.test(t) && rejectsHead);
+
+    if (materialOnly && wantsConcrete) {
+      return {
+        assemblyMode: "pole_concrete",
+        includeHead: false,
+        includeOhgw: false,
+        includeConcrete: true
+      };
+    }
+    if (materialOnly) {
+      return {
+        assemblyMode: "pole_material",
+        includeHead: false,
+        includeOhgw: false,
+        includeConcrete: false
+      };
+    }
+    if (wantsConcrete && /(?:เสา|pole)/.test(t)) {
+      return {
+        assemblyMode: "pole_concrete",
+        includeHead: true,
+        includeOhgw: true,
+        includeConcrete: true
+      };
+    }
+    return {
+      assemblyMode: "full",
+      includeHead: true,
+      includeOhgw: true,
+      includeConcrete: false
+    };
+  }
+
+  function applyAssemblyOptions(intent, text) {
+    const opts = parseAssemblyOptions(text);
+    const merged = { ...intent, ...opts };
+    if (opts.assemblyMode !== "full" || opts.includeHead === false) {
+      merged.scope = "pole_only";
+    }
+    return merged;
+  }
+
+  function resolveConcreteForParams(params) {
+    const catalogConcrete = getCatalog().CONCRETE || {};
+    const byVoltage = catalogConcrete[params.voltage] || catalogConcrete.mv || {};
+    const qty = Number(byVoltage.qty ?? byVoltage.qtyFactor ?? 1);
+    return {
+      materialId: byVoltage.materialId || "9090010025",
+      qty: Number.isFinite(qty) && qty > 0 ? qty : 1
+    };
   }
 
   function detectCableType(text, voltage) {
@@ -333,8 +397,20 @@
         label: "ขอบเขตงาน",
         type: "select",
         options: [
-          { value: "pole_only", label: "ปักเสาอย่างเดียว (เสา + หัวเสา + เงื่อนไขเสาพิเศษ)" },
+          { value: "pole_only", label: "ปักเสา (ไม่พาดสาย) — เสา + หัวเสา + เงื่อนไขเสาพิเศษ" },
           { value: "with_wire", label: "ปักเสา + พาดสายระหว่างเสา" }
+        ]
+      });
+    }
+    if (intent.assemblyMode === "full" && intent.scope === "pole_only" && !intent.distanceM) {
+      fields.push({
+        key: "assemblyMode",
+        label: "ขอบเขตวัสดุ",
+        type: "select",
+        options: [
+          { value: "full", label: "ครบชุด (เสา + หัวเสา SET + OHGW ตามระบบ)" },
+          { value: "pole_material", label: "แค่วัสดุเสา (ไม่รวมหัวเสา / OHGW / สาย)" },
+          { value: "pole_concrete", label: "เสา + เทคอนกรีต (ไม่รวมหัวเสา / สาย)" }
         ]
       });
     }
@@ -385,7 +461,7 @@
     let scope = detectScope(text);
     const cableType = detectCableType(text, voltage);
 
-    const intent = {
+    const intent = applyAssemblyOptions({
       intent: "pole_run",
       budgetType,
       distanceM,
@@ -401,7 +477,7 @@
       spanCurveM: DEFAULT_CURVE_SPAN_M,
       summary: query,
       source: "local"
-    };
+    }, text);
 
     if (distanceM != null && voltage) {
       Object.assign(intent, applyLineDefaults(intent));
@@ -433,6 +509,7 @@
     let localScope = null;
     let localCableType = null;
     let explicitPoleOnly = false;
+    let assemblyFromText = null;
 
     sources.forEach(text => {
       const t = normalizeText(text);
@@ -442,7 +519,8 @@
       localVoltage = localVoltage ?? detectVoltage(t);
       localPhase = localPhase ?? detectPhase(t);
       localScope = localScope ?? detectScope(t);
-      if (/ปักเสาอย่างเดียว|เฉพาะเสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(t)) {
+      assemblyFromText = assemblyFromText || parseAssemblyOptions(t);
+      if (/ปักเสาอย่างเดียว|อย่างเดียว|เฉพาะเสา|แค่เสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(t)) {
         explicitPoleOnly = true;
       }
       if (!localCableType && localVoltage) {
@@ -469,6 +547,11 @@
       merged.scope = "with_wire";
     } else if (localScope && !merged.scope) {
       merged.scope = localScope;
+    }
+
+    if (assemblyFromText) {
+      Object.assign(merged, assemblyFromText);
+      if (assemblyFromText.assemblyMode !== "full") merged.scope = "pole_only";
     }
 
     if (merged.voltage) Object.assign(merged, applyLineDefaults(merged));
@@ -615,6 +698,11 @@
     const endHeadId = endRule?.headDefault || endRule?.headSetIds?.[0];
     const guySetId = resolveGuySetId(params.poleHeightM, configKey, endRule);
     const ohgwStraightId = config?.straight?.defaults?.ohgwSetId;
+    const assemblyMode = params.assemblyMode || "full";
+    const includeHead = params.includeHead !== false && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
+    const includeOhgw = params.includeOhgw !== false && assemblyMode === "full";
+    const includeConcrete = params.includeConcrete === true || assemblyMode === "pole_concrete";
+    const materialOnly = assemblyMode === "pole_material" || assemblyMode === "pole_concrete";
 
     const sections = [];
     const voltageLabel = params.voltage === "mv" ? "MV แรงสูง" : "LV แรงต่ำ";
@@ -630,13 +718,20 @@
         ` · ${layout.totalPoles} ต้น${defaultsNote}`
       );
     } else {
+      const scopeNote = params.scope === "with_wire"
+        ? ` · พาดสาย ~${params.spanStraightM} ม./ช่วง`
+        : (materialOnly ? " · วัสดุเสา (ไม่รวมหัวเสา/สาย)" : " · ปักเสา (ไม่พาดสาย)");
       sections.push(
-        `สรุป: ${voltageLabel} ${phaseLabel} · เสา ${params.poleHeightM} ม. · ${layout.totalPoles} ต้น` +
-        (params.scope === "with_wire" ? ` · พาดสาย ~${params.spanStraightM} ม./ช่วง` : " · ปักเสาอย่างเดียว")
+        `สรุป: ${voltageLabel} ${phaseLabel} · เสา ${params.poleHeightM} ม. · ${layout.totalPoles} ต้น${scopeNote}`
       );
     }
 
-    if (layout.straightPoleCount > 0) {
+    if (materialOnly) {
+      const concrete = includeConcrete ? resolveConcreteForParams(params) : null;
+      const parts = [`เสา ${poleId} × ${layout.totalPoles} ต้น`];
+      if (concrete) parts.push(`เทคอนกรีต ${concrete.materialId} × ${concrete.qty * layout.totalPoles}`);
+      sections.push(`${parts.join(" + ")} (ไม่รวมหัวเสา SET / OHGW / Guy / สาย)`);
+    } else if (layout.straightPoleCount > 0) {
       const rackNote = params.rackLabel ? ` · ${params.rackLabel}` : "";
       sections.push(
         `เสาทางตรง ${layout.straightPoleCount} ต้น: เสา ${poleId} + หัวเสา SET ${straightHeadId} (${getSetName(straightHeadId)})${rackNote}` +
@@ -646,7 +741,7 @@
       );
     }
 
-    if (layout.curvePoleCount > 0 && curveRule) {
+    if (!materialOnly && layout.curvePoleCount > 0 && curveRule) {
       sections.push(
         `เสาทางโค้ง ${layout.curvePoleCount} ต้น: เสา ${poleId} + หัวโค้ง SET ${curveHeadId} (${getSetName(curveHeadId)})` +
         ` + Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}` +
@@ -656,7 +751,7 @@
       );
     }
 
-    if (layout.endCount > 0 && endRule) {
+    if (!materialOnly && layout.endCount > 0 && endRule) {
       const extras = [
         `หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`,
         `ยึด Guy SET ${guySetId} (${getSetName(guySetId)})`,
@@ -731,23 +826,37 @@
       curveRule
     } = breakdown;
 
-    for (let i = 0; i < layout.straightPoleCount; i++) {
-      add(poleId, 1);
-      if (straightHeadId) addSetToMap(lineMap, straightHeadId, 1, mergeLine, master);
-      if (params.voltage === "mv" && config?.hasOhgw && config?.straight?.defaults?.ohgwInstall) {
-        const ohgwId = config.straight.defaults.ohgwSetId;
-        if (ohgwId) addSetToMap(lineMap, ohgwId, 1, mergeLine, master);
+    const assemblyMode = params.assemblyMode || "full";
+    const includeHead = params.includeHead !== false && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
+    const includeOhgw = params.includeOhgw !== false && assemblyMode === "full";
+    const includeConcrete = params.includeConcrete === true || assemblyMode === "pole_concrete";
+    const materialOnly = assemblyMode === "pole_material" || assemblyMode === "pole_concrete";
+
+    if (materialOnly) {
+      add(poleId, layout.totalPoles);
+      if (includeConcrete) {
+        const concrete = resolveConcreteForParams(params);
+        add(concrete.materialId, concrete.qty * layout.totalPoles);
       }
-    }
+    } else {
+      for (let i = 0; i < layout.straightPoleCount; i++) {
+        add(poleId, 1);
+        if (includeHead && straightHeadId) addSetToMap(lineMap, straightHeadId, 1, mergeLine, master);
+        if (includeOhgw && params.voltage === "mv" && config?.hasOhgw && config?.straight?.defaults?.ohgwInstall) {
+          const ohgwId = config.straight.defaults.ohgwSetId;
+          if (ohgwId) addSetToMap(lineMap, ohgwId, 1, mergeLine, master);
+        }
+      }
 
-    for (let i = 0; i < layout.curvePoleCount; i++) {
-      add(poleId, 1);
-      addSpecialPoleExtras(lineMap, params, curveRule, mergeLine, master, "curve");
-    }
+      for (let i = 0; i < layout.curvePoleCount; i++) {
+        add(poleId, 1);
+        addSpecialPoleExtras(lineMap, params, curveRule, mergeLine, master, "curve");
+      }
 
-    if (layout.endCount > 0 && endRule) {
-      add(poleId, 1);
-      addSpecialPoleExtras(lineMap, params, endRule, mergeLine, master, "end");
+      if (layout.endCount > 0 && endRule) {
+        add(poleId, 1);
+        addSpecialPoleExtras(lineMap, params, endRule, mergeLine, master, "end");
+      }
     }
 
     if (params.scope === "with_wire" && layout.totalPoles > 1) {
@@ -787,7 +896,8 @@
         poleHeightM: params.poleHeightM,
         voltage: params.voltage,
         phase: params.phase,
-        scope: params.scope
+        scope: params.scope,
+        assemblyMode: params.assemblyMode || "full"
       }
     };
   }
@@ -923,6 +1033,9 @@
     isTransformerBudgetQuery,
     parseBudgetBaht,
     parseBudgetCapacityQuery,
+    parseAssemblyOptions,
+    applyAssemblyOptions,
+    resolveConcreteForParams,
     buildBudgetCapacityQuote,
     resolvePoleMaterialId,
     expandSetItems,

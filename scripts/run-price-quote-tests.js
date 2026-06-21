@@ -143,6 +143,37 @@ runCase("layout — 200m → 6 ต้น (span 40m)", () => {
   assert("6 poles", layout.totalPoles === 6);
 });
 
+runCase("pole material only — 12.20m 1 ต้น ไม่เอาหัวเสา", () => {
+  const q = "ปักเสา 12.20 อย่างเดียวจำนวน 1 ต้น ไม่เอาหัวเสา ราคากี่บาท";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
+  assert("pole_run", intent.intent === "pole_run");
+  assert("scope pole_only", intent.scope === "pole_only");
+  assert("assembly pole_material", intent.assemblyMode === "pole_material");
+  assert("includeHead false", intent.includeHead === false);
+  assert("poleCount 1", Number(intent.poleCount) === 1);
+  assert("height 12.2", Number(intent.poleHeightM) === 12.2);
+
+  const master = [{ id: "1000010012", name: "POLE 12.20", unit: "ต้น", matPrice: 1000, labPrice: 500 }];
+  const quote = Engine.buildQuote(
+    Engine.mergePoleIntent(intent, { voltage: "mv", phase: "3p" }),
+    master
+  );
+  assert("quote ok", quote.ok === true);
+  assert("single pole line", quote.lines.length === 1);
+  assert("pole id", quote.lines[0].materialId === "1000010012");
+  const breakdownText = Array.isArray(quote.breakdown)
+    ? quote.breakdown.join(" ")
+    : String(quote.breakdown || "");
+  assert("no set in breakdown", !breakdownText.includes("หัวเสา SET"));
+});
+
+runCase("pole + concrete — เสา 12.2 + เทคอน", () => {
+  const q = "ปักเสา 12.2 ม. 1 ต้น พร้อมเทคอน ไม่เอาหัวเสา";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
+  assert("pole_concrete", intent.assemblyMode === "pole_concrete");
+  assert("includeConcrete", intent.includeConcrete === true);
+});
+
 runCase("budget formula — 02.2 includes profit", () => {
   const totals = sandbox.window.BudgetFormula.computeBudgetTotals(100000, 8000, "2.2");
   assert("normalize type", totals.budgetType === "02.2");
