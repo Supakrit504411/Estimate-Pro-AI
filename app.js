@@ -1170,7 +1170,7 @@
 
         <div class="calc-box">${calcBudget(bIdx)}</div>
       </div>
-    `).join("");
+    `).join("")}`;
 
     updateGrandTotal();
   }
