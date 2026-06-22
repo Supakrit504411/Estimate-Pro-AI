@@ -91,8 +91,8 @@
   --queue-label-text: var(--muted);
   --scan-zone-bg: linear-gradient(180deg, rgba(22, 10, 18, 0.88), rgba(8, 4, 7, 0.9));
   --scan-zone-border: rgba(116, 4, 95, 0.22);
-  --dropdown-bg: rgba(18, 8, 14, 0.98);
-  --dropdown-option-bg: #120810;
+  --dropdown-bg: rgba(32, 18, 28, 0.98);
+  --dropdown-option-bg: #2a1522;
   --popover-bg: rgba(14, 8, 12, 0.98);
   --swal-cancel-text: #e8dce4;
   --swal-input-bg: var(--field-on-panel-bg);
@@ -1637,6 +1637,7 @@ input:focus,
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .queue-badge,
@@ -1686,7 +1687,7 @@ input:focus,
 
 .queue-select,
 .queue-input {
-  background: var(--input-bg);
+  background: var(--dropdown-bg);
   color: var(--text);
 }
 
@@ -1707,6 +1708,171 @@ input:focus,
   color: var(--danger);
   font-size: 12px;
   font-weight: 700;
+}
+
+.queue-field-wide {
+  grid-column: 1 / -1;
+}
+
+.queue-skip-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger-soft-text);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.queue-search {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  background: var(--dropdown-bg);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.queue-search-box {
+  display: none;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--dropdown-list-bg);
+  box-shadow: var(--shadow);
+}
+
+.queue-search-hit {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--list-divider);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.queue-search-hit:last-child {
+  border-bottom: none;
+}
+
+.queue-search-hit:hover {
+  background: var(--list-hover);
+}
+
+.queue-search-hit strong {
+  display: block;
+  color: var(--gold-soft);
+  margin-bottom: 2px;
+}
+
+.queue-search-hit span {
+  display: block;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.queue-search-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+select,
+.search-input[type="search"],
+.history-sort-select,
+.price-clarify-select,
+.survey-field select,
+.admin-audit-action,
+.admin-panel select.search-input,
+.swal2-html-container select,
+.swal2-popup select {
+  color: var(--text);
+  background-color: var(--dropdown-bg);
+}
+
+select option,
+.history-sort-select option,
+.price-clarify-select option,
+.survey-field select option,
+.admin-audit-action option,
+.admin-panel select.search-input option,
+.swal2-html-container select option,
+.swal2-popup select option,
+.queue-select option {
+  color: var(--text);
+  background-color: var(--dropdown-option-bg);
+}
+
+.queue-search-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.price-ask-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.price-ask-chat-bubble {
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.price-ask-chat-bubble.is-user {
+  align-self: flex-end;
+  max-width: 92%;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  border: 1px solid var(--line);
+}
+
+.price-ask-chat-bubble.is-assistant {
+  align-self: flex-start;
+  max-width: 92%;
+  background: var(--subtle-surface);
+  border: 1px solid var(--subtle-border);
+}
+
+.price-ask-chat-role {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.price-ask-chat-bubble p {
+  margin: 0;
+}
+
+.survey-set-box {
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--accent-panel-bg);
+  border: 1px solid var(--accent-panel-border);
+}
+
+.survey-set-table {
+  margin-top: 8px;
 }
 
 .detail-table {

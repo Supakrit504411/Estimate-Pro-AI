@@ -16,6 +16,7 @@
 
   let lastPriceQuote = null;
   let lastPriceAskContext = null;
+  let priceAskThread = [];
   let appBootstrapped = false;
 
   const els = {};
@@ -327,7 +328,15 @@
 
     els.priceAskBtn.disabled = true;
     els.priceAskResult.classList.remove("hidden");
-    els.priceAskResult.innerHTML = `<div class="price-ask-loading">กำลังคำนวณราคา...</div>`;
+
+    const displayQuery = query || (faqId ? (appConfig.priceFaq?.[faqId]?.label || faqId) : "");
+    if (displayQuery) {
+      if (!priceAskThread.length || priceAskThread[priceAskThread.length - 1]?.text !== displayQuery) {
+        appendPriceAskMessage("user", displayQuery);
+      }
+    }
+
+    els.priceAskResult.innerHTML = `${renderPriceAskThreadHtml()}<div class="price-ask-loading">กำลังคำนวณราคา...</div>`;
 
     let intent = null;
     let parseSource = "faq";
@@ -380,7 +389,7 @@
       els.priceAskResult.innerHTML = `
         <div class="price-ask-error">
           <strong>ไม่เข้าใจคำถาม</strong>
-          <p>ลองเลือกจาก「คำถามที่พบบ่อย」ด้านล่าง หรือระบุ kVA / รหัสพัสดุให้ชัด เช่น 「หม้อแปลง 100 kVA」</p>
+          <p>ลองกดปุ่ม「คำถามที่พบบ่อย」ด้านล่างก่อน (แนะนำตอน demo) หรือระบุ kVA / รหัสพัสดุให้ชัด เช่น 「หม้อแปลง 100 kVA」</p>
         </div>
       `;
       els.priceAskBtn.disabled = false;
@@ -393,6 +402,7 @@
     let quote = window.PriceQuoteEngine.buildQuote(intent, state.dataStore);
 
     if (!quote.ok && quote.needsClarification && quote.clarificationType === "pole_run") {
+      appendPriceAskMessage("assistant", quote.question || "ช่วยระบุรายละเอียดงานเสาเพิ่มเติม");
       const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "pole_run");
       if (clarifiedIntent) {
         intent = clarifiedIntent;
@@ -401,6 +411,7 @@
     }
 
     if (!quote.ok && quote.needsClarification && quote.clarificationType === "tr_install") {
+      appendPriceAskMessage("assistant", quote.question || "ช่วยระบุขนาดหม้อแปลง");
       const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "tr_install");
       if (clarifiedIntent) {
         intent = clarifiedIntent;
@@ -409,6 +420,7 @@
     }
 
     if (!quote.ok && quote.needsClarification && quote.clarificationType === "material_pick") {
+      appendPriceAskMessage("assistant", quote.question || "ช่วยเลือกรายการพัสดu");
       const clarifiedIntent = await promptPriceClarification(quote.intent, quote.question, "material_pick");
       if (clarifiedIntent) {
         intent = clarifiedIntent;
@@ -423,8 +435,31 @@
       parseSource,
       intent
     };
+    if (quote.ok) {
+      appendPriceAskMessage("assistant", `รวม ${quote.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท (งบ ${quote.budgetType})`);
+    }
     renderPriceAskResult(quote, parseSource);
     els.priceAskBtn.disabled = false;
+  }
+
+  function appendPriceAskMessage(role, text) {
+    if (!text) return;
+    priceAskThread.push({ role, text: String(text), at: Date.now() });
+    if (priceAskThread.length > 12) priceAskThread = priceAskThread.slice(-12);
+  }
+
+  function renderPriceAskThreadHtml() {
+    if (!priceAskThread.length) return "";
+    return `
+      <div class="price-ask-chat">
+        ${priceAskThread.map(msg => `
+          <div class="price-ask-chat-bubble is-${msg.role === "user" ? "user" : "assistant"}">
+            <span class="price-ask-chat-role">${msg.role === "user" ? "คุณ" : "AI"}</span>
+            <p>${escapeHtml(msg.text)}</p>
+          </div>
+        `).join("")}
+      </div>
+    `;
   }
 
   async function promptPriceClarification(intent, question, type) {
@@ -685,6 +720,7 @@
             ? `<p class="price-ask-clarify-hint">มีหลายรหัสใน master — เลือกจากรายการ หรือระบุรุ่นในประโยค เช่น 「manhole 2T-1」</p>`
             : ""));
       els.priceAskResult.innerHTML = `
+        ${renderPriceAskThreadHtml()}
         <div class="price-ask-error">
           <div class="price-ask-summary-top">
             <span class="price-ask-source">${formatPriceAskSource(parseSource)} · งบ ${escapeHtml(quote.intent?.budgetType || els.priceAskBudget?.value || "01.1")}</span>
@@ -729,6 +765,7 @@
     `).join("");
 
     els.priceAskResult.innerHTML = `
+      ${renderPriceAskThreadHtml()}
       <div id="priceAskExportRoot" class="price-ask-export-root">
       <div class="price-ask-summary">
         <div class="price-ask-summary-top">
@@ -903,6 +940,7 @@
 
   function resetPriceAskDraft() {
     lastPriceQuote = null;
+    priceAskThread = [];
     if (els.priceAskInput) els.priceAskInput.value = "";
     if (els.priceAskResult) {
       els.priceAskResult.classList.add("hidden");
@@ -1274,7 +1312,9 @@
       sourceName: sourceName || "",
       matchedItems,
       selectedItemId: selectedItem ? selectedItem.id : "",
-      laborIndex: 0
+      laborIndex: 0,
+      manualSearch: "",
+      targetBudgetIndex: state.budgets.length - 1
     };
   }
 
@@ -1382,66 +1422,115 @@
   function buildQueueReviewHtml() {
     return `
       <div class="queue-note">
-        AI ช่วยอ่านเฉพาะรหัสพัสดุและจำนวน จากนั้นให้ผู้ใช้ตรวจและเลือกค่าแรงเองก่อนเพิ่มเข้า budget
+        AI ช่วยอ่านเฉพาะรหัสพัสดุและจำนวน — ถ้าอ่านไม่เจอให้<strong>ค้นหาและเลือกพัสดุเอง</strong>จากช่องค้นหา (ไม่ต้องยกเลิกแล้วสแกนใหม่)
       </div>
       <div class="queue-list">
-        ${state.aiReviewQueue.map((entry, index) => {
-          const selectedItem = getQueueSelectedItem(entry);
-          const laborOptions = selectedItem ? selectedItem.laborOptions : [];
-
-          return `
-            <div class="queue-row">
-              <div class="queue-topline">
-                <div class="queue-badge">#${index + 1}</div>
-                <div class="queue-source">${escapeHtml(entry.sourceName || "AI Scan")}</div>
-              </div>
-              <div class="queue-grid">
-                <div class="queue-field">
-                  <label>รหัสที่ AI อ่านได้</label>
-                  <div class="queue-raw-id">${escapeHtml(entry.rawId || "-")}</div>
-                </div>
-                <div class="queue-field">
-                  <label>พัสดุ</label>
-                  <select class="queue-select" data-queue-role="item" data-queue-index="${index}">
-                    <option value="">เลือกพัสดุ</option>
-                    ${entry.matchedItems.map(item => `
-                      <option value="${escapeHtml(item.id)}" ${entry.selectedItemId === item.id ? "selected" : ""}>
-                        ${escapeHtml(item.id)} - ${escapeHtml(item.name)}
-                      </option>
-                    `).join("")}
-                  </select>
-                </div>
-                <div class="queue-field">
-                  <label>ค่าแรง</label>
-                  <select class="queue-select" data-queue-role="labor" data-queue-index="${index}" ${selectedItem ? "" : "disabled"}>
-                    ${laborOptions.length ? laborOptions.map((labor, laborIndex) => `
-                      <option value="${laborIndex}" ${Number(entry.laborIndex) === laborIndex ? "selected" : ""}>
-                        ${escapeHtml(labor.desc)} (แรง: ${formatMoney(labor.price)})
-                      </option>
-                    `).join("") : `<option value="">เลือกพัสดุก่อน</option>`}
-                  </select>
-                </div>
-                <div class="queue-field">
-                  <label>จำนวน</label>
-                  <input class="queue-input" type="number" step="any" data-queue-role="qty" data-queue-index="${index}" value="${entry.qty}">
-                </div>
-                <div class="queue-field">
-                  <label>เพิ่มเข้า budget</label>
-                  <select class="queue-select" data-queue-role="budget" data-queue-index="${index}">
-                    ${state.budgets.map((budget, budgetIndex) => `
-                      <option value="${budgetIndex}" ${budgetIndex === state.budgets.length - 1 ? "selected" : ""}>
-                        Budget ${budget.type}
-                      </option>
-                    `).join("")}
-                  </select>
-                </div>
-              </div>
-              ${selectedItem ? `<div class="queue-item-name">${escapeHtml(selectedItem.name)}</div>` : `<div class="queue-warning">ระบบยังจับคู่พัสดุไม่สำเร็จ กรุณาเลือกพัสดุก่อนนำเข้า</div>`}
-            </div>
-          `;
-        }).join("")}
+        ${state.aiReviewQueue.map((entry, index) => buildQueueRowHtml(entry, index)).join("")}
       </div>
     `;
+  }
+
+  function buildQueueRowHtml(entry, index) {
+    const selectedItem = getQueueSelectedItem(entry);
+    const laborOptions = selectedItem ? selectedItem.laborOptions : [];
+    const matchOptions = entry.matchedItems || [];
+
+    return `
+      <div class="queue-row" data-queue-row="${index}">
+        <div class="queue-topline">
+          <div class="queue-badge">#${index + 1}</div>
+          <div class="queue-source">${escapeHtml(entry.sourceName || "AI Scan")}</div>
+          <button type="button" class="queue-skip-btn" data-queue-action="skip" data-queue-index="${index}">ข้ามรายการ</button>
+        </div>
+        <div class="queue-grid">
+          <div class="queue-field">
+            <label>รหัสที่ AI อ่านได้</label>
+            <div class="queue-raw-id">${escapeHtml(entry.rawId || "-")}</div>
+          </div>
+          <div class="queue-field queue-field-wide">
+            <label>พัสดุ${matchOptions.length ? " (จับคู่จาก AI)" : ""}</label>
+            ${matchOptions.length ? `
+              <select class="queue-select" data-queue-role="item" data-queue-index="${index}">
+                <option value="">เลือกจากรายการที่จับคู่ได้</option>
+                ${matchOptions.map(item => `
+                  <option value="${escapeHtml(item.id)}" ${entry.selectedItemId === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.id)} - ${escapeHtml(item.name)}
+                  </option>
+                `).join("")}
+              </select>
+            ` : ""}
+            <input
+              class="queue-search"
+              type="search"
+              data-queue-role="search"
+              data-queue-index="${index}"
+              placeholder="พิมพ์รหัสหรือชื่อพัสดุ (อย่างน้อย 2 ตัวอักษร)"
+              value="${escapeHtml(entry.manualSearch || "")}"
+              autocomplete="off"
+            />
+            <div class="queue-search-box" data-queue-index="${index}"></div>
+          </div>
+          <div class="queue-field">
+            <label>ค่าแรง</label>
+            <select class="queue-select" data-queue-role="labor" data-queue-index="${index}" ${selectedItem ? "" : "disabled"}>
+              ${laborOptions.length ? laborOptions.map((labor, laborIndex) => `
+                <option value="${laborIndex}" ${Number(entry.laborIndex) === laborIndex ? "selected" : ""}>
+                  ${escapeHtml(labor.desc)} (แรง: ${formatMoney(labor.price)})
+                </option>
+              `).join("") : `<option value="">เลือกพัสดุก่อน</option>`}
+            </select>
+          </div>
+          <div class="queue-field">
+            <label>จำนวน</label>
+            <input class="queue-input" type="number" step="any" min="0" data-queue-role="qty" data-queue-index="${index}" value="${entry.qty}">
+          </div>
+          <div class="queue-field">
+            <label>เพิ่มเข้า budget</label>
+            <select class="queue-select" data-queue-role="budget" data-queue-index="${index}">
+              ${state.budgets.map((budget, budgetIndex) => `
+                <option value="${budgetIndex}" ${budgetIndex === (Number.isInteger(entry.targetBudgetIndex) ? entry.targetBudgetIndex : state.budgets.length - 1) ? "selected" : ""}>
+                  Budget ${budget.type}
+                </option>
+              `).join("")}
+            </select>
+          </div>
+        </div>
+        ${selectedItem
+          ? `<div class="queue-item-name">${escapeHtml(selectedItem.name)}</div>`
+          : `<div class="queue-warning">ยังไม่ได้เลือกพัสดุ — ค้นหาจาก master หรือเลือกจากรายการจับคู่</div>`}
+      </div>
+    `;
+  }
+
+  function searchMasterItems(query, limit = 80) {
+    const value = String(query || "").trim().toLowerCase();
+    if (value.length < 2) return [];
+    const terms = value.split(/\s+/).filter(Boolean);
+    return state.dataStore.filter(item =>
+      terms.every(term => `${item.id} ${item.name}`.toLowerCase().includes(term))
+    ).slice(0, limit);
+  }
+
+  function renderQueueSearchResults(index, query) {
+    const popup = Swal.getHtmlContainer();
+    if (!popup) return;
+    const box = popup.querySelector(`.queue-search-box[data-queue-index="${index}"]`);
+    if (!box) return;
+    const hits = searchMasterItems(query);
+    if (!query || query.trim().length < 2) {
+      box.innerHTML = "";
+      box.style.display = "none";
+      return;
+    }
+    box.innerHTML = hits.length
+      ? hits.map(item => `
+          <button type="button" class="queue-search-hit" data-queue-action="pick" data-queue-index="${index}" data-item-id="${escapeHtml(item.id)}">
+            <strong>${escapeHtml(item.id)}</strong>
+            <span>${escapeHtml(item.name)}</span>
+          </button>
+        `).join("")
+      : `<div class="queue-search-empty">ไม่พบพัสดุ — ลองพิมพ์รหัสหรือคำในชื่อ</div>`;
+    box.style.display = "block";
   }
 
   function bindQueueEvents(popup) {
@@ -1449,6 +1538,39 @@
       element.addEventListener("change", handleQueueFieldChange);
       element.addEventListener("input", handleQueueFieldChange);
     });
+
+    popup.querySelectorAll("[data-queue-action]").forEach(element => {
+      element.addEventListener("click", handleQueueAction);
+    });
+  }
+
+  function handleQueueAction(event) {
+    const action = event.currentTarget.dataset.queueAction;
+    const index = Number(event.currentTarget.dataset.queueIndex);
+    if (action === "skip") {
+      state.aiReviewQueue.splice(index, 1);
+      if (!state.aiReviewQueue.length) {
+        Swal.close();
+        state.aiReviewQueue = [];
+        Swal.fire("ไม่มีรายการเหลือ", "ยกเลิก review queue แล้ว", "info");
+        return;
+      }
+      rerenderQueueModal();
+      return;
+    }
+
+    if (action === "pick") {
+      const itemId = event.currentTarget.dataset.itemId;
+      const entry = state.aiReviewQueue[index];
+      const item = state.dataStore.find(row => row.id === itemId);
+      if (!entry || !item) return;
+      entry.selectedItemId = item.id;
+      entry.laborIndex = 0;
+      if (!entry.matchedItems.some(row => row.id === item.id)) {
+        entry.matchedItems.push(item);
+      }
+      rerenderQueueModal();
+    }
   }
 
   function handleQueueFieldChange(event) {
@@ -1466,6 +1588,12 @@
 
     if (role === "labor") {
       entry.laborIndex = Number(event.target.value || 0);
+      return;
+    }
+
+    if (role === "search") {
+      entry.manualSearch = event.target.value;
+      renderQueueSearchResults(index, event.target.value);
       return;
     }
 
@@ -1494,8 +1622,8 @@
         return null;
       }
 
-      if (!Number.isFinite(entry.qty) || entry.qty < 0) {
-        Swal.showValidationMessage(`จำนวนไม่ถูกต้องสำหรับพัสดุ ${selectedItem.id}`);
+      if (!Number.isFinite(entry.qty) || entry.qty <= 0) {
+        Swal.showValidationMessage(`กรุณาระบุจำนวนที่มากกว่า 0 สำหรับพัสดุ ${selectedItem.id}`);
         return null;
       }
 
@@ -1539,7 +1667,10 @@
   }
 
   function getQueueSelectedItem(entry) {
-    return entry.matchedItems.find(item => item.id === entry.selectedItemId) || null;
+    if (!entry?.selectedItemId) return null;
+    const fromMatched = (entry.matchedItems || []).find(item => item.id === entry.selectedItemId);
+    if (fromMatched) return fromMatched;
+    return state.dataStore.find(item => item.id === entry.selectedItemId) || null;
   }
 
   function renderQuickPickButtons(budgetIndex) {
@@ -3073,6 +3204,34 @@
     `;
   }
 
+  function buildMaterialSetLabel(materialId, meta) {
+    const usage = meta?.setUsage || [];
+    const api = window.SurveyPresetsApi;
+    const lookup = window.SurveyProject?.buildMaterialSetLookup?.(usage, api) || {};
+    const ids = lookup[String(materialId).trim()] || [];
+    return ids.length ? ids.join(", ") : "—";
+  }
+
+  function buildSetUsageSummaryHtml(meta) {
+    if (!meta?.setUsage?.length) return "";
+    const rows = meta.setUsage.map(entry => `
+      <tr>
+        <td><strong>${escapeHtml(entry.setId)}</strong></td>
+        <td>${escapeHtml(entry.name || entry.setId)}</td>
+        <td style="text-align:center;">${entry.qty}</td>
+      </tr>
+    `).join("");
+    return `
+      <div class="survey-set-box">
+        <strong>ชุด SET ในโครงการ</strong>
+        <table class="detail-table survey-set-table">
+          <thead><tr><th>รหัส SET</th><th>รายการ</th><th>จำนวนชุด</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function buildSurveyMetaDetailHtml(meta) {
     if (!meta || meta.startLat == null) return "";
 
@@ -3083,23 +3242,29 @@
       ?? "-";
     const startLabel = meta.startLabel || "หมุด 0";
     const endLabel = meta.endLabel || (poleCount !== "-" ? `หมุด ${Math.max(0, Number(poleCount) - 1)}` : "-");
+    const stats = meta.poleStats;
+    const statsHtml = stats ? `
+      <br>เสาทางตรง: ${stats.straightRun} · เข้า/ออกโค้ง: ${stats.curveEntryExit} · ในโค้ง: ${stats.curveInterior} · ต้นสุดท้าย: ${stats.endPoles} · Guy: ${stats.guySets}
+    ` : "";
 
     return `
       <div class="survey-meta-box">
         <strong>ข้อมูลเส้นทางสำรวจ</strong><br>
         จุดเริ่ม (${escapeHtml(startLabel)}): ${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}<br>
         จุดสิ้นสุด (${escapeHtml(endLabel)}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
-        หมุดทั้งหมด: ${poleCount} | ระยะรวม: ${totalDistanceM} ม. | Span: ${spanM} ม.
+        หมุดทั้งหมด: ${poleCount} | ระยะรวม: ${totalDistanceM} ม. | Span: ${spanM} ม.${statsHtml}
       </div>
+      ${buildSetUsageSummaryHtml(meta)}
     `;
   }
 
   function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews, projectId) {
     let surveyMetaHtml = "";
+    let surveyMeta = null;
     if (surveyMetaStr) {
       try {
-        const meta = JSON.parse(surveyMetaStr);
-        surveyMetaHtml = buildSurveyMetaDetailHtml(meta);
+        surveyMeta = JSON.parse(surveyMetaStr);
+        surveyMetaHtml = buildSurveyMetaDetailHtml(surveyMeta);
       } catch (error) {
         console.warn("survey meta parse failed", error);
       }
@@ -3141,6 +3306,7 @@
             <th>#</th>
             <th>รหัสพัสดุ</th>
             <th>รายการ</th>
+            <th>ชุด SET</th>
             <th>จำนวน</th>
           </tr>
         </thead>
@@ -3150,6 +3316,7 @@
               <td>${index + 1}</td>
               <td>${escapeHtml(String(item.id))}</td>
               <td>${escapeHtml(String(item.name))}</td>
+              <td>${escapeHtml(buildMaterialSetLabel(item.id, surveyMeta))}</td>
               <td style="text-align:center;">${escapeHtml(String(item.qty))}</td>
             </tr>
           `).join("")}

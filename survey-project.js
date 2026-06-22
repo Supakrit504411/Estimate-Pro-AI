@@ -228,6 +228,102 @@
     return junctions;
   }
 
+  function computeSurveyPoleStats(project) {
+    const stats = {
+      straightRun: 0,
+      curveEntryExit: 0,
+      curveInterior: 0,
+      endPoles: 0,
+      guySets: 0
+    };
+
+    project.segments.filter(s => s.kind === "line").forEach(segment => {
+      (segment.poles || []).forEach(pole => {
+        const source = pole.source;
+        if (source === "end") {
+          stats.endPoles += 1;
+        } else if (source === "curve_in" || source === "curve_out") {
+          stats.curveEntryExit += 1;
+        } else if (source === "curve_waypoint" || (source === "auto" && pole.section === "curve")) {
+          stats.curveInterior += 1;
+        } else if (source === "auto") {
+          stats.straightRun += 1;
+        }
+        if (pole.guySetId) stats.guySets += 1;
+      });
+    });
+
+    return stats;
+  }
+
+  function collectSetUsageFromProject(project, presetsApi, distanceMeters) {
+    const usage = {};
+
+    function bump(setId, qty = 1) {
+      if (!setId || qty <= 0) return;
+      if (!usage[setId]) {
+        const setObj = presetsApi?.getSet?.(setId);
+        usage[setId] = {
+          setId,
+          qty: 0,
+          name: setObj?.name || setObj?.label || setId
+        };
+      }
+      usage[setId].qty += qty;
+    }
+
+    project.segments.filter(s => s.kind === "line").forEach(segment => {
+      const poles = segment.poles || [];
+      poles.forEach(pole => {
+        if (pole.headMaterialId) bump(pole.headMaterialId, 1);
+        if (pole.ohgwSetId) bump(pole.ohgwSetId, 1);
+        if (pole.guySetId) bump(pole.guySetId, 1);
+        if (pole.groundingSetId) bump(pole.groundingSetId, 1);
+        if (pole.surgeSetId) bump(pole.surgeSetId, 1);
+      });
+
+      if (segment.type === "lv" && typeof distanceMeters === "function") {
+        const rules = presetsApi?.getSpecialPoleRules?.(
+          presetsApi.getConfigKey("lv", segment.phase)
+        );
+        const intervalM = rules?.surgeIntervalM;
+        const setId = rules?.intervalSurgeSetId;
+        if (intervalM && setId && poles.length > 1) {
+          let traveled = 0;
+          let nextAt = intervalM;
+          for (let i = 1; i < poles.length; i++) {
+            const segLen = distanceMeters(poles[i - 1], poles[i]);
+            while (traveled + segLen >= nextAt) {
+              bump(setId, 1);
+              nextAt += intervalM;
+            }
+            traveled += segLen;
+          }
+        }
+      }
+    });
+
+    (project.trInstalls || []).forEach(tr => {
+      if (tr.trSetId) bump(tr.trSetId, 1);
+    });
+
+    return Object.values(usage).sort((a, b) => String(a.setId).localeCompare(String(b.setId)));
+  }
+
+  function buildMaterialSetLookup(setUsage, presetsApi) {
+    const lookup = {};
+    (setUsage || []).forEach(entry => {
+      const setObj = presetsApi?.getSet?.(entry.setId);
+      (setObj?.items || []).forEach(item => {
+        const matId = String(item.id || "").trim();
+        if (!matId) return;
+        if (!lookup[matId]) lookup[matId] = [];
+        if (!lookup[matId].includes(entry.setId)) lookup[matId].push(entry.setId);
+      });
+    });
+    return lookup;
+  }
+
   function buildSurveyMetaV2(project, helpers) {
     const lineSegs = project.segments.filter(s => s.kind === "line");
     const allPoles = lineSegs.flatMap(s => s.poles || []);
@@ -286,6 +382,10 @@
         lvBranchSegmentIds: t.lvBranchSegmentIds || []
       })),
       junctions,
+      poleStats: computeSurveyPoleStats(project),
+      setUsage: helpers.presetsApi
+        ? collectSetUsageFromProject(project, helpers.presetsApi, helpers.distanceMeters)
+        : [],
       capturedAt: new Date().toISOString()
     };
   }
@@ -383,6 +483,9 @@
     buildProjectBom,
     buildSurveyMetaV2,
     buildProjectKml,
-    buildProjectJunctions
+    buildProjectJunctions,
+    computeSurveyPoleStats,
+    collectSetUsageFromProject,
+    buildMaterialSetLookup
   };
 })();

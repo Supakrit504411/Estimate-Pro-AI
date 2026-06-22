@@ -345,9 +345,7 @@
         merged.voltage = "lv";
       }
     }
-    if (!merged.phase && merged.voltage) {
-      merged.phase = "3p";
-    } else if (!merged.phase && merged.capacityMode === "poles" && height > 0) {
+    if (!merged.phase && merged.voltage === "mv") {
       merged.phase = "3p";
     }
     return merged;
@@ -547,6 +545,8 @@
     const poleCount = parsePoleCount(text);
     let voltage = detectVoltage(text);
     let phase = detectPhase(text);
+    const phaseExplicit = Boolean(phase);
+    const voltageExplicit = Boolean(voltage);
     let scope = detectScope(text);
     const cableType = detectCableType(text, voltage);
 
@@ -569,6 +569,11 @@
     }, text);
 
     intent = inferVoltagePhaseDefaults(intent);
+    intent.phaseExplicit = phaseExplicit;
+    intent.voltageExplicit = voltageExplicit;
+    if (intent.voltage === "lv" && !phaseExplicit) {
+      intent.phase = null;
+    }
     if (!voltage) voltage = intent.voltage;
     if (!phase) phase = intent.phase;
 

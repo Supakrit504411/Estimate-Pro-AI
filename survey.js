@@ -1235,7 +1235,7 @@
     if (projectApi) {
       const meta = projectApi.buildSurveyMetaV2(
         { segments: state.segments, trInstalls: state.trInstalls },
-        { distanceMeters }
+        { distanceMeters, presetsApi }
       );
       if (!meta.poleCount && !meta.trCount) return null;
 
@@ -1286,6 +1286,50 @@
 
   function getSurveyMeta() {
     return state.surveyMeta || buildSurveyMetaObject();
+  }
+
+  function drawSurveyStatsOverlay(ctx, width, height, stats) {
+    if (!stats) return;
+    const rows = [
+      ["เสาทางตรง", stats.straightRun ?? 0],
+      ["เข้าโค้ง–ออกโค้ง", stats.curveEntryExit ?? 0],
+      ["เสาภายในโค้ง", stats.curveInterior ?? 0],
+      ["เสาต้นสุดท้าย", stats.endPoles ?? 0],
+      ["ยึดโยง (Guy)", stats.guySets ?? 0]
+    ];
+    const boxW = 168;
+    const boxH = 16 + rows.length * 16;
+    const x = width - boxW - 10;
+    const y = 10;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+    ctx.strokeStyle = "rgba(116, 4, 95, 0.35)";
+    ctx.lineWidth = 1;
+    ctx.fillRect(x, y, boxW, boxH);
+    ctx.strokeRect(x, y, boxW, boxH);
+
+    ctx.font = "bold 10px Sarabun,sans-serif";
+    ctx.fillStyle = "#74045f";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("สรุปเสา", x + 10, y + 8);
+
+    ctx.font = "9px Sarabun,sans-serif";
+    let rowY = y + 24;
+    rows.forEach(([label, value]) => {
+      ctx.fillStyle = "#6b5d66";
+      ctx.fillText(label, x + 10, rowY);
+      ctx.fillStyle = "#1a1216";
+      ctx.textAlign = "right";
+      ctx.fillText(String(value), x + boxW - 10, rowY);
+      ctx.textAlign = "left";
+      rowY += 16;
+    });
+  }
+
+  function getSurveyPoleStatsForCapture() {
+    const project = { segments: state.segments, trInstalls: state.trInstalls };
+    return projectApi?.computeSurveyPoleStats?.(project) || null;
   }
 
   async function drawRouteCanvasFallback() {
@@ -1418,6 +1462,8 @@
       }
     }
 
+    drawSurveyStatsOverlay(ctx, width, height, meta?.poleStats || getSurveyPoleStatsForCapture());
+
     return canvas.toDataURL("image/png").split(",")[1];
   }
 
@@ -1450,6 +1496,11 @@
           logging: false,
           scale: window.innerWidth < 720 ? 1.5 : 2
         });
+        const stats = getSurveyPoleStatsForCapture();
+        if (stats) {
+          const ctx = canvas.getContext("2d");
+          drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
+        }
         base64 = canvas.toDataURL("image/png").split(",")[1];
       } catch (error) {
         console.warn("html2canvas failed", error);
@@ -1490,16 +1541,13 @@
       : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
   }
 
-  function applyMapTheme(theme) {
+  function applyMapTheme() {
     if (!state.map || !window.L) return;
-    const nextTheme = theme === "light" ? "light" : "dark";
     if (state.tileLayer) {
       state.map.removeLayer(state.tileLayer);
     }
-    state.tileLayer = L.tileLayer(getMapTileUrl(nextTheme), {
-      attribution: nextTheme === "light"
-        ? "&copy; OpenStreetMap"
-        : "&copy; OpenStreetMap &copy; CARTO"
+    state.tileLayer = L.tileLayer(getMapTileUrl("light"), {
+      attribution: "&copy; OpenStreetMap"
     }).addTo(state.map);
   }
 
@@ -1508,7 +1556,7 @@
     const center = surveyConfig.defaultCenter || [17.4081, 104.7762];
     state.map = L.map(els.mapEl, { zoomControl: false }).setView(center, surveyConfig.defaultZoom || 15);
     L.control.zoom({ position: "bottomleft" }).addTo(state.map);
-    applyMapTheme(window.PEATheme?.getEffective?.() || "dark");
+    applyMapTheme();
     state.map.on("click", handleMapClick);
     state.map.on("move", updateAimOverlay);
     state.map.on("moveend", updateAimOverlay);
@@ -2691,7 +2739,60 @@
     }[source] || "เสา";
   }
 
-  function handlePoleListChange(event) {
+  function canBulkApplyField(field, pole) {
+    if (!pole || pole.source === "start" || pole.source === "end") return false;
+    if (getSpecialPoleKind(pole)) return false;
+    if (field === "poleMaterialId") return pole.source === "auto" && !isCurvePole(pole);
+    if (field === "headMaterialId") return pole.source === "auto" && !isCurvePole(pole);
+    if (field === "cableMaterialId") return pole.source === "auto" && !isCurvePole(pole);
+    if (field === "ohgwSetId") return pole.source === "auto" && !isCurvePole(pole);
+    return false;
+  }
+
+  function applyFieldToStraightRunPoles(field, value) {
+    let count = 0;
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      (seg.poles || []).forEach(pole => {
+        if (!canBulkApplyField(field, pole)) return;
+        pole[field] = value;
+        markPoleSpecFilled(pole);
+        count += 1;
+      });
+    });
+    if (state.poles?.length) {
+      state.poles.forEach(pole => {
+        if (!canBulkApplyField(field, pole)) return;
+        pole[field] = value;
+        markPoleSpecFilled(pole);
+      });
+    }
+    return count;
+  }
+
+  async function askBulkApplyChoice(fieldLabel) {
+    const result = await Swal.fire({
+      title: "เปลี่ยนหลายต้น?",
+      text: `ต้องการเปลี่ยน${fieldLabel} เฉพาะต้นนี้ หรือทุกเสาทางตรง (ไม่รวมเข้า/ออกโค้งและต้นสุดท้าย)?`,
+      icon: "question",
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: "เปลี่ยนทั้งหมด (ทางตรง)",
+      denyButtonText: "เฉพาะต้นนี้",
+      cancelButtonText: "ยกเลิก"
+    });
+    if (result.isConfirmed) return "all";
+    if (result.isDenied) return "one";
+    return null;
+  }
+
+  const POLE_FIELD_LABELS = {
+    poleMaterialId: "ขนาด/รหัสเสา",
+    headMaterialId: "หัวเสา (SET)",
+    cableMaterialId: "สายไฟ",
+    ohgwSetId: "OHGW"
+  };
+
+  async function handlePoleListChange(event) {
     if (state.phase !== "spec") return;
     const target = event.target;
     const poleId = target.dataset.poleId;
@@ -2699,11 +2800,36 @@
     if (!poleId || !field) return;
 
     const found = findPoleInProject(poleId);
-    if (found) {
-      found.pole[field] = target.value;
-      markPoleSpecFilled(found.pole);
-      updateUiState();
+    if (!found) return;
+
+    const newValue = target.value;
+    const oldValue = found.pole[field];
+    if (newValue === oldValue) return;
+
+    if (canBulkApplyField(field, found.pole)) {
+      const choice = await askBulkApplyChoice(POLE_FIELD_LABELS[field] || field);
+      if (!choice) {
+        target.value = oldValue || "";
+        return;
+      }
+      if (choice === "all") {
+        const count = applyFieldToStraightRunPoles(field, newValue);
+        renderPoleList();
+        updateUiState();
+        Swal.fire({
+          icon: "success",
+          title: "อัปเดตแล้ว",
+          text: `เปลี่ยน${POLE_FIELD_LABELS[field] || field} ${count} ต้น (เฉพาะทางตรง)`,
+          timer: 1800,
+          showConfirmButton: false
+        });
+        return;
+      }
     }
+
+    found.pole[field] = newValue;
+    markPoleSpecFilled(found.pole);
+    updateUiState();
   }
 
   function updateSummary() {
@@ -3043,8 +3169,8 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  window.addEventListener("pea-theme-change", event => {
-    applyMapTheme(event.detail?.theme || "dark");
+  window.addEventListener("pea-theme-change", () => {
+    applyMapTheme();
   });
 
   window.SurveyModule = {

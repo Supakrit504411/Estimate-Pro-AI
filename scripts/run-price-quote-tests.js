@@ -409,6 +409,15 @@ runCase("glossary — enrich master keywords", () => {
   assert("category concrete", enriched.category === "concrete");
 });
 
+runCase("LV 1 pole with wire — must clarify phase", () => {
+  const q = "ขยายเขตเสาแรงต่ำ 1 ต้on พร้อมพาดสายกี่บาท";
+  const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "02.1"), q);
+  assert("needs clarify", intent.needsClarification === true);
+  assert("pole_run", intent.intent === "pole_run");
+  assert("lv voltage", intent.voltage === "lv");
+  assert("no auto phase", !intent.phase);
+});
+
 runCase("confidence — line lv explicit high", () => {
   const q = "ขยายเขตแรงต่ำ ระยะทาง 200 เมตร 3 เฟส";
   const intent = Engine.sanitizeIntent(Engine.parseQueryLocal(q, "01.1"), q);
