@@ -1,6 +1,6 @@
 # Roadmap — PEA Estimation AI Pro 2026
 
-> อัปเดต: 2026-06-19
+> อัปเดต: 2026-06-13
 
 ---
 
@@ -28,6 +28,11 @@
 | UI มือถือ: แผนที่เต็มจอ + toolbar พับ | ✅ |
 | แสดงรูปประวัติบนมือถือ (drive-file-previews) | ✅ |
 | Undo/Redo สำรวจ | ✅ |
+| **KML export เส้นทางสำรวจ** | ✅ `9c5e895` — ปุ่ม「ส่งออก KML」ใน spec phase |
+| **กล่องสถิติเสาบนแผนที่ capture** | ✅ `9c5e895` — poleStats overlay |
+| **Bulk apply สเปกเสาทางตรง** | ✅ `9c5e895` |
+| **SET usage ใน surveyMeta + ประวัติ** | ✅ `9c5e895` |
+| **แผนที่ tile light เสมอ** | ✅ `9c5e895` — ไม่ตาม dark theme |
 
 ---
 
@@ -73,7 +78,7 @@
 
 - [ ] Offline map cache
 - [ ] แก้ไขหมุดทีละจุดในประวัติ
-- [ ] Export KML/KMZ เส้นทางสำรวจ
+- [x] Export KML/KMZ เส้นทางสำรวจ ✅ `buildProjectKml()` + `#surveyExportKmlBtn`
 - [ ] หลาย Span ในสำรวจเดียว
 - [ ] เลือก Guy อัตโนมัติตามความสูงเสา
 - [ ] UI แก้ special pole ใน history replay
@@ -89,4 +94,4 @@
 | GAS.txt manual deploy | ไม่มี CI สำหรับ backend |
 | Password plain text | แก้ใน Phase 2 |
 | survey-presets.js | ต้อง regenerate หลังแก้ scripts/ |
-| docs/ local only | ไม่ sync กับ GitHub — อัปเดตในเครื่อง |
+| โครงการเก่าไม่มี setUsage | save ก่อน `9c5e895` → ประวัติแสดง `—` ในคอลัมน์ SET |

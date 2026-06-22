@@ -5,8 +5,8 @@
 | เอกสาร | เนื้อหา |
 |--------|---------|
 | [../README.md](../README.md) | Overview + quick start |
-| [NEW_CHAT.md](NEW_CHAT.md) | Prompt เริ่มแชท Cursor ใหม่ |
-| [CHANGELOG-NOTES.md](CHANGELOG-NOTES.md) | เหตุการณ์สำคัญ / bug ที่แก้แล้ว |
+| [NEW_CHAT.md](NEW_CHAT.md) | **Prompt เริ่มแชท Cursor** — สรุปงานที่ทำแล้ว + งานถัดไป |
+| [CHANGELOG-NOTES.md](CHANGELOG-NOTES.md) | เหตุการณ์สำคัญ / bug ที่แก้แล้ว (อัปเดต 2026-06-13) |
 
 ## Technical
 
@@ -19,8 +19,8 @@
 
 | ไฟล์ | หมายเหตุ |
 |------|----------|
-| [ROADMAP.md](ROADMAP.md) | **แนะนำอ่าน** — ข้อเสนอพัฒนา 2026-06-21 |
-| [roadmap/ROADMAP.md](roadmap/ROADMAP.md) | Phase 1–3 แบบเดิม (survey-focused) |
+| [ROADMAP.md](ROADMAP.md) | **แนะนำอ่าน** — สถานะ + ข้อเสนอพัฒนา (2026-06-13) |
+| [roadmap/ROADMAP.md](roadmap/ROADMAP.md) | Phase 1–4 แบบ survey-focused |
 | [pitch/INNOVATION_PITCH.md](pitch/INNOVATION_PITCH.md) | Pitch / innovation |
 | [project/SUMMARY.md](project/SUMMARY.md) | สรุปโปรเจกต์ |
 

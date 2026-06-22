@@ -33,13 +33,44 @@ Sheet Project_Database (10 cols):
 GAS routes: login, save-project, saved-projects, share-project, share-users,
   admin-dashboard, master-data, process-image-ai, parse-price-query, drive-file-previews
 
-ทำเสร็จแล้ว (ล่าสุด ~2026-06-21):
+ทำเสร็จแล้ว (ล่าสุด ~2026-06-13, commit 9c5e895):
+
+Core / Auth / Share:
 - Login + RBAC (Config sheet)
 - แชร์ view/edit + Public + Audit log + Admin tab
 - Timeline history (2-row cards, sort/filter)
 - Fix share preConfirm → บันทึก user ถูกต้อง (re-share โครงการเก่าที่ว่าง)
-- ถามราคา export Excel/PDF, master cache 8 นาที
+
+BOQ / AI Scan:
 - Quick pick + SET MV/TR/LV
+- AI Scan Review Queue: ค้นหา master ด้วยมือเมื่อ AI ไม่มีรหัส, ปุ่ม「ข้ามรายการ」ต่อแถว
+
+สำรวจหน้างาน (survey.js + survey-project.js):
+- MV/LV/TR, OSRM, KML export (#surveyExportKmlBtn)
+- กล่องสรุปสถิติเสา (มุมขวาบน) บนภาพแผนที่ตอนจับ capture
+- Bulk apply สเปกเสา: เปลี่ยนเสา/หัว/สาย/OHGW → เลือก「เปลี่ยนทั้งหมด (ทางตรง)」หรือ「เฉพาะต้นนี้」
+- surveyMeta.setUsage + poleStats → ประวัติแสดงคอลัมน์「ชุด SET」+ ตารางสรุป SET
+
+ถามราคา (Price Ask):
+- Local NLU + Gemini fallback (label「AI Answer」)
+- Glossary, confidence, feedback loop
+- หม้อแปลง / manhole / เทโคน / pole-only queries
+- LV ไม่ auto-default เป็น 3P → popup ถาม 1P/3P เมื่อไม่ระบุเฟส
+- UI แบบ chat thread (priceAskThread) — clarification ยังใช้ Swal popup
+- Export Excel/PDF, master cache 8 นาที
+- Tests: node scripts/run-price-quote-tests.js → 169 passed
+
+Theme / UI:
+- Dark / Light / Auto theme (Phase 3 token migration เสร็จ)
+- แผนที่สำรวจใช้ tile โหมด light เสมอ (อ่านง่าย)
+- Dropdown/select contrast ปรับแล้ว
+
+ยังไม่ทำ / งานถัดไปที่น่าทำ:
+- Price Ask แบบ multi-turn chat ใน input box (ChatGPT-style) ~2–3 วัน
+- Session token แทน username ใน payload
+- Hash password ใน Config sheet
+- Duplicate / Template โครงการ
+- PWA / Offline, LINE OA webhook
 
 กฎ:
 - อ่าน docs/technical/SURVEY.md ก่อนแก้ survey

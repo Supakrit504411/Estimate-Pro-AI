@@ -218,8 +218,43 @@ addLvIntervalSurges(counts)     // ใน buildBomLines()
 1. `fitBounds` ครอบทุกหมุด
 2. ซ่อน toolbar ชั่วคราว
 3. `html2canvas` บน `#surveyMap`
-4. fallback: วาดเส้นทางบน canvas
-5. เก็บใน `AppCore.addProjectFileFromBase64` → `Survey_Map_{timestamp}.png`
+4. fallback: วาดเส้นทางบน canvas (`drawRouteCanvasFallback`)
+5. **วาดกล่องสถิติ** มุมขวาบน (`drawSurveyStatsOverlay`) — จำนวนเสา, ระยะทาง, Span ฯลฯ จาก `computeSurveyPoleStats()`
+6. เก็บใน `AppCore.addProjectFileFromBase64` → `Survey_Map_{timestamp}.png`
+
+**หมายเหตุ:** แผนที่ใช้ OSM tile โหมด light เสมอ (`applyMapTheme`) แม้ app อยู่ dark theme
+
+---
+
+## Bulk apply สเปกเสา
+
+เมื่อแก้ dropdown เสา/หัว/สาย/OHGW บนเสา `source: auto` + `section: straight`:
+
+- Swal ถาม「เปลี่ยนทั้งหมด (ทางตรง)」หรือ「เฉพาะต้นนี้」
+- เสา `curve_in`, `curve_out`, `end`, `start` **ไม่** bulk — ใช้ `canBulkApplyField()`
+
+---
+
+## KML Export
+
+- ปุ่ม `#surveyExportKmlBtn`「ส่งออก KML」ใน spec phase (หลังสำรวจเสร็จ)
+- `exportSurveyKml()` → `survey-project.js` `buildProjectKml()`
+- ต้องมี poles + TR ก่อน export
+
+---
+
+## surveyMeta ที่บันทึก (survey-project.js)
+
+`buildSurveyMetaV2()` รวม:
+
+| field | เนื้อหา |
+|-------|---------|
+| `poles`, `controlPoints`, `span`, `distance` | geometry |
+| `voltageType`, `phaseType`, `configKey` | ระบบจำหน่าย |
+| `poleStats` | สรุปจำนวนเสา/ระยะ (ใช้ overlay + ประวัติ) |
+| `setUsage` | รายการ SET ที่ใช้ + qty (`collectSetUsageFromProject`) |
+
+ประวัติ (`app.js` `buildDetailHtml`) แสดงคอลัมน์「ชุด SET」และตารางสรุป SET จาก `setUsage`
 
 ---
 
@@ -251,5 +286,6 @@ window.SurveyModule = {
 
 | Commit | รายการ |
 |--------|--------|
+| `9c5e895` | KML export UI, stats overlay, bulk pole, setUsage, map light |
 | `b89550c` | MV/LV workflow, SET presets, OHGW, wire multiplier |
 | `e7e3101` | GUY/SURGE/GROUND special poles, LV 400m surge |

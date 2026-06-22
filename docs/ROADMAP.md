@@ -1,7 +1,7 @@
 # Roadmap & ข้อเสนอแนะพัฒนา
 
 เอกสารนี้สรุปทิศทางพัฒนาเพื่อให้ **PEA Estimation AI Pro** สมบูรณ์และน่าสนใจมากขึ้น  
-จัดลำดับตาม **ผลกระทบ × ความยาก** — อัปเดตล่าสุด: 2026-06-21
+จัดลำดับตาม **ผลกระทบ × ความยาก** — อัปเดตล่าสุด: 2026-06-13
 
 ---
 
@@ -10,19 +10,38 @@
 | ด้าน | ระดับ | หมายเหตุ |
 |------|-------|----------|
 | BOQ + งบหลายประเภท | ✅ ดี | Quick pick, SET MV/TR/LV |
-| สำรวจหน้างาน | ✅ ดี | Map, TR, OSRM, KML |
-| ถามราคา | ✅ ดี | Local + Gemini, export |
+| สำรวจหน้างาน | ✅ ดี | Map, TR, OSRM, KML, stats overlay, bulk pole, SET summary |
+| ถามราคา | ✅ ดี | NLU + Gemini, glossary, chat thread, LV phase clarify, export |
+| AI Scan | ✅ ดี | Review queue + manual master search + skip row |
+| Theme | ✅ พื้นฐาน | Dark/Light/Auto; แผนที่ survey light เสมอ |
 | Login / RBAC | ✅ พอใช้ | Client + GAS ตรวจซ้ำ |
 | แชร์โครงการ | ✅ แก้แล้ว | ต้อง re-share โครงการที่เคยบันทึกว่าง |
 | Admin / Audit | ✅ พื้นฐาน | ตาราง raw |
-| Tests | ⚠️ น้อย | แค่ price-quote engine |
-| Docs | ✅ เริ่มแล้ว | โฟลเดอร์ `docs/` |
+| Tests | ⚠️ กลาง | 169 price-quote cases; ยังไม่มี survey/share tests |
+| Docs | ✅ อัปเดต | โฟลเดอร์ `docs/` sync ใน git |
 | LINE OA | ❌ ยังไม่เชื่อม UI | config มี endpoint |
 | PWA / Offline | ❌ ไม่มี | |
+| Price Ask multi-turn chat | 🔄 บางส่วน | มี chat bubble; clarification ยัง Swal popup |
 
 ---
 
-## 🔴 Priority 1 — ควรทำก่อน (1–2 สปrint)
+## ✅ เสร็จแล้วล่าสุด (2026-06-13)
+
+| รายการ | Commit | หมายเหตุ |
+|--------|--------|----------|
+| AI Scan queue — ค้นหา master / ข้ามแถว | `9c5e895` | เมื่อ AI ไม่มีรหัส |
+| กล่องสถิติเสาบนแผนที่ capture | `9c5e895` | มุมขวาบน PNG |
+| SET summary + คอลัมน์ในประวัติ | `9c5e895` | `surveyMeta.setUsage` |
+| Bulk apply สเปกเสาทางตรง | `9c5e895` | ไม่รวม curve/end |
+| LV phase clarification (Price Ask) | `9c5e895` | ไม่ auto 3P |
+| Price Ask chat thread UI | `9c5e895` | clarification ยัง Swal |
+| Transformer / manhole / budget capacity | `a691edd` | golden queries |
+| Dark/Light/Auto theme | `394b797` | token migration Phase 3 |
+| Price Ask NLU glossary + confidence | `e3cac94` | feedback loop |
+
+---
+
+## 🔴 Priority 1 — ควรทำก่อน (1–2 sprint)
 
 ### 1.1 Re-share โครงการที่ข้อมูลแชร์ว่าง
 
@@ -51,11 +70,9 @@
 
 ### 1.5 ขยาย test coverage
 
-**แนะนำ:**
-```bash
-node scripts/run-price-quote-tests.js   # มีอยู่แล้ว
-```
-เพิ่ม tests สำหรับ:
+**ปัจจุบัน:** 169 cases ใน `scripts/run-price-quote-tests.js`
+
+**แนะนำเพิ่ม:**
 - `parseHistoryShareFields`, `getShareCoverageStatus`
 - `collectSharePickerValues` (mock DOM)
 - `budget-formula.js` edge cases
@@ -102,6 +119,11 @@ node scripts/run-price-quote-tests.js   # มีอยู่แล้ว
 - `api/line-webhook.js` บน Vercel
 - UI ค้นหาโครงการ / ส่ง BOQ สรุปผ่าน LINE
 - ใช้ case: ส่งรูปหน้างาน → สร้าง draft project
+
+### 2.8 Price Ask — Multi-turn conversational UI
+
+**ปัจจุบัน:** chat bubble แสดงประวัติ; clarification (1P/3P ฯลฯ) ยัง popup Swal  
+**แนะนำ:** input แบบ ChatGPT — ถาม-ตอบต่อเนื่องในกล่องเดียว (~2–3 วัน dev)
 
 ---
 

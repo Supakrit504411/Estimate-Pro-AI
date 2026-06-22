@@ -1,7 +1,7 @@
 # สรุปโปรเจกต์ — PEA Estimation AI Pro 2026
 
 > เอกสารฉบับย่อสำหรับทีมพัฒนาและผู้บริหาร  
-> อัปเดต: 2026-06-19
+> อัปเดต: 2026-06-13
 
 ---
 
@@ -24,7 +24,7 @@
 | Frontend | Vanilla JS, Leaflet, html2canvas, SweetAlert2 |
 | Hosting | Vercel |
 | Backend | Google Apps Script |
-| AI | Gemini 2.5 Flash |
+| AI | Gemini 2.5 Flash (+ 3.1 Flash Lite fallback สำหรับ scan) |
 | Database | Google Sheets |
 | Files | Google Drive |
 
@@ -33,10 +33,11 @@
 ## 3 แท็บหลัก
 
 ```
-[สร้างงานใหม่]  [สำรวจหน้างาน]  [ประวัติโครงการ]
-      │                │                  │
-   AI Scan         MV/LV + แผนที่         ดู/แก้ไข/ลบ
-   งบ 4 ประเภท      SET → BOM              Export Excel
+[สร้างงานใหม่]  [สำรวจหน้างาน]  [ประวัติโครงการ]  [ถามราคา]
+      │                │                  │              │
+   AI Scan         MV/LV/TR + แผนที่      ดู/แก้/ลบ      NLU + Gemini
+   Review Queue    KML export             SET summary    Export Excel/PDF
+   งบ 4 ประเภท      SET → BOM              แชร์/Public
    บันทึก           Guy/Surge/Ground
 ```
 
@@ -68,7 +69,7 @@
 | C | ชื่อโครงการ |
 | D | ยอดรวม |
 | E | ลิงก์ไฟล์ Drive ทั้งหมด (คั่น `\|`) |
-| F | surveyMeta JSON (พิกัด, ระยะทาง, Span, ระบบ MV/LV) |
+| F | surveyMeta JSON (พิกัด, ระยะทาง, Span, ระบบ MV/LV, setUsage, poleStats) |
 
 **ไฟล์ในคอลัมน์ E อาจรวม:**
 1. ไฟล์ AI Scan (รูป/PDF BOM)
@@ -93,7 +94,10 @@
 
 ## สถานะปัจจุบัน
 
-- **Phase 1:** เสร็จ — ใช้งาน production ได้ (รวม MV/LV + Guy/Surge/Ground)
+- **Phase 1:** ✅ เสร็จ — BOQ, AI Scan, สำรวจ MV/LV/TR, KML, SET summary, ถามราคา, แชร์, Admin
+- **Phase 1.5 (UX):** ✅ Dark/Light theme, Price Ask chat thread, scan queue manual pick, bulk pole apply
 - **Phase 2:** Security, Validation, Pilot (ดู [roadmap/ROADMAP.md](../roadmap/ROADMAP.md))
+- **Tests:** 169 price-quote cases (`node scripts/run-price-quote-tests.js`)
 
-**Git ล่าสุด:** `e7e3101` on `main`
+**Git ล่าสุด:** `9c5e895` on `main`  
+**Production:** https://estimate-pro-ai.vercel.app

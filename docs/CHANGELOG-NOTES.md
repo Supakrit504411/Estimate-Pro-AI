@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-06-13 — Sprint นำเสนอ (Presentation prep)
+
+### AI Scan Review Queue — เลือก master ด้วยมือ
+
+- **อาการ:** AI อ่าน BOM แล้วไม่มีรหัส → ติดค้าง ไม่สามารถดำเนินต่อ
+- **แก้:** ช่องค้นหา master ต่อแถว + ปุ่ม「ข้ามรายการ」
+- **Commit:** `9c5e895`
+- **GAS deploy ต้องทำ:** ไม่
+
+### สำรวจ — กล่องสถิติบนแผนที่ + SET summary ในประวัติ
+
+- **ฟีเจอร์:** `computeSurveyPoleStats()` วาด overlay มุมขวาบนตอน capture; `setUsage` ใน surveyMeta → คอลัมน์「ชุด SET」+ ตารางสรุปใน detail
+- **หมายเหตุ:** โครงการเก่าที่ save ก่อน fix อาจไม่มี `setUsage` (แสดง `—`)
+- **Commit:** `9c5e895`
+
+### สำรวจ — Bulk apply สเปกเสาทางตรง
+
+- **ฟีเจอร์:** เปลี่ยนเสา/หัว/สาย/OHGW บนเสา auto ทางตรง → Swal ถาม「เปลี่ยนทั้งหมด」vs「เฉพาะต้นนี้」; เสา curve/end/start ไม่ bulk
+- **Commit:** `9c5e895`
+
+### ถามราคา — LV phase clarification + chat thread
+
+- **แก้:** LV query ไม่ auto-default 3P → ถาม 1P/3P ผ่าน popup
+- **เพิ่ม:** UI แบบ chat bubble (`priceAskThread`); transformer/manhole/budget capacity
+- **Tests:** 169 cases (`run-price-quote-tests.js`)
+- **Commit:** `9c5e895`, `a691edd`, `394b797`, `e3cac94`
+
+### Theme — Dark/Light/Auto + แผนที่ light เสมอ
+
+- **Commit:** `394b797`, `a691edd`, `9c5e895`
+- **หมายเหตุ:** แผนที่ survey ไม่ตาม dark theme — ออกแบบให้อ่านง่ายในหน้างาน
+
+---
+
 ## 2026-06-21
 
 ### แก้การแชร์ไม่บันทึก user (Critical)

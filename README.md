@@ -13,10 +13,11 @@
 
 | แท็บ | ความสามารถ |
 |------|------------|
-| สร้างงานใหม่ | BOQ หลายประเภทงบ (01.1 / 02.1 / 02.2 / 03.1), Quick pick, AI Scan รูป BOM |
-| ประวัติโครงการ | Timeline cards, ค้นหา/เรียง/กรอง, แชร์ view/edit, Public |
-| สำรวจหน้างาน | Leaflet + OSRM, MV/LV/TR, KML export, นำเข้า BOQ |
-| ถามราคา | Local engine + Gemini fallback, Export Excel/PDF |
+| สร้างงานใหม่ | BOQ หลายประเภทงบ, Quick pick, AI Scan + Review Queue (ค้นหา master / ข้ามแถว) |
+| ประวัติโครงการ | Timeline cards, ค้นหา/เรียง/กรอง, แชร์ view/edit, Public, ตาราง SET summary |
+| สำรวจหน้างาน | Leaflet + OSRM, MV/LV/TR, KML export, bulk pole apply, stats overlay บนแผนที่ |
+| ถามราคา | NLU + Gemini (AI Answer), chat thread, LV phase clarify, Export Excel/PDF |
+| Theme | Dark / Light / Auto (แผนที่ survey ใช้ tile light เสมอ) |
 | Admin | ผู้ใช้, โครงการทั้งหมด, Audit log (admin เท่านั้น) |
 
 ---
@@ -42,7 +43,9 @@ cp .env.example .env.local
 # แก้ GAS_WEB_APP_URL
 
 # 3. Deploy GAS — copy GAS.txt ไป Apps Script Editor (ไฟล์นี้ไม่อยู่ใน git)
-# 4. Push ขึ้น Vercel หรือ serve static 本地
+# 4. ทดสอบ price-quote engine
+node scripts/run-price-quote-tests.js   # 169 tests
+# 5. Push ขึ้น Vercel หรือ serve static 本地
 ```
 
 รายละเอียดเต็ม → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
@@ -57,7 +60,8 @@ cp .env.example .env.local
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deploy Vercel + GAS |
 | [docs/CONFIG-SHEET.md](docs/CONFIG-SHEET.md) | โครงสร้าง Google Sheets |
 | [docs/API.md](docs/API.md) | GAS API endpoints |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | แนวทางพัฒนาต่อ / ข้อเสนอแนะ |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | แนวทางพัฒนาต่อ / สถานะล่าสุด |
+| [docs/NEW_CHAT.md](docs/NEW_CHAT.md) | Prompt เริ่มแชท Cursor + สรุปงานที่ทำแล้ว |
 | [docs/CHANGELOG-NOTES.md](docs/CHANGELOG-NOTES.md) | บันทึกการแก้ไขสำคัญ (manual) |
 
 ---
