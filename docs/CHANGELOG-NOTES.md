@@ -12,6 +12,7 @@
 - **ใหม่:** แยก bulk ตามประเภท — `straight`, `curve_in`, `curve_out`, `curve_interior` (รวม Guy SET สำหรับเข้า/ออกโค้ง)
 - **ฟังก์ชัน:** `getBulkApplyGroup()`, `applyFieldToBulkGroup()` ใน `survey.js`
 - **GAS deploy ต้องทำ:** ไม่
+- **Commit:** `be6b67a`
 
 ---
 

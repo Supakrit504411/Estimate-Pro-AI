@@ -32,7 +32,7 @@
 | AI Scan queue — ค้นหา master / ข้ามแถว | `9c5e895` | เมื่อ AI ไม่มีรหัส |
 | กล่องสถิติเสาบนแผนที่ capture | `9c5e895` | มุมขวาบน PNG |
 | SET summary + คอลัมน์ในประวัติ | `9c5e895` | `surveyMeta.setUsage` |
-| Bulk apply สเปกเสา (4 กลุ่ม) | ล่าสุด | ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง |
+| Bulk apply สเปกเสา (4 กลุ่ม) | `be6b67a` | ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง |
 | Bulk apply สเปกเสาทางตรง (รุ่นแรก) | `9c5e895` | ขยายเป็น 4 กลุ่มแล้ว |
 | LV phase clarification (Price Ask) | `9c5e895` | ไม่ auto 3P |
 | Price Ask chat thread UI | `9c5e895` | clarification ยัง Swal |

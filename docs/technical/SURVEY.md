@@ -294,7 +294,7 @@ window.SurveyModule = {
 
 | Commit | รายการ |
 |--------|--------|
-| ล่าสุด | Bulk apply 4 กลุ่ม: straight / curve_in / curve_out / curve_interior |
+| `be6b67a` | Bulk apply 4 กลุ่ม: straight / curve_in / curve_out / curve_interior |
 | `9c5e895` | KML export UI, stats overlay, bulk pole (ทางตรง), setUsage, map light |
 | `b89550c` | MV/LV workflow, SET presets, OHGW, wire multiplier |
 | `e7e3101` | GUY/SURGE/GROUND special poles, LV 400m surge |
