@@ -1891,6 +1891,44 @@ select option,
 
 .detail-table th { background: var(--detail-table-head-bg); }
 
+.detail-set-group-row td {
+  background: var(--accent-panel-bg);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.detail-set-group-row.is-ungrouped td {
+  background: var(--detail-surface-bg);
+  color: var(--muted);
+}
+
+.detail-set-item-row td {
+  background: rgba(116, 4, 95, 0.03);
+}
+
+.detail-set-group-note {
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.set-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-panel-bg);
+  border: 1px solid var(--accent-panel-border);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.item-row.is-set-grouped {
+  border-left: 3px solid var(--accent);
+}
+
 .media-gallery {
   max-height: none;
   overflow-y: visible;
@@ -2531,6 +2569,57 @@ div:where(.swal2-container).swal2-backdrop-show {
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--map-shell-bg);
+}
+
+.survey-map-stats {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 650;
+  min-width: 188px;
+  max-width: 220px;
+  padding: 8px 10px 10px;
+  border-radius: 12px;
+  border: 2px solid #74045f;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.survey-map-stats-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #74045f;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.survey-map-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.survey-map-stats-table td {
+  padding: 2px 0;
+  border: none;
+  color: #5a4f56;
+}
+
+.survey-map-stats-table td:last-child {
+  text-align: right;
+  font-weight: 700;
+  color: #1a1216;
+}
+
+.survey-kml-side-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.survey-side-panel .section-head {
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .survey-map-stage .survey-map {

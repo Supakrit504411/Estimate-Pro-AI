@@ -11,7 +11,8 @@
     currentJobId: null,
     currentFileUrl: "",
     tempFileList: [],
-    aiReviewQueue: []
+    aiReviewQueue: [],
+    activeSurveyMeta: null
   };
 
   let lastPriceQuote = null;
@@ -1120,7 +1121,8 @@
   }
 
   function render() {
-    els.budgetSpace.innerHTML = state.budgets.map((budget, bIdx) => `
+    const setSummaryHtml = state.activeSurveyMeta ? buildEditSetSummaryHtml(state.activeSurveyMeta) : "";
+    els.budgetSpace.innerHTML = `${setSummaryHtml}${state.budgets.map((budget, bIdx) => `
       <div class="budget-card">
         <div class="budget-top">
           <div>
@@ -1142,19 +1144,20 @@
         </div>
 
         <div class="item-list">
-          ${budget.items.length ? budget.items.map((item, iIdx) => `
-            <div class="item-row">
-              <div class="item-main" data-action="edit-qty" data-budget-index="${bIdx}" data-item-index="${iIdx}">
+          ${budget.items.length ? sortDetailsForSetGrouping(budget.items, state.activeSurveyMeta).map(({ item, setIds, primarySet, originalIndex }) => `
+            <div class="item-row ${primarySet ? "is-set-item" : ""} ${setIds.length && primarySet ? "is-set-grouped" : ""}">
+              <div class="item-main" data-action="edit-qty" data-budget-index="${bIdx}" data-item-index="${originalIndex}">
                 <div class="item-name">${item.name}</div>
                 <div class="item-sub">
                   <span class="qty-chip">QTY ${formatQty(item.qty)}</span>
                   <span class="type-chip">${item.id}</span>
+                  ${setIds.length ? `<span class="set-chip">SET ${setIds.join(", ")}</span>` : ""}
                   <span>${item.laborDesc || "ค่าแรงมาตรฐาน"}</span>
                 </div>
               </div>
               <div class="item-total">
                 ${Number(item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span class="danger-link" data-action="remove-item" data-budget-index="${bIdx}" data-item-index="${iIdx}">ลบรายการ</span>
+                <span class="danger-link" data-action="remove-item" data-budget-index="${bIdx}" data-item-index="${originalIndex}">ลบรายการ</span>
               </div>
             </div>
           `).join("") : `
@@ -2061,6 +2064,7 @@
     state.currentFileUrl = "";
     state.tempFileList = [];
     state.budgets = [];
+    state.activeSurveyMeta = null;
     els.pjName.value = "";
     els.formTitle.innerText = "Project Control";
     if (window.SurveyModule && window.SurveyModule.resetSurvey) {
@@ -2697,6 +2701,31 @@
       const poleCount = meta.poleCount ?? "-";
       const totalDistanceM = meta.totalDistanceM ?? "-";
       const spanM = meta.spanM ?? meta.segments?.find(seg => seg.spanM)?.spanM ?? "-";
+      const stats = meta.poleStats;
+      const statsRows = stats ? `
+              <tr><td class="kv-label">เสาทางตรง</td><td class="kv-value">${stats.straightRun ?? 0} ต้น</td></tr>
+              <tr><td class="kv-label">เข้า/ออกโค้ง</td><td class="kv-value">${stats.curveEntryExit ?? 0} ต้น</td></tr>
+              <tr><td class="kv-label">เสาภายในโค้ง</td><td class="kv-value">${stats.curveInterior ?? 0} ต้น</td></tr>
+              <tr><td class="kv-label">เสาต้นสุดท้าย</td><td class="kv-value">${stats.endPoles ?? 0} ต้น</td></tr>
+              <tr><td class="kv-label">ยึดโยง (Guy)</td><td class="kv-value">${stats.guySets ?? 0} ชุด</td></tr>
+      ` : "";
+      const setUsageHtml = meta.setUsage?.length ? `
+        <section class="report-section">
+          <h2>ชุด SET ในโครงการ</h2>
+          <table class="table-compact">
+            <thead><tr><th>รหัส SET</th><th>รายการ</th><th>จำนวนชุด</th></tr></thead>
+            <tbody>
+              ${meta.setUsage.map(entry => `
+                <tr>
+                  <td><strong>${escapeHtml(entry.setId)}</strong></td>
+                  <td>${escapeHtml(entry.name || entry.setId)}</td>
+                  <td class="num">${entry.qty}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </section>
+      ` : "";
       return `
         <section class="report-section">
           <h2>ข้อมูลสำรวจ</h2>
@@ -2705,9 +2734,11 @@
               <tr><td class="kv-label">จุดเริ่ม</td><td class="kv-value">${Number(meta.startLat).toFixed(6)}, ${Number(meta.startLng).toFixed(6)}</td></tr>
               <tr><td class="kv-label">จุดสิ้นสุด</td><td class="kv-value">${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}</td></tr>
               <tr><td class="kv-label">หมุด / ระยะ / Span</td><td class="kv-value">${poleCount} หมุด · ${totalDistanceM} ม. · Span ${spanM} ม.</td></tr>
+              ${statsRows}
             </tbody>
           </table>
         </section>
+        ${setUsageHtml}
       `;
     } catch (error) {
       return "";
@@ -2793,16 +2824,19 @@
       grandTotal
     } = options;
 
-    const lineRows = (details || []).map((item, index) => `
-      <tr>
-        <td class="col-no">${index + 1}</td>
-        <td class="col-type">${escapeHtml(String(item.type || ""))}</td>
-        <td class="col-id">${escapeHtml(String(item.id || ""))}</td>
-        <td class="col-name">${escapeHtml(String(item.name || ""))}</td>
-        <td class="num col-qty">${escapeHtml(String(item.qty || ""))}</td>
-        <td class="num col-total">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>
-      </tr>
-    `).join("");
+    let surveyMeta = null;
+    if (surveyMetaStr) {
+      try {
+        surveyMeta = JSON.parse(surveyMetaStr);
+      } catch (error) {
+        surveyMeta = null;
+      }
+    }
+
+    const lineRows = buildGroupedDetailTableBodyHtml(details, surveyMeta, {
+      includeBudget: true,
+      includeTotal: true
+    });
 
     const mediaHtml = buildReportMediaPrintHtml(imgStr, previews);
 
@@ -2864,7 +2898,27 @@
           word-wrap: break-word;
           overflow-wrap: anywhere;
         }
-        .num { text-align: right; white-space: nowrap; }
+        .table-boq .col-set {
+          white-space: nowrap;
+        }
+        .detail-set-group-row td {
+          background: #f0e8ef;
+          font-size: 10px;
+          font-weight: 700;
+          color: #74045f;
+        }
+        .detail-set-group-row.is-ungrouped td {
+          background: #f7f7f7;
+          color: #666;
+        }
+        .detail-set-item-row td {
+          background: #fcfafc;
+        }
+        .detail-set-group-note {
+          font-weight: 400;
+          color: #555;
+          margin-left: 6px;
+        }
         .total-row td { background: #fafafa; }
         .report-media-grid {
           display: flex;
@@ -2909,7 +2963,7 @@
             <col class="col-qty">
             <col class="col-total">
           </colgroup>
-          <thead><tr><th>#</th><th>งบ</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
+          <thead><tr><th>#</th><th>งบ</th><th>รหัส</th><th>รายการ</th><th>ชุด SET</th><th>จำนวน</th><th>รวม</th></tr></thead>
           <tbody>${lineRows}</tbody>
         </table>
       </section>
@@ -3205,11 +3259,93 @@
   }
 
   function buildMaterialSetLabel(materialId, meta) {
-    const usage = meta?.setUsage || [];
-    const api = window.SurveyPresetsApi;
-    const lookup = window.SurveyProject?.buildMaterialSetLookup?.(usage, api) || {};
-    const ids = lookup[String(materialId).trim()] || [];
+    const ids = resolveMaterialSetIds(materialId, meta);
     return ids.length ? ids.join(", ") : "—";
+  }
+
+  function resolveMaterialSetIds(materialId, meta) {
+    const api = window.SurveyPresetsApi;
+    if (window.SurveyProject?.resolveMaterialSetIds) {
+      return window.SurveyProject.resolveMaterialSetIds(materialId, meta?.setUsage, api);
+    }
+    const lookup = window.SurveyProject?.buildMaterialSetLookup?.(meta?.setUsage || [], api) || {};
+    return lookup[String(materialId).trim()] || [];
+  }
+
+  function getSetDisplayName(setId, meta) {
+    const fromUsage = meta?.setUsage?.find(entry => String(entry.setId) === String(setId));
+    if (fromUsage?.name) return fromUsage.name;
+    const setObj = window.SurveyPresetsApi?.getSet?.(setId);
+    return setObj?.name || setObj?.label || setId;
+  }
+
+  function sortDetailsForSetGrouping(details, meta) {
+    return [...(details || [])].map((item, originalIndex) => {
+      const setIds = resolveMaterialSetIds(item.id, meta);
+      const primarySet = setIds[0] || "";
+      return { item, setIds, primarySet, originalIndex };
+    }).sort((a, b) => {
+      if (a.primarySet && !b.primarySet) return -1;
+      if (!a.primarySet && b.primarySet) return 1;
+      if (a.primarySet !== b.primarySet) return a.primarySet.localeCompare(b.primarySet);
+      return String(a.item.id).localeCompare(String(b.item.id));
+    });
+  }
+
+  function getDetailTableColSpan(options = {}) {
+    let cols = 5;
+    if (options.includeBudget) cols += 1;
+    if (options.includeTotal) cols += 1;
+    return cols;
+  }
+
+  function buildGroupedDetailTableBodyHtml(details, meta, options = {}) {
+    const includeBudget = Boolean(options.includeBudget);
+    const includeTotal = Boolean(options.includeTotal);
+    const colSpan = getDetailTableColSpan(options);
+    const grouped = sortDetailsForSetGrouping(details, meta);
+    let html = "";
+    let rowNum = 0;
+    let lastGroup = null;
+
+    grouped.forEach(({ item, setIds, primarySet }) => {
+      const groupKey = primarySet || "__none__";
+      if (groupKey !== lastGroup) {
+        if (primarySet) {
+          html += `
+            <tr class="detail-set-group-row">
+              <td colspan="${colSpan}">
+                <strong>ชุด SET ${escapeHtml(primarySet)}</strong>
+                <span class="detail-set-group-note">${escapeHtml(getSetDisplayName(primarySet, meta))}</span>
+              </td>
+            </tr>
+          `;
+        } else if (lastGroup && lastGroup !== "__none__") {
+          html += `<tr class="detail-set-group-row is-ungrouped"><td colspan="${colSpan}">รายการนอกชุด SET</td></tr>`;
+        }
+        lastGroup = groupKey;
+      }
+
+      rowNum += 1;
+      const setLabel = setIds.length ? setIds.join(", ") : "—";
+      html += `
+        <tr class="${primarySet ? "detail-set-item-row" : ""}">
+          <td>${rowNum}</td>
+          ${includeBudget ? `<td>${escapeHtml(String(item.type || ""))}</td>` : ""}
+          <td>${escapeHtml(String(item.id))}</td>
+          <td>${escapeHtml(String(item.name))}</td>
+          <td>${escapeHtml(setLabel)}</td>
+          <td style="text-align:center;">${escapeHtml(String(item.qty))}</td>
+          ${includeTotal ? `<td class="num">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>` : ""}
+        </tr>
+      `;
+    });
+
+    return html;
+  }
+
+  function buildEditSetSummaryHtml(meta) {
+    return buildSetUsageSummaryHtml(meta);
   }
 
   function buildSetUsageSummaryHtml(meta) {
@@ -3311,30 +3447,28 @@
           </tr>
         </thead>
         <tbody>
-          ${details.map((item, index) => `
-            <tr>
-              <td>${index + 1}</td>
-              <td>${escapeHtml(String(item.id))}</td>
-              <td>${escapeHtml(String(item.name))}</td>
-              <td>${escapeHtml(buildMaterialSetLabel(item.id, surveyMeta))}</td>
-              <td style="text-align:center;">${escapeHtml(String(item.qty))}</td>
-            </tr>
-          `).join("")}
+          ${buildGroupedDetailTableBodyHtml(details, surveyMeta)}
         </tbody>
       </table>
       <div class="detail-export-actions">
-        <button class="primary-btn" type="button" onclick="window.AppActions.exportToExcel('${escapeJs(name)}', '${safePayload}')">Export Excel</button>
+        <button class="primary-btn" type="button" onclick="window.AppActions.exportToExcel('${escapeJs(name)}', '${safePayload}', '${escapeJs(projectId)}')">Export Excel</button>
         <button class="ghost-btn" type="button" onclick="window.AppActions.exportProjectReportPdf('${escapeJs(projectId)}')">Export PDF รายงาน</button>
       </div>
     `;
   }
 
-  function exportToExcel(name, encodedDetails) {
+  function exportToExcel(name, encodedDetails, projectId) {
     const details = JSON.parse(decodeURIComponent(encodedDetails));
-    const data = details.map((item, index) => ({
+    let surveyMeta = null;
+    const metaStr = state.historyRowCache?.[projectId]?.surveyMetaStr;
+    if (metaStr) {
+      try { surveyMeta = JSON.parse(metaStr); } catch (error) { surveyMeta = null; }
+    }
+    const data = sortDetailsForSetGrouping(details, surveyMeta).map(({ item, setIds }, index) => ({
       "ลำดับ": index + 1,
       "รหัสพัสดุ": item.id,
       "รายการ": item.name,
+      "ชุด SET": setIds.length ? setIds.join(", ") : "—",
       "จำนวน": item.qty,
       "งบ": item.type,
       "รวม": item.total
@@ -3379,6 +3513,16 @@
       state.currentFileUrl = img;
       els.pjName.value = name;
       els.formTitle.innerText = `Edit Mode : ${name}`;
+
+      const cached = state.historyRowCache[id] || {};
+      state.activeSurveyMeta = null;
+      if (cached.surveyMetaStr) {
+        try {
+          state.activeSurveyMeta = JSON.parse(cached.surveyMetaStr);
+        } catch (error) {
+          state.activeSurveyMeta = null;
+        }
+      }
 
       state.budgets = [];
       const grouped = {};

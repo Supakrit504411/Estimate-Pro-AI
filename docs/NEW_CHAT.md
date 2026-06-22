@@ -47,11 +47,10 @@ BOQ / AI Scan:
 
 สำรวจหน้างาน (survey.js + survey-project.js):
 - MV/LV/TR, OSRM, KML export (#surveyExportKmlBtn)
-- กล่องสรุปสถิติเสา (มุมขวาบน) บนภาพแผนที่ตอนจับ capture
-- Bulk apply สเปกเสา (4 กลุ่ม): เปลี่ยนเสา/หัว/สาย/OHGW/Guy → Swal ถาม「เปลี่ยนทั้งหมด」vs「เฉพาะต้นนี้」
-  · ทางตรง (auto) · เข้าโค้ง (curve_in) · ออกโค้ง (curve_out) · ภายในโค้ง (curve_waypoint/auto ใน section โค้ง)
-  · ไม่รวมจุดเริ่ม / ต้นสุดท้าย / หมุดควบคุม — ดู docs/technical/SURVEY.md
-- surveyMeta.setUsage + poleStats → ประวัติแสดงคอลัมน์「ชุด SET」+ ตารางสรุป SET
+- กล่องสรุปสถิติเสา (มุมขวาบน) บนแผนที่ live + ใน PNG capture — โครงการเก่าต้องสำรวจเสร็จใหม่
+- KML export: ปุ่ม「📍 ส่งออก KML」ใต้แผนที่ + มุมแผง spec (หลังกด「สำรวจเสร็จ」เท่านั้น)
+- Bulk apply สเปกเสา (4 กลุ่ม): ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง — ดู docs/technical/SURVEY.md
+- surveyMeta.setUsage → ประวัติ: คอลัมน์「ชุด SET」+ จัดกลุ่มรายการ + ตารางสรุป (ดู/แก้/PDF/Excel)
 
 ถามราคา (Price Ask):
 - Local NLU + Gemini fallback (label「AI Answer」)

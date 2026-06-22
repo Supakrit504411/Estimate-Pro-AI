@@ -60,6 +60,8 @@
 
   function cacheElements() {
     els.mapEl = document.getElementById("surveyMap");
+    els.mapShell = document.querySelector(".survey-map-shell");
+    els.mapStatsOverlay = document.getElementById("surveyMapStatsOverlay");
     els.poleList = document.getElementById("surveyPoleList");
     els.prePanel = document.getElementById("surveyPrePanel");
     els.mapStage = document.getElementById("surveyMapStage");
@@ -112,6 +114,7 @@
     els.placeAimBtn = document.getElementById("surveyPlaceAimBtn");
     els.tabMenuBtn = document.getElementById("surveyTabMenuBtn");
     els.exportKmlBtn = document.getElementById("surveyExportKmlBtn");
+    els.exportKmlSideBtn = document.getElementById("surveyExportKmlSideBtn");
     els.saveProjectBtn = document.getElementById("surveySaveProjectBtn");
   }
 
@@ -140,6 +143,7 @@
     if (els.addLvFromTrBtn) els.addLvFromTrBtn.addEventListener("click", () => addLvBranchFromTr());
     if (els.placeAimBtn) els.placeAimBtn.addEventListener("click", () => placeAtMapCenter());
     if (els.exportKmlBtn) els.exportKmlBtn.addEventListener("click", exportSurveyKml);
+    if (els.exportKmlSideBtn) els.exportKmlSideBtn.addEventListener("click", exportSurveyKml);
     if (els.saveProjectBtn) {
       els.saveProjectBtn.addEventListener("click", () => {
         if (window.AppCore?.confirmSaveProject) {
@@ -1297,34 +1301,80 @@
       ["เสาต้นสุดท้าย", stats.endPoles ?? 0],
       ["ยึดโยง (Guy)", stats.guySets ?? 0]
     ];
-    const boxW = 168;
-    const boxH = 16 + rows.length * 16;
-    const x = width - boxW - 10;
-    const y = 10;
+    const boxW = Math.min(220, Math.max(188, width * 0.34));
+    const headerH = 26;
+    const rowH = 18;
+    const pad = 10;
+    const boxH = headerH + rows.length * rowH + pad;
+    const x = width - boxW - 12;
+    const y = 12;
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
-    ctx.strokeStyle = "rgba(116, 4, 95, 0.35)";
-    ctx.lineWidth = 1;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.28)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.97)";
+    ctx.strokeStyle = "#74045f";
+    ctx.lineWidth = 2;
     ctx.fillRect(x, y, boxW, boxH);
     ctx.strokeRect(x, y, boxW, boxH);
+    ctx.shadowColor = "transparent";
 
-    ctx.font = "bold 10px Sarabun,sans-serif";
+    ctx.font = "bold 12px Sarabun, Tahoma, sans-serif";
     ctx.fillStyle = "#74045f";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText("สรุปเสา", x + 10, y + 8);
+    ctx.fillText("สรุปเสา — แผนที่สำรวจ", x + pad, y + 8);
 
-    ctx.font = "9px Sarabun,sans-serif";
-    let rowY = y + 24;
+    ctx.font = "11px Sarabun, Tahoma, sans-serif";
+    let rowY = y + headerH;
     rows.forEach(([label, value]) => {
-      ctx.fillStyle = "#6b5d66";
-      ctx.fillText(label, x + 10, rowY);
-      ctx.fillStyle = "#1a1216";
-      ctx.textAlign = "right";
-      ctx.fillText(String(value), x + boxW - 10, rowY);
+      ctx.fillStyle = "#5a4f56";
       ctx.textAlign = "left";
-      rowY += 16;
+      ctx.fillText(label, x + pad, rowY);
+      ctx.fillStyle = "#1a1216";
+      ctx.font = "bold 11px Sarabun, Tahoma, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(String(value), x + boxW - pad, rowY);
+      ctx.font = "11px Sarabun, Tahoma, sans-serif";
+      rowY += rowH;
     });
+    ctx.restore();
+  }
+
+  function renderSurveyMapStatsOverlay(stats) {
+    if (!els.mapStatsOverlay) return;
+    if (!stats) {
+      els.mapStatsOverlay.classList.add("hidden");
+      els.mapStatsOverlay.innerHTML = "";
+      return;
+    }
+    const rows = [
+      ["เสาทางตรง", stats.straightRun ?? 0],
+      ["เข้าโค้ง–ออกโค้ง", stats.curveEntryExit ?? 0],
+      ["เสาภายในโค้ง", stats.curveInterior ?? 0],
+      ["เสาต้นสุดท้าย", stats.endPoles ?? 0],
+      ["ยึดโยง (Guy)", stats.guySets ?? 0]
+    ];
+    els.mapStatsOverlay.innerHTML = `
+      <div class="survey-map-stats-title">สรุปเสา — แผนที่สำรวจ</div>
+      <table class="survey-map-stats-table">
+        ${rows.map(([label, value]) => `
+          <tr><td>${label}</td><td>${value}</td></tr>
+        `).join("")}
+      </table>
+    `;
+  }
+
+  function updateSurveyMapStatsOverlay() {
+    const show = state.phase === "spec" && state.sessionActive;
+    const stats = getSurveyPoleStatsForCapture();
+    if (!show || !stats) {
+      if (els.mapStatsOverlay) els.mapStatsOverlay.classList.add("hidden");
+      return;
+    }
+    renderSurveyMapStatsOverlay(stats);
+    els.mapStatsOverlay.classList.remove("hidden");
   }
 
   function getSurveyPoleStatsForCapture() {
@@ -1487,16 +1537,23 @@
     const prevDisplay = hideEls.map(el => el.style.display);
     hideEls.forEach(el => { el.style.display = "none"; });
 
+    const stats = getSurveyPoleStatsForCapture();
+    const hadStatsHidden = els.mapStatsOverlay?.classList.contains("hidden");
+    if (stats && els.mapStatsOverlay) {
+      renderSurveyMapStatsOverlay(stats);
+      els.mapStatsOverlay.classList.remove("hidden");
+    }
+
+    const captureTarget = els.mapShell || els.mapEl;
     let base64 = null;
-    if (window.html2canvas) {
+    if (window.html2canvas && captureTarget) {
       try {
-        const canvas = await html2canvas(els.mapEl, {
+        const canvas = await html2canvas(captureTarget, {
           useCORS: true,
           allowTaint: true,
           logging: false,
           scale: window.innerWidth < 720 ? 1.5 : 2
         });
-        const stats = getSurveyPoleStatsForCapture();
         if (stats) {
           const ctx = canvas.getContext("2d");
           drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
@@ -1510,6 +1567,11 @@
     hideEls.forEach((el, index) => {
       el.style.display = prevDisplay[index] || "";
     });
+    if (hadStatsHidden && els.mapStatsOverlay) {
+      els.mapStatsOverlay.classList.add("hidden");
+    } else {
+      updateSurveyMapStatsOverlay();
+    }
 
     if (!base64) {
       base64 = await drawRouteCanvasFallback();
@@ -2402,6 +2464,7 @@
     updateDistanceLegs();
     updateUiState();
     updateAimOverlay();
+    updateSurveyMapStatsOverlay();
   }
 
   function updateUiState() {
@@ -2441,6 +2504,9 @@
       els.sideNote.textContent = state.phase === "spec"
         ? "เลือกรหัสพัสดุจากรายการมาตรฐาน กฟภ. — แก้ไขเฉพาะหมุดที่ต้องการได้"
         : "ตั้งค่า Default / แนบรูปก่อนเริ่ม แล้วปักหมุดบนแผนที่";
+    }
+    if (els.exportKmlSideBtn) {
+      els.exportKmlSideBtn.classList.toggle("hidden", state.phase !== "spec");
     }
 
     updateHistoryButtons();

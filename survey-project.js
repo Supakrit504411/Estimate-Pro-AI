@@ -324,6 +324,28 @@
     return lookup;
   }
 
+  function buildGlobalMaterialSetLookup() {
+    const lookup = {};
+    const sets = window.SURVEY_PRESETS?.sets || {};
+    Object.keys(sets).forEach(setId => {
+      (sets[setId]?.items || []).forEach(item => {
+        const matId = String(item.id || "").trim();
+        if (!matId) return;
+        if (!lookup[matId]) lookup[matId] = [];
+        if (!lookup[matId].includes(setId)) lookup[matId].push(setId);
+      });
+    });
+    return lookup;
+  }
+
+  function resolveMaterialSetIds(materialId, setUsage, presetsApi) {
+    const id = String(materialId || "").trim();
+    if (!id) return [];
+    const fromProject = buildMaterialSetLookup(setUsage, presetsApi)[id] || [];
+    if (fromProject.length) return fromProject;
+    return buildGlobalMaterialSetLookup()[id] || [];
+  }
+
   function buildSurveyMetaV2(project, helpers) {
     const lineSegs = project.segments.filter(s => s.kind === "line");
     const allPoles = lineSegs.flatMap(s => s.poles || []);
@@ -486,6 +508,8 @@
     buildProjectJunctions,
     computeSurveyPoleStats,
     collectSetUsageFromProject,
-    buildMaterialSetLookup
+    buildMaterialSetLookup,
+    buildGlobalMaterialSetLookup,
+    resolveMaterialSetIds
   };
 })();

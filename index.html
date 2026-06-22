@@ -345,6 +345,7 @@
         <div id="surveyMapStage" class="survey-map-stage hidden">
           <div class="survey-map-shell">
             <div id="surveyMap" class="survey-map"></div>
+            <div id="surveyMapStatsOverlay" class="survey-map-stats hidden" aria-live="polite"></div>
             <div id="surveyMapAim" class="survey-map-aim hidden" aria-hidden="true">
               <div class="survey-map-aim-crosshair"></div>
             </div>
@@ -381,7 +382,7 @@
 
           <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
           <div class="survey-actions secondary hidden" id="surveySpecActions">
-            <button id="surveyExportKmlBtn" class="ghost-btn" type="button">ส่งออก KML</button>
+            <button id="surveyExportKmlBtn" class="ghost-btn" type="button">📍 ส่งออก KML (GIS)</button>
             <button id="surveyGenerateBtn" class="primary-btn" type="button" disabled>สร้างรายการประมาณการ</button>
             <button id="surveySaveProjectBtn" class="primary-btn is-gold hidden" type="button">บันทึกโครงการ</button>
           </div>
@@ -393,6 +394,7 @@
               <h2 id="surveySideTitle" class="section-title">คู่มือสำรวจ</h2>
               <p id="surveySideNote" class="section-note">ปักหมุด 0 แล้วปักปลายทาง — ระบบวางเสาตามเส้นถนนบนแผนที่ให้อัตโนมัติ</p>
             </div>
+            <button id="surveyExportKmlSideBtn" class="ghost-btn survey-kml-side-btn hidden" type="button" title="ส่งออกพิกัดเสาเป็น KML">📍 ส่งออก KML</button>
           </div>
           <div id="surveyPoleList" class="survey-pole-list">
             <div class="survey-empty">กดเริ่มสำรวจ → เลือก Span → ปักหมุดบนแผนที่</div>
