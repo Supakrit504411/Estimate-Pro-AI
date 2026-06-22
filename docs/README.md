@@ -1,5 +1,20 @@
 # เอกสารโปรเจกต์ — Index
 
+> อัปเดต: 2026-06-13 · Git: `89cef61`
+
+## สำหรับ Cursor Agent (อ่านก่อนลงมือ)
+
+1. **`NEW_CHAT.md`** — paste เริ่มแชท + สรุปงานที่ทำแล้ว
+2. **`technical/SURVEY.md`** — ก่อนแก้ survey.js / survey-project.js
+3. **`CHANGELOG-NOTES.md`** — bug สำคัญ + commit อ้างอิง
+4. **`ROADMAP.md`** — สถานะ + งานถัดไป
+
+**ก่อน push:** `node --check app.js` · `node --check survey.js` · `node scripts/run-price-quote-tests.js`
+
+**Local only (ไม่อยู่ใน git):** `skill.md` ที่ root workspace — skill สั้นสำหรับ agent; `GAS.txt`, `.env*`
+
+---
+
 ## เริ่มต้น
 
 | เอกสาร | เนื้อหา |
@@ -23,6 +38,15 @@
 | [roadmap/ROADMAP.md](roadmap/ROADMAP.md) | Phase 1–4 แบบ survey-focused |
 | [pitch/INNOVATION_PITCH.md](pitch/INNOVATION_PITCH.md) | Pitch / innovation |
 | [project/SUMMARY.md](project/SUMMARY.md) | สรุปโปรเจกต์ |
+| [archive/skill.md](archive/skill.md) | Redirect — อย่าใช้ archive เก่า |
+
+## ไฟล์ local (นอก git)
+
+| ไฟล์ | หมายเหตุ |
+|------|----------|
+| `../skill.md` | **Agent skill ฉบับสั้น** — อัปเดตคู่กับ docs |
+| `../GAS.txt` | Backend source + deploy manual |
+| `../.env*` | Vercel secrets |
 
 ## ไฟล์ config
 
@@ -35,6 +59,8 @@
 
 ## Checklist ก่อน Deploy
 
-1. Frontend → push GitHub → Vercel
-2. GAS.txt → Apps Script → **New version** deploy
-3. ทดสอบตาม [DEPLOYMENT.md](DEPLOYMENT.md)
+1. `node --check app.js` และ `node --check survey.js`
+2. `node scripts/run-price-quote-tests.js` (169 tests)
+3. Frontend → push GitHub → Vercel
+4. GAS.txt → Apps Script → **New version** deploy
+5. ทดสอบตาม [DEPLOYMENT.md](DEPLOYMENT.md)

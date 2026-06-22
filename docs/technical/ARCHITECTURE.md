@@ -1,5 +1,7 @@
 # สถาปัตยกรรม — PEA Estimation AI Pro 2026
 
+> อัปเดต: 2026-06-13 · Git: `89cef61`
+
 ---
 
 ## Data Flow
@@ -111,8 +113,9 @@
 
 | ไฟล์ | ความรับผิดชอบ |
 |------|----------------|
-| `app.js` | State, AI queue, budgets, save, history, viewDetail |
-| `survey.js` | แผนที่, MV/LV, SET BOM, Guy/Surge, OSRM, capture |
+| `app.js` | State, AI queue, budgets, save, history, SET grouping, price ask |
+| `survey.js` | แผนที่, MV/LV, bulk apply, stats overlay, KML, OSRM, capture |
+| `survey-project.js` | poleStats, setUsage, buildProjectKml, SET lookup |
 | `survey-presets.js` | SET definitions (72), configs, specialPoleRules |
 | `scripts/build-survey-presets.js` | Generator สำหรับ survey-presets.js |
 | `scripts/special-pole-data.js` | Guy/Surge/Grounding data + rules |

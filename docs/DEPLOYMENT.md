@@ -1,5 +1,7 @@
 # คู่มือ Deploy — Vercel + Google Apps Script
 
+> อัปเดต: 2026-06-13
+
 ## สิ่งที่ต้องมี
 
 - บัญชี GitHub + Vercel (เชื่อม repo แล้ว)
@@ -73,12 +75,13 @@ vercel dev
 
 ## 3. Checklist หลัง Deploy
 
+- [ ] `node --check app.js` (local ก่อน push)
 - [ ] เปิด `/api/gas?action=health` → `{ ok: true }`
 - [ ] Login ด้วย user ในชีต Config
 - [ ] บันทึกโครงการทดสอบ → ปรากฏใน History
 - [ ] แชร์ให้ user อื่น → การ์ดแสดง `แชร์แล้ว N/M` + Audit log มี username
 - [ ] AI Scan (ถ้า AI-ASK = Y)
-- [ ] สำรวจหน้างาน + export KML
+- [ ] สำรวจหน้างาน → สำรวจเสร็จ → กล่องสรุปเสา + export KML + SET grouping ในประวัติ
 
 ---
 

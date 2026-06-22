@@ -32,9 +32,9 @@
 | **กล่องสถิติเสาบนแผนที่ capture** | ✅ `9c5e895` — poleStats overlay |
 | **Bulk apply สเปกเสา (4 กลุ่ม)** | ✅ `be6b67a` | ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง |
 | **SET usage ใน surveyMeta + ประวัติ** | ✅ `9c5e895` |
-| **แผนที่ tile light เสมอ** | ✅ `9c5e895` — ไม่ตาม dark theme |
-
----
+| **SET grouping ใน BOQ** | ✅ `bc7516a` — ดู/แก้/PDF/Excel |
+| **KML side panel button** | ✅ `bc7516a` |
+| **Map stats DOM overlay** | ✅ `bc7516a` — ปรับปรุงจาก `9c5e895` |
 
 ## Phase 2: Stabilize & Secure (Q3 2026)
 
@@ -94,4 +94,5 @@
 | GAS.txt manual deploy | ไม่มี CI สำหรับ backend |
 | Password plain text | แก้ใน Phase 2 |
 | survey-presets.js | ต้อง regenerate หลังแก้ scripts/ |
-| โครงการเก่าไม่มี setUsage | save ก่อน `9c5e895` → ประวัติแสดง `—` ในคอลัมน์ SET |
+| โครงการเก่าไม่มี setUsage | save ก่อน `9c5e895` → SET column อาจเป็น `—` |
+| app.js template literal | ต้อง `node --check app.js` ก่อน push — bug `89cef61` ทำให้ login พัง |

@@ -1,5 +1,7 @@
 # สถาปัตยกรรมระบบ — PEA Estimation AI Pro
 
+> อัปเดต: 2026-06-13 · Git: `89cef61`
+
 ## ภาพรวม
 
 ```
@@ -35,7 +37,7 @@
 | `services.js` | HTTP client ไป `/api/gas?action=…` |
 | `app.js` | Tab router, BOQ CRUD, save/load project, history, share modal, admin, price ask UI |
 | `survey.js` | Leaflet map, segment/pole/TR placement, estimate → budget import |
-| `survey-project.js` | Data model โครงการสำรวจ |
+| `survey-project.js` | Data model โครงการสำรวจ, poleStats, setUsage, KML, SET lookup |
 | `survey-presets.js` | Preset เสา/สาย/SET (generated) |
 | `price-quote-engine.js` | Parse คำถามราคา (local) |
 | `budget-formula.js` | สูตรค่าใช้จ่าย / 03.1 |
@@ -81,6 +83,19 @@ Audit → ชีต `Project_Audit`
 | Parse คำถามราคา (fallback) | Gemini 3.1 Flash Lite | GAS only |
 
 API keys อยู่ใน GAS เท่านั้น — ไม่ expose ใน frontend
+
+---
+
+## Survey Meta & SET (คอลัมน์ F)
+
+`surveyMeta` JSON เก็บใน `Project_Database` col F ผ่าน `buildSurveyMetaV2()`:
+
+| field | ใช้ทำอะไร |
+|-------|-----------|
+| `poleStats` | กล่องสรุปบนแผนที่ + ข้อมูลสำรวจใน PDF |
+| `setUsage` | ตารางสรุป SET + จัดกลุ่ม BOQ |
+
+Frontend: `app.js` → `buildGroupedDetailTableBodyHtml`, `resolveMaterialSetIds` (survey-project.js)
 
 ---
 

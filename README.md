@@ -1,5 +1,7 @@
 # PEA Estimation AI Pro 2026
 
+> อัปเดตเอกสาร: 2026-06-13 · Git: `89cef61`
+
 แอปประมาณการงานไฟฟ้า (PEA) สำหรับทีมงานภายใน — สร้าง BOQ, สำรวจหน้างานบนแผนที่, ถามราคา, แชร์โครงการ และ Admin Console
 
 **Production:** https://estimate-pro-ai.vercel.app
@@ -43,9 +45,11 @@ cp .env.example .env.local
 # แก้ GAS_WEB_APP_URL
 
 # 3. Deploy GAS — copy GAS.txt ไป Apps Script Editor (ไฟล์นี้ไม่อยู่ใน git)
-# 4. ทดสอบ price-quote engine
+# 4. ทดสอบ + syntax check ก่อน push
+node --check app.js
+node --check survey.js
 node scripts/run-price-quote-tests.js   # 169 tests
-# 5. Push ขึ้น Vercel หรือ serve static 本地
+# 5. Push ขึ้น Vercel
 ```
 
 รายละเอียดเต็ม → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
@@ -63,6 +67,7 @@ node scripts/run-price-quote-tests.js   # 169 tests
 | [docs/ROADMAP.md](docs/ROADMAP.md) | แนวทางพัฒนาต่อ / สถานะล่าสุด |
 | [docs/NEW_CHAT.md](docs/NEW_CHAT.md) | Prompt เริ่มแชท Cursor + สรุปงานที่ทำแล้ว |
 | [docs/CHANGELOG-NOTES.md](docs/CHANGELOG-NOTES.md) | บันทึกการแก้ไขสำคัญ (manual) |
+| [docs/README.md](docs/README.md) | **Index เอกสารทั้งหมด** สำหรับ Cursor Agent |
 
 ---
 

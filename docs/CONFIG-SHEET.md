@@ -1,5 +1,7 @@
 # โครงสร้าง Google Sheets
 
+> อัปเดต: 2026-06-13
+
 Spreadsheet ID ตั้งใน `GAS.txt` → `SPREADSHEET_ID`
 
 ---
@@ -28,11 +30,22 @@ Spreadsheet ID ตั้งใน `GAS.txt` → `SPREADSHEET_ID`
 | C | Name | ชื่อโครงการ |
 | D | GrandTotal | ยอดรวม |
 | E | ImageURLs | URL รูป (pipe `\|`) |
-| F | SurveyMeta | JSON metadata สำรวจ |
+| F | SurveyMeta | JSON — ดูรายละเอียดด้านล่าง |
 | G | CreatedBy | username เจ้าของ |
 | H | SharedView | `user0202,user0303` |
 | I | SharedEdit | `user0404` |
 | J | IsPublic | `Y` / `N` |
+
+### SurveyMeta (col F) — fields สำคัญ
+
+| field | เนื้อหา |
+|-------|---------|
+| `poleStats` | สรุปเสา (ทางตรง, โค้ง, Guy ฯลฯ) — ใช้ overlay แผนที่ |
+| `setUsage` | รายการ SET + qty — ใช้จัดกลุ่ม BOQ |
+| `startLat/Lng`, `endLat/Lng` | พิกัด |
+| `poleCount`, `totalDistanceM`, `spanM` | สถิติเส้นทาง |
+
+โครงการ save ก่อน ~2026-06-13 อาจไม่มี `setUsage` / `poleStats`
 
 ---
 

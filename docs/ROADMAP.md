@@ -1,7 +1,7 @@
 # Roadmap & ข้อเสนอแนะพัฒนา
 
 เอกสารนี้สรุปทิศทางพัฒนาเพื่อให้ **PEA Estimation AI Pro** สมบูรณ์และน่าสนใจมากขึ้น  
-จัดลำดับตาม **ผลกระทบ × ความยาก** — อัปเดตล่าสุด: 2026-06-13
+จัดลำดับตาม **ผลกระทบ × ความยาก** — อัปเดตล่าสุด: 2026-06-13 (`89cef61`)
 
 ---
 
@@ -39,6 +39,10 @@
 | Transformer / manhole / budget capacity | `a691edd` | golden queries |
 | Dark/Light/Auto theme | `394b797` | token migration Phase 3 |
 | Price Ask NLU glossary + confidence | `e3cac94` | feedback loop |
+| SET grouping ใน BOQ | `bc7516a` | ดู/แก้/PDF/Excel + reverse lookup |
+| Map stats overlay (DOM + PNG) | `bc7516a` | `#surveyMapStatsOverlay` |
+| KML ปุ่ม side panel | `bc7516a` | หลังสำรวจเสร็จ |
+| Hotfix login (app.js syntax) | `89cef61` | `node --check` ก่อน push |
 
 ---
 

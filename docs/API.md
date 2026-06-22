@@ -1,5 +1,7 @@
 # GAS API Reference
 
+> อัปเดต: 2026-06-13 · Frontend git: `89cef61`
+
 Base URL: `{GAS_WEB_APP_URL}?action={route}`  
 Frontend เรียกผ่าน: `/api/gas?action={route}` (POST body JSON)
 

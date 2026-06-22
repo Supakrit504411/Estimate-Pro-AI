@@ -1,6 +1,7 @@
 # โหมดสำรวจหน้างาน — คู่มือเทคนิค
 
-> อ่านก่อนแก้ `survey.js`, `survey-presets.js`, `styles.css` (survey section), หรือ `config.js` (survey)
+> อ่านก่อนแก้ `survey.js`, `survey-project.js`, `styles.css` (survey section), หรือ `config.js` (survey)  
+> **อัปเดต:** 2026-06-13 · Git: `89cef61`
 
 ---
 
@@ -217,9 +218,9 @@ addLvIntervalSurges(counts)     // ใน buildBomLines()
 
 1. `fitBounds` ครอบทุกหมุด
 2. ซ่อน toolbar ชั่วคราว
-3. `html2canvas` บน `#surveyMap`
+3. `html2canvas` บน `.survey-map-shell` (รวม DOM overlay)
 4. fallback: วาดเส้นทางบน canvas (`drawRouteCanvasFallback`)
-5. **วาดกล่องสถิติ** มุมขวาบน (`drawSurveyStatsOverlay`) — จำนวนเสา, ระยะทาง, Span ฯลฯ จาก `computeSurveyPoleStats()`
+5. **วาดกล่องสถิติ** มุมขวาบน (`drawSurveyStatsOverlay`) + DOM `#surveyMapStatsOverlay` แสดง live ใน spec phase
 6. เก็บใน `AppCore.addProjectFileFromBase64` → `Survey_Map_{timestamp}.png`
 
 **หมายเหตุ:** แผนที่ใช้ OSM tile โหมด light เสมอ (`applyMapTheme`) แม้ app อยู่ dark theme
@@ -245,9 +246,10 @@ addLvIntervalSurges(counts)     // ใน buildBomLines()
 
 ## KML Export
 
-- ปุ่ม `#surveyExportKmlBtn`「ส่งออก KML」ใน spec phase (หลังสำรวจเสร็จ)
+- ปุ่ม `#surveyExportKmlBtn`「📍 ส่งออก KML (GIS)」ใต้แผนที่
+- ปุ่ม `#surveyExportKmlSideBtn` มุมขวาแผง spec
+- **แสดงเฉพาะหลังกด「สำรวจเสร็จ」** (phase spec)
 - `exportSurveyKml()` → `survey-project.js` `buildProjectKml()`
-- ต้องมี poles + TR ก่อน export
 
 ---
 
@@ -262,7 +264,11 @@ addLvIntervalSurges(counts)     // ใน buildBomLines()
 | `poleStats` | สรุปจำนวนเสา/ระยะ (ใช้ overlay + ประวัติ) |
 | `setUsage` | รายการ SET ที่ใช้ + qty (`collectSetUsageFromProject`) |
 
-ประวัติ (`app.js` `buildDetailHtml`) แสดงคอลัมน์「ชุด SET」และตารางสรุป SET จาก `setUsage`
+ประวัติ (`app.js`):
+- `buildGroupedDetailTableBodyHtml()` — จัดกลุ่มแถวตาม SET + หัวกลุ่ม
+- `sortDetailsForSetGrouping()` — เรียงรายการให้อยู่ติดกัน
+- `resolveMaterialSetIds()` — lookup จาก `setUsage` + `buildGlobalMaterialSetLookup()`
+- ครอบคลุม: ดู, แก้ไข (chip SET), Export PDF/Excel
 
 ---
 
@@ -294,7 +300,9 @@ window.SurveyModule = {
 
 | Commit | รายการ |
 |--------|--------|
-| `be6b67a` | Bulk apply 4 กลุ่ม: straight / curve_in / curve_out / curve_interior |
+| `89cef61` | Hotfix app.js syntax (login blocked) |
+| `bc7516a` | Map stats DOM overlay, SET grouping BOQ, KML side btn |
+| `be6b67a` | Bulk apply 4 กลุ่ม |
 | `9c5e895` | KML export UI, stats overlay, bulk pole (ทางตรง), setUsage, map light |
 | `b89550c` | MV/LV workflow, SET presets, OHGW, wire multiplier |
 | `e7e3101` | GUY/SURGE/GROUND special poles, LV 400m surge |

@@ -1,5 +1,7 @@
 # คู่มือ Deploy — PEA Estimation AI Pro 2026
 
+> อัปเดต: 2026-06-13 · Git: `89cef61`
+
 ---
 
 ## ภาพรวม
@@ -70,8 +72,10 @@ index.html, app.js, survey.js, survey-presets.js, scripts/, services.js, config.
 ### ไฟล์ที่ไม่ขึ้น GitHub
 
 ```
-GAS.txt, docs/, README.md, skill.md
+GAS.txt, skill.md, .env*
 ```
+
+`docs/` อยู่ใน git แล้ว — อัปเดตเมื่อปิดงานสำคัญ
 
 ---
 
@@ -79,7 +83,9 @@ GAS.txt, docs/, README.md, skill.md
 
 ### Frontend
 ```powershell
-git add app.js survey.js survey-presets.js scripts/ styles.css index.html config.js
+node --check app.js
+node --check survey.js
+git add .
 git commit -m "feat: ..."
 git push origin main
 ```
@@ -103,6 +109,8 @@ Vercel deploy อัตโนมัติ (~1–2 นาที)
 - [ ] สร้างรายการประมาณการ → SET expand + LV surge 400m (ถ้า LV)
 - [ ] บันทึกโครงการ → คอลัมน์ E, F ใน Sheet
 - [ ] ประวัติ → ดู → แสดงรูป (มือถือด้วย)
+- [ ] สำรวจเสร็จ → กล่องสรุปเสามุมขวาบน + export KML
+- [ ] ประวัติ → SET grouping + คอลันน์ชุด SET
 - [ ] Hard refresh (`Ctrl+Shift+R`) ถ้า cache เก่า
 
 ---

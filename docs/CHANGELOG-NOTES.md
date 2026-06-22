@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-06-13 (ต่อ 3) — Hotfix login (Critical)
+
+### app.js syntax error ทำให้ login ไม่ได้
+
+- **อาการ:** กรอก username/password ถูก แต่เข้าระบบไม่ได้ / ปุ่ม login ไม่ทำงาน
+- **สาเหตุ:** `render()` ใน `app.js` ปิด template literal ไม่ครบ (`Missing } in template expression`) จาก commit SET grouping
+- **Commit แก้:** `89cef61`
+- **บทเรียน:** รัน `node --check app.js` ก่อน push ทุกครั้ง
+
+### SET grouping + map overlay + KML visibility
+
+- **Commit:** `bc7516a`
+- DOM `#surveyMapStatsOverlay`, จัดกลุ่ม BOQ ตาม SET (ดู/แก้/PDF/Excel), ปุ่ม KML ใน side panel
+
+---
+
 ## 2026-06-13 (ต่อ 2) — แก้ visibility ฟีเจอร์สำรวจ + SET grouping
 
 ### แผนที่ capture — กล่องสรุปเสามุมขวาบน (มองเห็นชัด)
@@ -20,7 +36,8 @@
 
 ### KML export — ปุ่มมองเห็นง่ายขึ้น
 
-- **ที่อยู่:** ใต้แผนที่ (หลังกด「สำรวจเสร็จ」) + ปุ่มมุมขวาบนแผง「กรอกรายละเอียดแต่ละหมุด」
+- **ที่อยู่:** ใต้แผนที่ + มุมแผง spec (`#surveyExportKmlSideBtn`)
+- **Commit:** `bc7516a`
 
 ---
 

@@ -95,9 +95,18 @@
 ## สถานะปัจจุบัน
 
 - **Phase 1:** ✅ เสร็จ — BOQ, AI Scan, สำรวจ MV/LV/TR, KML, SET summary, ถามราคา, แชร์, Admin
-- **Phase 1.5 (UX):** ✅ Dark/Light theme, Price Ask chat thread, scan queue manual pick, bulk pole apply (4 กลุ่ม)
+- **Phase 1.5 (UX):** ✅ Theme, Price Ask chat, scan queue, bulk pole (4 กลุ่ม), SET grouping, map stats, KML
 - **Phase 2:** Security, Validation, Pilot (ดู [roadmap/ROADMAP.md](../roadmap/ROADMAP.md))
 - **Tests:** 169 price-quote cases (`node scripts/run-price-quote-tests.js`)
 
-**Git ล่าสุด:** `9c5e895` on `main`  
+**Git ล่าสุด:** `89cef61` on `main`  
 **Production:** https://estimate-pro-ai.vercel.app
+
+### ฟีเจอร์ล่าสุด (Phase 1.5+)
+
+| ฟีเจอร์ | รายละเอียด |
+|---------|------------|
+| Map stats overlay | กล่องสรุปเสา มุมขวาบน (live + PNG) |
+| SET grouping | จัดกลุ่ม BOQ ตามชุด SET — ดู/แก้/PDF/Excel |
+| Bulk pole apply | 4 กลุ่ม: ทางตรง / เข้าโค้ง / ออกโค้ง / ในโค้ง |
+| KML export | หลัง「สำรวจเสร็จ」— ใต้แผนที่ + แผง spec |

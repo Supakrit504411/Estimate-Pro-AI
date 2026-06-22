@@ -33,7 +33,7 @@ Sheet Project_Database (10 cols):
 GAS routes: login, save-project, saved-projects, share-project, share-users,
   admin-dashboard, master-data, process-image-ai, parse-price-query, drive-file-previews
 
-ทำเสร็จแล้ว (ล่าสุด ~2026-06-13, ดู git log บน main):
+ทำเสร็จแล้ว (ล่าสุด commit `89cef61` on main, ~2026-06-13):
 
 Core / Auth / Share:
 - Login + RBAC (Config sheet)
@@ -79,6 +79,18 @@ Theme / UI:
 - GAS แก้ใน GAS.txt local → user deploy เอง
 - Frontend push GitHub → Vercel auto deploy
 - commit docs ได้; อย่า commit GAS.txt / .env
+- **ก่อน push ทุกครั้ง:** node --check app.js && node --check survey.js (syntax พัง = login/แอปใช้ไม่ได้ทั้งหมด)
+
+ข้อควรระวัง (จากประสบการณ์):
+- แก้ app.js render() template literal ต้องปิด `}` ครบ — bug `89cef61` ทำให้ login ไม่ได้
+- KML / stats overlay / bulk apply แสดงเฉพาะหลังกด「สำรวจเสร็จ」(phase spec)
+- โครงการเก่าไม่มี setUsage/poleStats ใน surveyMeta → SET column อาจเป็น `—`; สำรวจ+save ใหม่เพื่อได้ข้อมูลครบ
+- PowerShell: อย่าใช้ && ใน shell; ใช้ ; แทน
+
+ฟังก์ชันสำคัญ (ค้นหาในโค้ด):
+- survey.js: getBulkApplyGroup, drawSurveyStatsOverlay, exportSurveyKml, captureSurveyMapImage
+- survey-project.js: computeSurveyPoleStats, collectSetUsageFromProject, resolveMaterialSetIds, buildProjectKml
+- app.js: buildGroupedDetailTableBodyHtml, sortDetailsForSetGrouping, buildDetailHtml, handleLoginSubmit
 
 งานถัดไปที่ต้องการ: [ใส่งานของคุณที่นี่]
 ```
