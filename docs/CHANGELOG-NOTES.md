@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-06-13 (ต่อ) — Bulk apply แยกกลุ่มประเภทเสา
+
+### สำรวจ — Bulk apply ครบ 4 กลุ่ม (ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง)
+
+- **เดิม:** ถาม「เปลี่ยนทั้งหมด」ได้เฉพาะเสา auto ทางตรง
+- **ใหม่:** แยก bulk ตามประเภท — `straight`, `curve_in`, `curve_out`, `curve_interior` (รวม Guy SET สำหรับเข้า/ออกโค้ง)
+- **ฟังก์ชัน:** `getBulkApplyGroup()`, `applyFieldToBulkGroup()` ใน `survey.js`
+- **GAS deploy ต้องทำ:** ไม่
+
+---
+
 ## 2026-06-13 — Sprint นำเสนอ (Presentation prep)
 
 ### AI Scan Review Queue — เลือก master ด้วยมือ
@@ -19,10 +30,11 @@
 - **หมายเหตุ:** โครงการเก่าที่ save ก่อน fix อาจไม่มี `setUsage` (แสดง `—`)
 - **Commit:** `9c5e895`
 
-### สำรวจ — Bulk apply สเปกเสาทางตรง
+### สำรวจ — Bulk apply สเปกเสาทางตรง (รุ่นแรก)
 
-- **ฟีเจอร์:** เปลี่ยนเสา/หัว/สาย/OHGW บนเสา auto ทางตรง → Swal ถาม「เปลี่ยนทั้งหมด」vs「เฉพาะต้นนี้」; เสา curve/end/start ไม่ bulk
+- **ฟีเจอร์:** เปลี่ยนเสา/หัว/สาย/OHGW บนเสา auto ทางตรง → Swal ถาม「เปลี่ยนทั้งหมด」vs「เฉพาะต้นนี้」
 - **Commit:** `9c5e895`
+- **หมายเหตุ:** ขยายเป็น 4 กลุ่มใน commit ถัดไป — ดูหัวข้อ「Bulk apply แยกกลุ่มประเภทเสา」ด้านบน
 
 ### ถามราคา — LV phase clarification + chat thread
 

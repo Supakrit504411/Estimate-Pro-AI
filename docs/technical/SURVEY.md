@@ -228,10 +228,18 @@ addLvIntervalSurges(counts)     // ใน buildBomLines()
 
 ## Bulk apply สเปกเสา
 
-เมื่อแก้ dropdown เสา/หัว/สาย/OHGW บนเสา `source: auto` + `section: straight`:
+เมื่อแก้ dropdown เสา/หัว/สาย/OHGW/Guy ใน spec phase ระบบถาม「เปลี่ยนทั้งหมด」หรือ「เฉพาะต้นนี้」**ตามกลุ่มประเภทเสา** (ไม่ข้ามประเภท):
 
-- Swal ถาม「เปลี่ยนทั้งหมด (ทางตรง)」หรือ「เฉพาะต้นนี้」
-- เสา `curve_in`, `curve_out`, `end`, `start` **ไม่** bulk — ใช้ `canBulkApplyField()`
+| กลุ่ม | เสาที่รวม | ไม่รวม |
+|------|-----------|--------|
+| `straight` | เสา auto ทางตรง | เข้า/ออกโค้ง, ในโค้ง, เริ่ม, สุดท้าย |
+| `curve_in` | เสาเข้าโค้งทุกต้น | ออกโค้ง, ในโค้ง, ทางตรง |
+| `curve_out` | เสาออกโค้งทุกต้น | เข้าโค้ง, ในโค้ง, ทางตรง |
+| `curve_interior` | จุดบนโค้ง + auto ใน section โค้ง | เข้า/ออกโค้ง, ทางตรง |
+
+ฟังก์ชัน: `getBulkApplyGroup()`, `canBulkApplyField()`, `applyFieldToBulkGroup()`
+
+**Guy (SET):** bulk ได้เฉพาะกลุ่ม `curve_in` หรือ `curve_out` แยกกัน
 
 ---
 
@@ -286,6 +294,7 @@ window.SurveyModule = {
 
 | Commit | รายการ |
 |--------|--------|
-| `9c5e895` | KML export UI, stats overlay, bulk pole, setUsage, map light |
+| ล่าสุด | Bulk apply 4 กลุ่ม: straight / curve_in / curve_out / curve_interior |
+| `9c5e895` | KML export UI, stats overlay, bulk pole (ทางตรง), setUsage, map light |
 | `b89550c` | MV/LV workflow, SET presets, OHGW, wire multiplier |
 | `e7e3101` | GUY/SURGE/GROUND special poles, LV 400m surge |

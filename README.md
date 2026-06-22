@@ -15,7 +15,7 @@
 |------|------------|
 | สร้างงานใหม่ | BOQ หลายประเภทงบ, Quick pick, AI Scan + Review Queue (ค้นหา master / ข้ามแถว) |
 | ประวัติโครงการ | Timeline cards, ค้นหา/เรียง/กรอง, แชร์ view/edit, Public, ตาราง SET summary |
-| สำรวจหน้างาน | Leaflet + OSRM, MV/LV/TR, KML export, bulk pole apply, stats overlay บนแผนที่ |
+| สำรวจหน้างาน | Leaflet + OSRM, MV/LV/TR, KML export, bulk pole apply (4 กลุ่ม), stats overlay บนแผนที่ |
 | ถามราคา | NLU + Gemini (AI Answer), chat thread, LV phase clarify, Export Excel/PDF |
 | Theme | Dark / Light / Auto (แผนที่ survey ใช้ tile light เสมอ) |
 | Admin | ผู้ใช้, โครงการทั้งหมด, Audit log (admin เท่านั้น) |

@@ -95,7 +95,7 @@
 ## สถานะปัจจุบัน
 
 - **Phase 1:** ✅ เสร็จ — BOQ, AI Scan, สำรวจ MV/LV/TR, KML, SET summary, ถามราคา, แชร์, Admin
-- **Phase 1.5 (UX):** ✅ Dark/Light theme, Price Ask chat thread, scan queue manual pick, bulk pole apply
+- **Phase 1.5 (UX):** ✅ Dark/Light theme, Price Ask chat thread, scan queue manual pick, bulk pole apply (4 กลุ่ม)
 - **Phase 2:** Security, Validation, Pilot (ดู [roadmap/ROADMAP.md](../roadmap/ROADMAP.md))
 - **Tests:** 169 price-quote cases (`node scripts/run-price-quote-tests.js`)
 

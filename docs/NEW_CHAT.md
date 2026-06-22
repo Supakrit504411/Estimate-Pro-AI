@@ -33,7 +33,7 @@ Sheet Project_Database (10 cols):
 GAS routes: login, save-project, saved-projects, share-project, share-users,
   admin-dashboard, master-data, process-image-ai, parse-price-query, drive-file-previews
 
-ทำเสร็จแล้ว (ล่าสุด ~2026-06-13, commit 9c5e895):
+ทำเสร็จแล้ว (ล่าสุด ~2026-06-13, ดู git log บน main):
 
 Core / Auth / Share:
 - Login + RBAC (Config sheet)
@@ -48,7 +48,9 @@ BOQ / AI Scan:
 สำรวจหน้างาน (survey.js + survey-project.js):
 - MV/LV/TR, OSRM, KML export (#surveyExportKmlBtn)
 - กล่องสรุปสถิติเสา (มุมขวาบน) บนภาพแผนที่ตอนจับ capture
-- Bulk apply สเปกเสา: เปลี่ยนเสา/หัว/สาย/OHGW → เลือก「เปลี่ยนทั้งหมด (ทางตรง)」หรือ「เฉพาะต้นนี้」
+- Bulk apply สเปกเสา (4 กลุ่ม): เปลี่ยนเสา/หัว/สาย/OHGW/Guy → Swal ถาม「เปลี่ยนทั้งหมด」vs「เฉพาะต้นนี้」
+  · ทางตรง (auto) · เข้าโค้ง (curve_in) · ออกโค้ง (curve_out) · ภายในโค้ง (curve_waypoint/auto ใน section โค้ง)
+  · ไม่รวมจุดเริ่ม / ต้นสุดท้าย / หมุดควบคุม — ดู docs/technical/SURVEY.md
 - surveyMeta.setUsage + poleStats → ประวัติแสดงคอลัมน์「ชุด SET」+ ตารางสรุป SET
 
 ถามราคา (Price Ask):

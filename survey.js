@@ -2739,44 +2739,64 @@
     }[source] || "เสา";
   }
 
+  function getBulkApplyGroup(pole) {
+    if (!pole || pole.source === "start" || pole.source === "end" || pole.source === "control") return null;
+    if (pole.source === "curve_in") return "curve_in";
+    if (pole.source === "curve_out") return "curve_out";
+    if (pole.source === "curve_waypoint") return "curve_interior";
+    if (pole.source === "auto") return isCurvePole(pole) ? "curve_interior" : "straight";
+    return null;
+  }
+
   function canBulkApplyField(field, pole) {
-    if (!pole || pole.source === "start" || pole.source === "end") return false;
-    if (getSpecialPoleKind(pole)) return false;
-    if (field === "poleMaterialId") return pole.source === "auto" && !isCurvePole(pole);
-    if (field === "headMaterialId") return pole.source === "auto" && !isCurvePole(pole);
-    if (field === "cableMaterialId") return pole.source === "auto" && !isCurvePole(pole);
-    if (field === "ohgwSetId") return pole.source === "auto" && !isCurvePole(pole);
+    const group = getBulkApplyGroup(pole);
+    if (!group) return false;
+    if (field === "poleMaterialId") return pole.source !== "start";
+    if (field === "headMaterialId") return true;
+    if (field === "cableMaterialId") return true;
+    if (field === "ohgwSetId") return true;
+    if (field === "guySetId") return group === "curve_in" || group === "curve_out";
     return false;
   }
 
-  function applyFieldToStraightRunPoles(field, value) {
-    let count = 0;
-    state.segments.filter(s => s.kind === "line").forEach(seg => {
-      (seg.poles || []).forEach(pole => {
-        if (!canBulkApplyField(field, pole)) return;
-        pole[field] = value;
-        markPoleSpecFilled(pole);
-        count += 1;
-      });
-    });
-    if (state.poles?.length) {
-      state.poles.forEach(pole => {
-        if (!canBulkApplyField(field, pole)) return;
-        pole[field] = value;
-        markPoleSpecFilled(pole);
-      });
-    }
-    return count;
+  function poleMatchesBulkGroup(pole, group, field) {
+    return getBulkApplyGroup(pole) === group && canBulkApplyField(field, pole);
   }
 
-  async function askBulkApplyChoice(fieldLabel) {
+  function forEachProjectPole(callback) {
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      (seg.poles || []).forEach(pole => callback(pole, seg));
+    });
+  }
+
+  function applyFieldToBulkGroup(group, field, value) {
+    const touched = new Set();
+    forEachProjectPole(pole => {
+      if (!poleMatchesBulkGroup(pole, group, field)) return;
+      if (touched.has(pole.id)) return;
+      touched.add(pole.id);
+      pole[field] = value;
+      markPoleSpecFilled(pole);
+    });
+    return touched.size;
+  }
+
+  const BULK_GROUP_LABELS = {
+    straight: "เสาทางตรง",
+    curve_in: "เสาเข้าโค้ง",
+    curve_out: "เสาออกโค้ง",
+    curve_interior: "เสาภายในโค้ง"
+  };
+
+  async function askBulkApplyChoice(fieldLabel, group) {
+    const groupLabel = BULK_GROUP_LABELS[group] || "เสาประเภทเดียวกัน";
     const result = await Swal.fire({
       title: "เปลี่ยนหลายต้น?",
-      text: `ต้องการเปลี่ยน${fieldLabel} เฉพาะต้นนี้ หรือทุกเสาทางตรง (ไม่รวมเข้า/ออกโค้งและต้นสุดท้าย)?`,
+      html: `ต้องการเปลี่ยน<strong>${fieldLabel}</strong> เฉพาะต้นนี้<br>หรือทุก<strong>${groupLabel}</strong> (ไม่รวมประเภทอื่น)?`,
       icon: "question",
       showDenyButton: true,
       showCancelButton: true,
-      confirmButtonText: "เปลี่ยนทั้งหมด (ทางตรง)",
+      confirmButtonText: `เปลี่ยนทั้งหมด (${groupLabel})`,
       denyButtonText: "เฉพาะต้นนี้",
       cancelButtonText: "ยกเลิก"
     });
@@ -2789,7 +2809,8 @@
     poleMaterialId: "ขนาด/รหัสเสา",
     headMaterialId: "หัวเสา (SET)",
     cableMaterialId: "สายไฟ",
-    ohgwSetId: "OHGW"
+    ohgwSetId: "OHGW",
+    guySetId: "Guy (SET)"
   };
 
   async function handlePoleListChange(event) {
@@ -2806,20 +2827,21 @@
     const oldValue = found.pole[field];
     if (newValue === oldValue) return;
 
-    if (canBulkApplyField(field, found.pole)) {
-      const choice = await askBulkApplyChoice(POLE_FIELD_LABELS[field] || field);
+    const bulkGroup = getBulkApplyGroup(found.pole);
+    if (bulkGroup && canBulkApplyField(field, found.pole)) {
+      const choice = await askBulkApplyChoice(POLE_FIELD_LABELS[field] || field, bulkGroup);
       if (!choice) {
         target.value = oldValue || "";
         return;
       }
       if (choice === "all") {
-        const count = applyFieldToStraightRunPoles(field, newValue);
+        const count = applyFieldToBulkGroup(bulkGroup, field, newValue);
         renderPoleList();
         updateUiState();
         Swal.fire({
           icon: "success",
           title: "อัปเดตแล้ว",
-          text: `เปลี่ยน${POLE_FIELD_LABELS[field] || field} ${count} ต้น (เฉพาะทางตรง)`,
+          text: `เปลี่ยน${POLE_FIELD_LABELS[field] || field} ${count} ต้น (${BULK_GROUP_LABELS[bulkGroup]})`,
           timer: 1800,
           showConfirmButton: false
         });

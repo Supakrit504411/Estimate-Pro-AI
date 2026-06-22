@@ -10,7 +10,7 @@
 | ด้าน | ระดับ | หมายเหตุ |
 |------|-------|----------|
 | BOQ + งบหลายประเภท | ✅ ดี | Quick pick, SET MV/TR/LV |
-| สำรวจหน้างาน | ✅ ดี | Map, TR, OSRM, KML, stats overlay, bulk pole, SET summary |
+| สำรวจหน้างาน | ✅ ดี | Map, TR, OSRM, KML, stats overlay, bulk pole (4 กลุ่ม), SET summary |
 | ถามราคา | ✅ ดี | NLU + Gemini, glossary, chat thread, LV phase clarify, export |
 | AI Scan | ✅ ดี | Review queue + manual master search + skip row |
 | Theme | ✅ พื้นฐาน | Dark/Light/Auto; แผนที่ survey light เสมอ |
@@ -32,7 +32,8 @@
 | AI Scan queue — ค้นหา master / ข้ามแถว | `9c5e895` | เมื่อ AI ไม่มีรหัส |
 | กล่องสถิติเสาบนแผนที่ capture | `9c5e895` | มุมขวาบน PNG |
 | SET summary + คอลัมน์ในประวัติ | `9c5e895` | `surveyMeta.setUsage` |
-| Bulk apply สเปกเสาทางตรง | `9c5e895` | ไม่รวม curve/end |
+| Bulk apply สเปกเสา (4 กลุ่ม) | ล่าสุด | ทางตรง / เข้าโค้ง / ออกโค้ง / ภายในโค้ง |
+| Bulk apply สเปกเสาทางตรง (รุ่นแรก) | `9c5e895` | ขยายเป็น 4 กลุ่มแล้ว |
 | LV phase clarification (Price Ask) | `9c5e895` | ไม่ auto 3P |
 | Price Ask chat thread UI | `9c5e895` | clarification ยัง Swal |
 | Transformer / manhole / budget capacity | `a691edd` | golden queries |
