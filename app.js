@@ -2709,23 +2709,7 @@
               <tr><td class="kv-label">เสาต้นสุดท้าย</td><td class="kv-value">${stats.endPoles ?? 0} ต้น</td></tr>
               <tr><td class="kv-label">ยึดโยง (Guy)</td><td class="kv-value">${stats.guySets ?? 0} ชุด</td></tr>
       ` : "";
-      const setUsageHtml = meta.setUsage?.length ? `
-        <section class="report-section">
-          <h2>ชุด SET ในโครงการ</h2>
-          <table class="table-compact">
-            <thead><tr><th>รหัส SET</th><th>รายการ</th><th>จำนวนชุด</th></tr></thead>
-            <tbody>
-              ${meta.setUsage.map(entry => `
-                <tr>
-                  <td><strong>${escapeHtml(entry.setId)}</strong></td>
-                  <td>${escapeHtml(entry.name || entry.setId)}</td>
-                  <td class="num">${entry.qty}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </section>
-      ` : "";
+      const setUsageHtml = "";
       return `
         <section class="report-section">
           <h2>ข้อมูลสำรวจ</h2>
@@ -2884,8 +2868,7 @@
           line-height: 1.35;
           vertical-align: top;
         }
-        .table-boq .col-no,
-        .table-boq .col-type,
+        .table-boq .col-type-label,
         .table-boq .col-id,
         .table-boq .col-qty,
         .table-boq .col-total {
@@ -2893,13 +2876,21 @@
           white-space: nowrap;
         }
         .table-boq .col-name {
-          max-width: 200px;
+          max-width: 220px;
           white-space: normal;
           word-wrap: break-word;
           overflow-wrap: anywhere;
         }
-        .table-boq .col-set {
-          white-space: nowrap;
+        .detail-set-row td {
+          background: #f0e8ef;
+        }
+        .detail-set-row .set-aware-type,
+        .detail-set-row .set-aware-code {
+          color: #74045f;
+          font-weight: 700;
+        }
+        .detail-material-row td {
+          background: #fff;
         }
         .detail-set-group-row td {
           background: #f0e8ef;
@@ -2953,17 +2944,19 @@
       ${mediaHtml}
       ${buildBudgetBreakdownPrintHtml(details)}
       <section class="report-section">
-        <h2>รายการพัสดุ (BOQ)</h2>
+        <h2>รายการพัสดุ / ชุด SET</h2>
+        <p style="margin:0 0 8px;font-size:10px;color:#555;">ชุด SET แสดงเป็นรหัสชุดพร้อมจำนวนชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง</p>
         <table class="table-boq">
           <colgroup>
             <col class="col-no">
             <col class="col-type">
+            <col class="col-type-label">
             <col class="col-id">
             <col class="col-name">
             <col class="col-qty">
             <col class="col-total">
           </colgroup>
-          <thead><tr><th>#</th><th>งบ</th><th>รหัส</th><th>รายการ</th><th>ชุด SET</th><th>จำนวน</th><th>รวม</th></tr></thead>
+          <thead><tr><th>#</th><th>งบ</th><th>ประเภท</th><th>รหัส</th><th>รายการ</th><th>จำนวน</th><th>รวม</th></tr></thead>
           <tbody>${lineRows}</tbody>
         </table>
       </section>
@@ -3263,6 +3256,82 @@
     return ids.length ? ids.join(", ") : "—";
   }
 
+  function getSetComponentMaterialIds(meta) {
+    const setUsage = meta?.setUsage || [];
+    if (!setUsage.length) return new Set();
+    const api = window.SurveyPresetsApi;
+    const lookup = window.SurveyProject?.buildMaterialSetLookup?.(setUsage, api) || {};
+    return new Set(Object.keys(lookup).map(id => String(id).trim()).filter(Boolean));
+  }
+
+  function buildSetAwareDisplayRows(details, meta) {
+    const setUsage = meta?.setUsage || [];
+    const normalizedDetails = (details || []).map(item => ({
+      ...item,
+      id: String(item.id || "").trim(),
+      name: String(item.name || ""),
+      qty: parseFloat(item.qty) || 0,
+      total: parseFloat(item.total) || 0,
+      type: String(item.type || "")
+    }));
+
+    if (!setUsage.length) {
+      return normalizedDetails.map(item => ({
+        rowType: "material",
+        code: item.id,
+        name: item.name,
+        qty: item.qty,
+        budgetType: item.type,
+        total: item.total
+      }));
+    }
+
+    const componentIds = getSetComponentMaterialIds(meta);
+    const rows = [];
+
+    setUsage.forEach(entry => {
+      const setId = String(entry.setId || "").trim();
+      if (!setId) return;
+      rows.push({
+        rowType: "set",
+        code: setId,
+        name: entry.name || getSetDisplayName(setId, meta),
+        qty: parseFloat(entry.qty) || 0,
+        budgetType: "",
+        total: null
+      });
+    });
+
+    const materialMap = new Map();
+    normalizedDetails.forEach(item => {
+      if (!item.id || componentIds.has(item.id)) return;
+      const key = `${item.type}::${item.id}`;
+      if (!materialMap.has(key)) {
+        materialMap.set(key, {
+          rowType: "material",
+          code: item.id,
+          name: item.name,
+          qty: 0,
+          budgetType: item.type,
+          total: 0
+        });
+      }
+      const row = materialMap.get(key);
+      row.qty += item.qty;
+      row.total += item.total;
+    });
+
+    [...materialMap.values()]
+      .sort((a, b) => a.code.localeCompare(b.code))
+      .forEach(row => rows.push(row));
+
+    return rows;
+  }
+
+  function getRowTypeLabel(rowType) {
+    return rowType === "set" ? "ชุด SET" : "พัสดุ";
+  }
+
   function resolveMaterialSetIds(materialId, meta) {
     const api = window.SurveyPresetsApi;
     if (window.SurveyProject?.resolveMaterialSetIds) {
@@ -3302,41 +3371,20 @@
   function buildGroupedDetailTableBodyHtml(details, meta, options = {}) {
     const includeBudget = Boolean(options.includeBudget);
     const includeTotal = Boolean(options.includeTotal);
-    const colSpan = getDetailTableColSpan(options);
-    const grouped = sortDetailsForSetGrouping(details, meta);
+    const displayRows = buildSetAwareDisplayRows(details, meta);
     let html = "";
-    let rowNum = 0;
-    let lastGroup = null;
 
-    grouped.forEach(({ item, setIds, primarySet }) => {
-      const groupKey = primarySet || "__none__";
-      if (groupKey !== lastGroup) {
-        if (primarySet) {
-          html += `
-            <tr class="detail-set-group-row">
-              <td colspan="${colSpan}">
-                <strong>ชุด SET ${escapeHtml(primarySet)}</strong>
-                <span class="detail-set-group-note">${escapeHtml(getSetDisplayName(primarySet, meta))}</span>
-              </td>
-            </tr>
-          `;
-        } else if (lastGroup && lastGroup !== "__none__") {
-          html += `<tr class="detail-set-group-row is-ungrouped"><td colspan="${colSpan}">รายการนอกชุด SET</td></tr>`;
-        }
-        lastGroup = groupKey;
-      }
-
-      rowNum += 1;
-      const setLabel = setIds.length ? setIds.join(", ") : "—";
+    displayRows.forEach((row, index) => {
+      const rowClass = row.rowType === "set" ? "detail-set-row" : "detail-material-row";
       html += `
-        <tr class="${primarySet ? "detail-set-item-row" : ""}">
-          <td>${rowNum}</td>
-          ${includeBudget ? `<td>${escapeHtml(String(item.type || ""))}</td>` : ""}
-          <td>${escapeHtml(String(item.id))}</td>
-          <td>${escapeHtml(String(item.name))}</td>
-          <td>${escapeHtml(setLabel)}</td>
-          <td style="text-align:center;">${escapeHtml(String(item.qty))}</td>
-          ${includeTotal ? `<td class="num">${formatBudgetAmount(parseFloat(item.total) || 0)}</td>` : ""}
+        <tr class="${rowClass}">
+          <td>${index + 1}</td>
+          ${includeBudget ? `<td>${escapeHtml(row.budgetType || "—")}</td>` : ""}
+          <td class="set-aware-type">${escapeHtml(getRowTypeLabel(row.rowType))}</td>
+          <td class="set-aware-code"><strong>${escapeHtml(row.code)}</strong></td>
+          <td class="set-aware-name">${escapeHtml(row.name)}</td>
+          <td class="set-aware-qty">${escapeHtml(formatQty(row.qty))}</td>
+          ${includeTotal ? `<td class="num set-aware-total">${row.rowType === "set" ? "—" : formatBudgetAmount(row.total || 0)}</td>` : ""}
         </tr>
       `;
     });
@@ -3344,8 +3392,48 @@
     return html;
   }
 
+  function buildSetAwareDisplayTableHtml(details, meta, options = {}) {
+    const title = options.title || "รายละเอียดพัสดุ / ชุด SET";
+    const includeBudget = Boolean(options.includeBudget);
+    const includeTotal = Boolean(options.includeTotal);
+    const displayRows = buildSetAwareDisplayRows(details, meta);
+    if (!displayRows.length) return "";
+
+    const budgetHead = includeBudget ? "<th>งบ</th>" : "";
+    const totalHead = includeTotal ? "<th>รวม</th>" : "";
+
+    return `
+      <div class="survey-set-box set-aware-display-box">
+        <strong>${escapeHtml(title)}</strong>
+        <p class="section-note set-aware-display-note">ชุด SET แสดงเป็นรหัสชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง · พัสดุเดี่ยว (เสา สาย หม้อแปลง ฯลฯ) แสดงเป็นรหัสพัสดุ</p>
+        <table class="detail-table set-aware-display-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              ${budgetHead}
+              <th>ประเภท</th>
+              <th>รหัส</th>
+              <th>รายการ</th>
+              <th>จำนวน</th>
+              ${totalHead}
+            </tr>
+          </thead>
+          <tbody>
+            ${buildGroupedDetailTableBodyHtml(details, meta, { includeBudget, includeTotal })}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function buildEditSetSummaryHtml(meta) {
-    return buildSetUsageSummaryHtml(meta);
+    const allDetails = state.budgets.flatMap(budget =>
+      budget.items.map(item => ({ ...item, type: item.type || budget.type }))
+    );
+    if (!meta?.setUsage?.length) return buildSetUsageSummaryHtml(meta);
+    return buildSetAwareDisplayTableHtml(allDetails, meta, {
+      title: "รายละเอียดพัสดุ / ชุด SET (สำหรับกรอกโปรแกรม)"
+    });
   }
 
   function buildSetUsageSummaryHtml(meta) {
@@ -3390,7 +3478,6 @@
         จุดสิ้นสุด (${escapeHtml(endLabel)}): ${Number(meta.endLat).toFixed(6)}, ${Number(meta.endLng).toFixed(6)}<br>
         หมุดทั้งหมด: ${poleCount} | ระยะรวม: ${totalDistanceM} ม. | Span: ${spanM} ม.${statsHtml}
       </div>
-      ${buildSetUsageSummaryHtml(meta)}
     `;
   }
 
@@ -3436,13 +3523,14 @@
       ${surveyMetaHtml}
       ${buildSavedBudgetBreakdownHtml(details)}
       ${mediaHtml}
-      <table class="detail-table">
+      ${surveyMeta?.setUsage?.length ? `<p class="set-aware-display-note">ชุด SET แสดงเป็นรหัสชุดพร้อมจำนวนชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง · พัสดุเดี่ยว (เสา สาย หม้อแปลง ฯลฯ) แสดงเป็นรหัสพัสดุ</p>` : ""}
+      <table class="detail-table set-aware-display-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>รหัสพัสดุ</th>
+            <th>ประเภท</th>
+            <th>รหัส</th>
             <th>รายการ</th>
-            <th>ชุด SET</th>
             <th>จำนวน</th>
           </tr>
         </thead>
@@ -3464,14 +3552,14 @@
     if (metaStr) {
       try { surveyMeta = JSON.parse(metaStr); } catch (error) { surveyMeta = null; }
     }
-    const data = sortDetailsForSetGrouping(details, surveyMeta).map(({ item, setIds }, index) => ({
+    const data = buildSetAwareDisplayRows(details, surveyMeta).map((row, index) => ({
       "ลำดับ": index + 1,
-      "รหัสพัสดุ": item.id,
-      "รายการ": item.name,
-      "ชุด SET": setIds.length ? setIds.join(", ") : "—",
-      "จำนวน": item.qty,
-      "งบ": item.type,
-      "รวม": item.total
+      "ประเภท": getRowTypeLabel(row.rowType),
+      "รหัส": row.code,
+      "รายการ": row.name,
+      "จำนวน": row.qty,
+      "งบ": row.budgetType || "—",
+      "รวม": row.rowType === "set" ? "—" : row.total
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
