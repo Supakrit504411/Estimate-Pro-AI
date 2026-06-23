@@ -346,6 +346,85 @@
     return buildGlobalMaterialSetLookup()[id] || [];
   }
 
+  function qtyNearEqual(actual, expected, tolerance = 0.02) {
+    const a = parseFloat(actual) || 0;
+    const e = parseFloat(expected) || 0;
+    if (e === 0) return Math.abs(a) <= tolerance;
+    return Math.abs(a - e) <= Math.max(tolerance, Math.abs(e) * tolerance);
+  }
+
+  function inferSetUsageFromDetails(details, presetsApi) {
+    const qtyById = {};
+    (details || []).forEach(detail => {
+      const id = String(detail.id || detail.materialId || "").trim();
+      if (!id) return;
+      qtyById[id] = (qtyById[id] || 0) + (parseFloat(detail.qty) || 0);
+    });
+
+    const remaining = { ...qtyById };
+    const sets = window.SURVEY_PRESETS?.sets || {};
+    const setList = Object.keys(sets)
+      .map(id => sets[id])
+      .filter(setObj => setObj?.items?.length)
+      .sort((a, b) => {
+        const diff = (b.items?.length || 0) - (a.items?.length || 0);
+        return diff !== 0 ? diff : String(a.id).localeCompare(String(b.id));
+      });
+
+    const usage = [];
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const setObj of setList) {
+        const items = setObj.items || [];
+        if (!items.length) continue;
+
+        const allPresent = items.every(item => {
+          const id = String(item.id || "").trim();
+          return (remaining[id] || 0) > 0.0001;
+        });
+        if (!allPresent) continue;
+
+        const ratios = items.map(item => {
+          const id = String(item.id || "").trim();
+          const perSetQty = parseFloat(item.qty) || 1;
+          return remaining[id] / perSetQty;
+        });
+        const setQty = Math.min(...ratios);
+        if (setQty <= 0.0001) continue;
+
+        const maxRatio = Math.max(...ratios);
+        let roundedQty = 0;
+        if (setQty > 0.0001 && (qtyNearEqual(maxRatio, setQty, 0.03) || maxRatio / setQty <= 1.03)) {
+          roundedQty = Math.round(setQty * 1000) / 1000;
+        } else if (items.length >= 2) {
+          // โครงการเก่า / qty ใน DB ไม่ตรง ratio — ถ้าครบทุกรหัสในชุด ให้ถือว่า 1 ชุด
+          roundedQty = 1;
+        }
+        if (roundedQty <= 0) continue;
+        usage.push({
+          setId: String(setObj.id),
+          qty: roundedQty,
+          name: setObj.name || setObj.label || setObj.id,
+          inferred: true
+        });
+
+        items.forEach(item => {
+          const id = String(item.id || "").trim();
+          const perSetQty = parseFloat(item.qty) || 0;
+          remaining[id] = (remaining[id] || 0) - perSetQty * roundedQty;
+          if (remaining[id] <= 0.0001) delete remaining[id];
+        });
+
+        changed = true;
+        break;
+      }
+    }
+
+    return usage.sort((a, b) => String(a.setId).localeCompare(String(b.setId)));
+  }
+
   function buildSurveyMetaV2(project, helpers) {
     const lineSegs = project.segments.filter(s => s.kind === "line");
     const allPoles = lineSegs.flatMap(s => s.poles || []);
@@ -510,6 +589,7 @@
     collectSetUsageFromProject,
     buildMaterialSetLookup,
     buildGlobalMaterialSetLookup,
-    resolveMaterialSetIds
+    resolveMaterialSetIds,
+    inferSetUsageFromDetails
   };
 })();

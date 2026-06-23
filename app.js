@@ -1121,7 +1121,17 @@
   }
 
   function render() {
-    const setSummaryHtml = state.activeSurveyMeta ? buildEditSetSummaryHtml(state.activeSurveyMeta) : "";
+    const allDetails = state.budgets.flatMap(budget =>
+      budget.items.map(item => ({ ...item, type: item.type || budget.type }))
+    );
+    const displaySurveyMeta = state.activeSurveyMeta
+      ? mergeDisplayMeta(state.activeSurveyMeta, allDetails)
+      : null;
+    const setSummaryHtml = displaySurveyMeta?.setUsage?.length
+      ? buildSetAwareDisplayTableHtml(allDetails, displaySurveyMeta, {
+        title: "รายละเอียดพัสดุ / ชุด SET (สำหรับกรอกโปรแกรม)"
+      })
+      : (state.activeSurveyMeta ? buildSetUsageSummaryHtml(state.activeSurveyMeta) : "");
     els.budgetSpace.innerHTML = `${setSummaryHtml}${state.budgets.map((budget, bIdx) => `
       <div class="budget-card">
         <div class="budget-top">
@@ -1144,7 +1154,7 @@
         </div>
 
         <div class="item-list">
-          ${budget.items.length ? sortDetailsForSetGrouping(budget.items, state.activeSurveyMeta).map(({ item, setIds, primarySet, originalIndex }) => `
+          ${budget.items.length ? sortDetailsForSetGrouping(budget.items, displaySurveyMeta).map(({ item, setIds, primarySet, originalIndex }) => `
             <div class="item-row ${primarySet ? "is-set-item" : ""} ${setIds.length && primarySet ? "is-set-grouped" : ""}">
               <div class="item-main" data-action="edit-qty" data-budget-index="${bIdx}" data-item-index="${originalIndex}">
                 <div class="item-name">${item.name}</div>
@@ -2817,7 +2827,7 @@
       }
     }
 
-    const lineRows = buildGroupedDetailTableBodyHtml(details, surveyMeta, {
+    const lineRows = buildGroupedDetailTableBodyHtml(details, mergeDisplayMeta(surveyMeta, details), {
       includeBudget: true,
       includeTotal: true
     });
@@ -3280,16 +3290,31 @@
     return ids.length ? ids.join(", ") : "—";
   }
 
-  function getSetComponentMaterialIds(meta) {
-    const setUsage = meta?.setUsage || [];
+  function getSetComponentMaterialIds(meta, details) {
+    const setUsage = resolveDisplaySetUsage(meta, details);
     if (!setUsage.length) return new Set();
     const api = window.SurveyPresetsApi;
     const lookup = window.SurveyProject?.buildMaterialSetLookup?.(setUsage, api) || {};
     return new Set(Object.keys(lookup).map(id => String(id).trim()).filter(Boolean));
   }
 
+  function resolveDisplaySetUsage(meta, details) {
+    if (meta?.setUsage?.length) return meta.setUsage;
+    if (window.SurveyProject?.inferSetUsageFromDetails) {
+      return window.SurveyProject.inferSetUsageFromDetails(details, window.SurveyPresetsApi);
+    }
+    return [];
+  }
+
+  function mergeDisplayMeta(meta, details) {
+    const setUsage = resolveDisplaySetUsage(meta, details);
+    if (!setUsage.length) return meta || null;
+    return { ...(meta || {}), setUsage };
+  }
+
   function buildSetAwareDisplayRows(details, meta) {
-    const setUsage = meta?.setUsage || [];
+    const displayMeta = mergeDisplayMeta(meta, details);
+    const setUsage = displayMeta?.setUsage || [];
     const normalizedDetails = (details || []).map(item => ({
       ...item,
       id: String(item.id || "").trim(),
@@ -3311,7 +3336,7 @@
       }));
     }
 
-    const componentIds = getSetComponentMaterialIds(meta);
+    const componentIds = getSetComponentMaterialIds(displayMeta, normalizedDetails);
     const rows = [];
     const api = window.SurveyPresetsApi;
 
@@ -3319,7 +3344,7 @@
       const setId = String(entry.setId || "").trim();
       if (!setId) return;
       const setQty = parseFloat(entry.qty) || 0;
-      const setName = entry.name || getSetDisplayName(setId, meta);
+      const setName = entry.name || getSetDisplayName(setId, displayMeta);
 
       rows.push({
         rowType: "set",
@@ -3352,7 +3377,7 @@
         });
       } else {
         normalizedDetails
-          .filter(item => resolveMaterialSetIds(item.id, meta).includes(setId))
+          .filter(item => resolveMaterialSetIds(item.id, displayMeta).includes(setId))
           .forEach(item => {
             rows.push({
               rowType: "set-item",
@@ -3584,13 +3609,18 @@
   function buildDetailHtml(details, imgStr, name, surveyMetaStr, previews, projectId) {
     let surveyMetaHtml = "";
     let surveyMeta = null;
+    let displayMeta = null;
     if (surveyMetaStr) {
       try {
         surveyMeta = JSON.parse(surveyMetaStr);
+        displayMeta = mergeDisplayMeta(surveyMeta, details);
         surveyMetaHtml = buildSurveyMetaDetailHtml(surveyMeta);
       } catch (error) {
         console.warn("survey meta parse failed", error);
       }
+    }
+    if (!displayMeta) {
+      displayMeta = mergeDisplayMeta(null, details);
     }
 
     const urls = imgStr ? imgStr.split("|") : [];
@@ -3623,7 +3653,7 @@
       ${surveyMetaHtml}
       ${buildSavedBudgetBreakdownHtml(details)}
       ${mediaHtml}
-      ${surveyMeta?.setUsage?.length ? `<p class="set-aware-display-note">แต่ละชุด SET ตามด้วยรายการพัสดุในชุด — กรอกรหัสชุดแล้วจะได้พัสดุตามรายการด้านล่าง</p>` : ""}
+      ${displayMeta?.setUsage?.length ? `<p class="set-aware-display-note">แต่ละชุด SET ตามด้วยรายการพัสดุในชุด — กรอกรหัสชุดแล้วจะได้พัสดุตามรายการด้านล่าง${displayMeta.setUsage.some(entry => entry.inferred) ? " (ตรวจจับชุด SET จากรายการพัสดุ)" : ""}</p>` : ""}
       <table class="detail-table set-aware-display-table">
         <thead>
           <tr>
@@ -3635,7 +3665,7 @@
           </tr>
         </thead>
         <tbody>
-          ${buildGroupedDetailTableBodyHtml(details, surveyMeta)}
+          ${buildGroupedDetailTableBodyHtml(details, displayMeta)}
         </tbody>
       </table>
       <div class="detail-export-actions">
@@ -3652,9 +3682,10 @@
     if (metaStr) {
       try { surveyMeta = JSON.parse(metaStr); } catch (error) { surveyMeta = null; }
     }
+    const displayMeta = mergeDisplayMeta(surveyMeta, details);
     const data = [];
     let rowNum = 0;
-    buildSetAwareDisplayRows(details, surveyMeta).forEach(row => {
+    buildSetAwareDisplayRows(details, displayMeta).forEach(row => {
       if (row.rowType === "section") {
         data.push({
           "ลำดับ": "",
