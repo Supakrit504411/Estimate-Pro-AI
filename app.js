@@ -2889,6 +2889,30 @@
           color: #74045f;
           font-weight: 700;
         }
+        .detail-set-item-row td {
+          background: #faf6fb;
+        }
+        .detail-set-item-row .set-aware-type {
+          color: #8b5a82;
+          font-size: 10px;
+        }
+        .detail-set-item-row .set-aware-code,
+        .detail-set-item-row .set-aware-name {
+          padding-left: 10px;
+        }
+        .detail-set-item-row .set-aware-name::before {
+          content: "↳ ";
+          color: #999;
+        }
+        .detail-set-group-start:not(:first-child) td {
+          border-top: 2px solid #d8b8d0;
+        }
+        .detail-set-section-row td {
+          background: #f3f3f3;
+          color: #555;
+          font-weight: 700;
+          font-size: 10px;
+        }
         .detail-material-row td {
           background: #fff;
         }
@@ -2945,7 +2969,7 @@
       ${buildBudgetBreakdownPrintHtml(details)}
       <section class="report-section">
         <h2>รายการพัสดุ / ชุด SET</h2>
-        <p style="margin:0 0 8px;font-size:10px;color:#555;">ชุด SET แสดงเป็นรหัสชุดพร้อมจำนวนชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง</p>
+        <p style="margin:0 0 8px;font-size:10px;color:#555;">แต่ละชุด SET ตามด้วยรายการพัสดุในชุด — กรอกรหัสชุดแล้วจะได้พัสดุตามรายการด้านล่าง</p>
         <table class="table-boq">
           <colgroup>
             <col class="col-no">
@@ -3282,54 +3306,116 @@
         name: item.name,
         qty: item.qty,
         budgetType: item.type,
-        total: item.total
+        total: item.total,
+        setId: ""
       }));
     }
 
     const componentIds = getSetComponentMaterialIds(meta);
     const rows = [];
+    const api = window.SurveyPresetsApi;
 
     setUsage.forEach(entry => {
       const setId = String(entry.setId || "").trim();
       if (!setId) return;
+      const setQty = parseFloat(entry.qty) || 0;
+      const setName = entry.name || getSetDisplayName(setId, meta);
+
       rows.push({
         rowType: "set",
         code: setId,
-        name: entry.name || getSetDisplayName(setId, meta),
-        qty: parseFloat(entry.qty) || 0,
+        name: setName,
+        qty: setQty,
         budgetType: "",
-        total: null
+        total: null,
+        setId
       });
+
+      const setObj = api?.getSet?.(setId);
+      const setItems = setObj?.items || [];
+      if (setItems.length) {
+        setItems.forEach(item => {
+          const matId = String(item.id || "").trim();
+          if (!matId) return;
+          const perSetQty = parseFloat(item.qty) || 0;
+          const totalQty = perSetQty * setQty;
+          rows.push({
+            rowType: "set-item",
+            code: matId,
+            name: item.name || matId,
+            qty: totalQty,
+            qtyPerSet: perSetQty,
+            budgetType: "",
+            total: null,
+            setId
+          });
+        });
+      } else {
+        normalizedDetails
+          .filter(item => resolveMaterialSetIds(item.id, meta).includes(setId))
+          .forEach(item => {
+            rows.push({
+              rowType: "set-item",
+              code: item.id,
+              name: item.name,
+              qty: item.qty,
+              budgetType: item.type,
+              total: item.total,
+              setId
+            });
+          });
+      }
     });
 
-    const materialMap = new Map();
+    const standaloneMap = new Map();
     normalizedDetails.forEach(item => {
       if (!item.id || componentIds.has(item.id)) return;
       const key = `${item.type}::${item.id}`;
-      if (!materialMap.has(key)) {
-        materialMap.set(key, {
+      if (!standaloneMap.has(key)) {
+        standaloneMap.set(key, {
           rowType: "material",
           code: item.id,
           name: item.name,
           qty: 0,
           budgetType: item.type,
-          total: 0
+          total: 0,
+          setId: ""
         });
       }
-      const row = materialMap.get(key);
+      const row = standaloneMap.get(key);
       row.qty += item.qty;
       row.total += item.total;
     });
 
-    [...materialMap.values()]
-      .sort((a, b) => a.code.localeCompare(b.code))
-      .forEach(row => rows.push(row));
+    const standaloneRows = [...standaloneMap.values()].sort((a, b) => a.code.localeCompare(b.code));
+    if (standaloneRows.length) {
+      rows.push({
+        rowType: "section",
+        code: "",
+        name: "พัสดุเดี่ยว (นอกชุด SET — เสา สาย หม้อแปลง ฯลฯ)",
+        qty: "",
+        budgetType: "",
+        total: null,
+        setId: ""
+      });
+      standaloneRows.forEach(row => rows.push(row));
+    }
 
     return rows;
   }
 
   function getRowTypeLabel(rowType) {
-    return rowType === "set" ? "ชุด SET" : "พัสดุ";
+    if (rowType === "set") return "ชุด SET";
+    if (rowType === "set-item") return "ใน SET";
+    if (rowType === "section") return "";
+    return "พัสดุ";
+  }
+
+  function getDisplayRowClass(row) {
+    if (row.rowType === "set") return "detail-set-row detail-set-group-start";
+    if (row.rowType === "set-item") return "detail-set-item-row detail-set-group-member";
+    if (row.rowType === "section") return "detail-set-section-row";
+    return "detail-material-row";
   }
 
   function resolveMaterialSetIds(materialId, meta) {
@@ -3373,18 +3459,32 @@
     const includeTotal = Boolean(options.includeTotal);
     const displayRows = buildSetAwareDisplayRows(details, meta);
     let html = "";
+    let rowNum = 0;
 
-    displayRows.forEach((row, index) => {
-      const rowClass = row.rowType === "set" ? "detail-set-row" : "detail-material-row";
+    displayRows.forEach(row => {
+      if (row.rowType === "section") {
+        const colSpan = getDetailTableColSpan({ includeBudget, includeTotal });
+        html += `
+          <tr class="${getDisplayRowClass(row)}">
+            <td colspan="${colSpan}">${escapeHtml(row.name)}</td>
+          </tr>
+        `;
+        return;
+      }
+
+      rowNum += 1;
+      const rowClass = getDisplayRowClass(row);
+      const qtyLabel = row.qty === "" ? "" : escapeHtml(formatQty(row.qty));
+      const typeLabel = getRowTypeLabel(row.rowType);
       html += `
-        <tr class="${rowClass}">
-          <td>${index + 1}</td>
+        <tr class="${rowClass}"${row.setId ? ` data-set-id="${escapeHtml(row.setId)}"` : ""}>
+          <td>${rowNum}</td>
           ${includeBudget ? `<td>${escapeHtml(row.budgetType || "—")}</td>` : ""}
-          <td class="set-aware-type">${escapeHtml(getRowTypeLabel(row.rowType))}</td>
-          <td class="set-aware-code"><strong>${escapeHtml(row.code)}</strong></td>
+          <td class="set-aware-type">${escapeHtml(typeLabel)}</td>
+          <td class="set-aware-code">${row.rowType === "set-item" ? escapeHtml(row.code) : `<strong>${escapeHtml(row.code)}</strong>`}</td>
           <td class="set-aware-name">${escapeHtml(row.name)}</td>
-          <td class="set-aware-qty">${escapeHtml(formatQty(row.qty))}</td>
-          ${includeTotal ? `<td class="num set-aware-total">${row.rowType === "set" ? "—" : formatBudgetAmount(row.total || 0)}</td>` : ""}
+          <td class="set-aware-qty">${qtyLabel}</td>
+          ${includeTotal ? `<td class="num set-aware-total">${row.rowType === "set" || row.rowType === "set-item" ? "—" : formatBudgetAmount(row.total || 0)}</td>` : ""}
         </tr>
       `;
     });
@@ -3405,7 +3505,7 @@
     return `
       <div class="survey-set-box set-aware-display-box">
         <strong>${escapeHtml(title)}</strong>
-        <p class="section-note set-aware-display-note">ชุด SET แสดงเป็นรหัสชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง · พัสดุเดี่ยว (เสา สาย หม้อแปลง ฯลฯ) แสดงเป็นรหัสพัสดุ</p>
+        <p class="section-note set-aware-display-note">แต่ละชุด SET ตามด้วยรายการพัสดุในชุด — กรอกรหัสชุด SET ในโปรแกรมประมาณการแล้วจะได้พัสดุตามรายการด้านล่าง · ส่วน「พัสดุเดี่ยว」คือรายการที่กรอกเป็นรหัสพัสดุโดยตรง</p>
         <table class="detail-table set-aware-display-table">
           <thead>
             <tr>
@@ -3523,7 +3623,7 @@
       ${surveyMetaHtml}
       ${buildSavedBudgetBreakdownHtml(details)}
       ${mediaHtml}
-      ${surveyMeta?.setUsage?.length ? `<p class="set-aware-display-note">ชุด SET แสดงเป็นรหัสชุดพร้อมจำนวนชุด — นำไปกรอกโปรแกรมประมาณการได้โดยตรง · พัสดุเดี่ยว (เสา สาย หม้อแปลง ฯลฯ) แสดงเป็นรหัสพัสดุ</p>` : ""}
+      ${surveyMeta?.setUsage?.length ? `<p class="set-aware-display-note">แต่ละชุด SET ตามด้วยรายการพัสดุในชุด — กรอกรหัสชุดแล้วจะได้พัสดุตามรายการด้านล่าง</p>` : ""}
       <table class="detail-table set-aware-display-table">
         <thead>
           <tr>
@@ -3552,15 +3652,34 @@
     if (metaStr) {
       try { surveyMeta = JSON.parse(metaStr); } catch (error) { surveyMeta = null; }
     }
-    const data = buildSetAwareDisplayRows(details, surveyMeta).map((row, index) => ({
-      "ลำดับ": index + 1,
-      "ประเภท": getRowTypeLabel(row.rowType),
-      "รหัส": row.code,
-      "รายการ": row.name,
-      "จำนวน": row.qty,
-      "งบ": row.budgetType || "—",
-      "รวม": row.rowType === "set" ? "—" : row.total
-    }));
+    const data = [];
+    let rowNum = 0;
+    buildSetAwareDisplayRows(details, surveyMeta).forEach(row => {
+      if (row.rowType === "section") {
+        data.push({
+          "ลำดับ": "",
+          "ประเภท": "",
+          "รหัสชุด SET": "",
+          "รหัส": "",
+          "รายการ": row.name,
+          "จำนวน": "",
+          "งบ": "",
+          "รวม": ""
+        });
+        return;
+      }
+      rowNum += 1;
+      data.push({
+        "ลำดับ": rowNum,
+        "ประเภท": getRowTypeLabel(row.rowType),
+        "รหัสชุด SET": row.setId || "—",
+        "รหัส": row.code,
+        "รายการ": row.name,
+        "จำนวน": row.qty === "" ? "" : row.qty,
+        "งบ": row.budgetType || "—",
+        "รวม": row.rowType === "set" || row.rowType === "set-item" ? "—" : row.total
+      });
+    });
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Materials");

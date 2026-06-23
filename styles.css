@@ -1917,6 +1917,36 @@ select option,
   font-weight: 700;
 }
 
+.detail-set-item-row td {
+  background: rgba(116, 4, 95, 0.04);
+}
+
+.detail-set-item-row .set-aware-type {
+  color: #8b5a82;
+  font-size: 11px;
+}
+
+.detail-set-item-row .set-aware-code,
+.detail-set-item-row .set-aware-name {
+  padding-left: 10px;
+}
+
+.detail-set-item-row .set-aware-name::before {
+  content: "↳ ";
+  color: var(--muted);
+}
+
+.detail-set-group-start:not(:first-child) td {
+  border-top: 2px solid var(--accent-panel-border);
+}
+
+.detail-set-section-row td {
+  background: var(--detail-surface-bg);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 11px;
+}
+
 .detail-material-row td {
   background: transparent;
 }
