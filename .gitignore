@@ -22,3 +22,6 @@ GAS.txt
 
 # เอกสาร skill ส่วนตัว (ถ้ามี)
 skill.md
+
+# เอกสาร / README — เก็บ local เท่านั้น ไม่ push GitHub
+*.md
