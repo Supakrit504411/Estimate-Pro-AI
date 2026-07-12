@@ -1,5 +1,10 @@
 window.APP_CONFIG = {
   apiBaseUrl: "/api/gas",
+  /** LINE Login (LIFF) — ใส่ LIFF ID จาก LINE Developers Console (เช่น "1234567890-AbcdEfgh")
+   *  Endpoint URL ของ LIFF ต้องเป็น https://estimate-pro-ai.vercel.app */
+  line: {
+    liffId: "2010675854-EN7MDcqq"
+  },
   endpoints: {
     masterData: "master-data",
     processImageAI: "process-image-ai",
@@ -9,6 +14,7 @@ window.APP_CONFIG = {
     verifyPassword: "verify-password",
     deleteProject: "delete-project",
     login: "login",
+    lineLogin: "line-login",
     shareProject: "share-project",
     adminDashboard: "admin-dashboard",
     shareUsers: "share-users",

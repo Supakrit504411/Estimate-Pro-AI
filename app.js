@@ -27,9 +27,12 @@
   async function init() {
     cacheElements();
     bindLoginEvents();
+    initLoginBackground();
     if (window.AuthSession?.isLoggedIn()) {
       await bootstrapApp();
+      return;
     }
+    initLineLogin();
   }
 
   function bindLoginEvents() {
@@ -37,6 +40,158 @@
     const logoutBtn = document.getElementById("logoutBtn");
     form?.addEventListener("submit", handleLoginSubmit);
     logoutBtn?.addEventListener("click", handleLogout);
+
+    document.getElementById("lineLoginBtn")?.addEventListener("click", handleLineLoginClick);
+
+    const toggle = document.getElementById("passwordLoginToggle");
+    toggle?.addEventListener("click", () => {
+      const collapsed = form?.classList.toggle("login-form-collapsed");
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.textContent = collapsed ? "เข้าสู่ระบบด้วยรหัสผ่าน ▾" : "เข้าสู่ระบบด้วยรหัสผ่าน ▴";
+      if (!collapsed) document.getElementById("loginUsername")?.focus();
+    });
+  }
+
+  /* ============================================================
+     LINE Login (LIFF) — default login method
+     ============================================================ */
+
+  function getLiffId() {
+    return String(appConfig.line?.liffId || "").trim();
+  }
+
+  function setLineLoginHint(text, isError) {
+    const hint = document.getElementById("lineLoginHint");
+    if (!hint) return;
+    hint.textContent = text || "";
+    hint.classList.toggle("hidden", !text);
+    hint.classList.toggle("is-error", !!isError);
+  }
+
+  async function initLineLogin() {
+    const liffId = getLiffId();
+    const btn = document.getElementById("lineLoginBtn");
+    if (!liffId || !window.liff) {
+      if (btn) btn.disabled = true;
+      setLineLoginHint("LINE Login ยังไม่พร้อม — ใช้รหัสผ่านด้านล่างแทน", false);
+      return;
+    }
+    try {
+      await liff.init({ liffId });
+      // กลับมาจากหน้า LINE authorize → เข้าระบบต่ออัตโนมัติ
+      if (liff.isLoggedIn()) {
+        await completeLineLogin();
+      }
+    } catch (error) {
+      console.warn("LIFF init failed:", error);
+      if (btn) btn.disabled = true;
+      setLineLoginHint("เริ่มต้น LINE Login ไม่สำเร็จ — ใช้รหัสผ่านแทน", true);
+    }
+  }
+
+  async function handleLineLoginClick() {
+    const liffId = getLiffId();
+    if (!liffId || !window.liff) {
+      setLineLoginHint("ยังไม่ได้ตั้งค่า LIFF ID ใน config.js", true);
+      return;
+    }
+    try {
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: window.location.href });
+        return;
+      }
+      await completeLineLogin();
+    } catch (error) {
+      setLineLoginHint(error.message || "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ", true);
+    }
+  }
+
+  async function completeLineLogin() {
+    const btn = document.getElementById("lineLoginBtn");
+    if (btn) btn.disabled = true;
+    setLineLoginHint("กำลังตรวจสอบบัญชี LINE...", false);
+    try {
+      const accessToken = liff.getAccessToken();
+      if (!accessToken) throw new Error("ไม่พบ LINE access token — ลองใหม่อีกครั้ง");
+      const result = await window.ApiService.lineLogin(accessToken);
+      if (!result?.ok || !result.user) {
+        // ถูก block → บังคับ logout ออกจาก LIFF เพื่อไม่วน auto-login
+        if (result?.blocked && liff.isLoggedIn()) liff.logout();
+        throw new Error(result?.message || "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ");
+      }
+      window.AuthSession.save(result.user);
+      setLineLoginHint("", false);
+      await bootstrapApp();
+    } catch (error) {
+      setLineLoginHint(error.message || "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ", true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ============================================================
+     Login background — futuristic particle field (PEA gold/magenta)
+     ============================================================ */
+
+  function initLoginBackground() {
+    const canvas = document.getElementById("loginBgCanvas");
+    if (!canvas || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = canvas.getContext("2d");
+    const COLORS = ["rgba(199,145,27,", "rgba(116,4,95,"];
+    let particles = [];
+    let rafId = null;
+
+    function resize() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      const count = Math.min(70, Math.floor(canvas.width * canvas.height / 18000));
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: Math.random() * 1.8 + 0.6,
+        c: COLORS[Math.random() < 0.6 ? 0 : 1]
+      }));
+    }
+
+    function step() {
+      const gate = document.getElementById("loginGate");
+      if (!gate || gate.classList.contains("hidden")) {
+        rafId = null;
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const LINK = 110;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.c + "0.8)";
+        ctx.fill();
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          const dx = p.x - q.x, dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < LINK) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = p.c + (0.16 * (1 - dist / LINK)).toFixed(3) + ")";
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    rafId = requestAnimationFrame(step);
   }
 
   async function handleLoginSubmit(event) {
@@ -82,6 +237,9 @@
   function handleLogout() {
     window.AuthSession?.clear();
     state.historyCache = null;
+    try {
+      if (window.liff?.isLoggedIn?.()) liff.logout();
+    } catch (error) { /* liff ยังไม่ init — ข้ามได้ */ }
     location.reload();
   }
 
@@ -101,6 +259,55 @@
     renderPriceFaqChips();
     initScrollCompactHeader();
     switchTab(defaultTab);
+    refreshImpactStats();
+  }
+
+  async function refreshImpactStats() {
+    try {
+      if (!state.historyCache) {
+        state.historyCache = await window.ApiService.getSavedProjects();
+      }
+      updateImpactStrip(state.historyCache || []);
+    } catch (error) {
+      console.warn("Impact stats skipped:", error);
+    }
+  }
+
+  function updateImpactStrip(rows) {
+    const strip = document.getElementById("impactStrip");
+    if (!strip) return;
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      strip.classList.add("hidden");
+      return;
+    }
+    const projectCount = list.length;
+    const grandSum = list.reduce((sum, row) => sum + (parseFloat(row[3]) || 0), 0);
+    const surveyCount = list.filter(row => {
+      const meta = String(row[5] || "");
+      return meta && meta !== "{}" && meta !== "null";
+    }).length;
+    // ประมาณ 45 นาที/โครงการ ที่ประหยัดได้เทียบกับการพิมพ์ BOM ด้วยมือ
+    const hoursSaved = Math.round(projectCount * 45 / 60);
+    strip.innerHTML = `
+      <div class="impact-tile">
+        <strong>${projectCount.toLocaleString()}</strong>
+        <span>โครงการทั้งหมด</span>
+      </div>
+      <div class="impact-tile">
+        <strong>${grandSum.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+        <span>บาท ประมาณการรวม</span>
+      </div>
+      <div class="impact-tile">
+        <strong>${surveyCount.toLocaleString()}</strong>
+        <span>โครงการมีสำรวจแผนที่</span>
+      </div>
+      <div class="impact-tile is-accent">
+        <strong>~${hoursSaved.toLocaleString()} ชม.</strong>
+        <span>เวลาที่ประหยัดได้</span>
+      </div>
+    `;
+    strip.classList.remove("hidden");
   }
 
   function renderPriceFaqChips() {
@@ -495,41 +702,63 @@
       `;
     }).join("");
 
-    const result = await Swal.fire({
-      title: type === "tr_install"
-        ? "ระบุหม้อแปลง"
-        : (type === "material_pick" ? "เลือกรายการพัสดุ" : "ระบุรายละเอียดงานเสา"),
-      html: `
-        <p class="price-clarify-intro">${escapeHtml(question || "")}</p>
-        <div class="price-clarify-form">${fieldHtml}</div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "คำนวณราคา",
-      cancelButtonText: "ยกเลิก",
-      focusConfirm: false,
-      preConfirm: () => {
-        const answers = {};
+    // Inline clarification bubble ใน chat thread (แทน Swal popup)
+    const answers = await new Promise(resolve => {
+      if (!els.priceAskResult) { resolve(null); return; }
+      els.priceAskResult.classList.remove("hidden");
+      els.priceAskResult.innerHTML = `
+        ${renderPriceAskThreadHtml()}
+        <div class="price-ask-chat">
+          <div class="price-ask-chat-bubble is-assistant price-clarify-inline" id="priceClarifyInline">
+            <span class="price-ask-chat-role">AI</span>
+            <div class="price-clarify-form">${fieldHtml}</div>
+            <p id="priceClarifyError" class="price-clarify-inline-error hidden" role="alert"></p>
+            <div class="price-clarify-inline-actions">
+              <button type="button" id="priceClarifyConfirm" class="primary-btn price-clarify-confirm">คำนวณราคา</button>
+              <button type="button" id="priceClarifyCancel" class="ghost-btn price-clarify-cancel">ยกเลิก</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById("priceClarifyInline")
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      document.getElementById("priceClarifyConfirm")?.addEventListener("click", () => {
+        const collected = {};
         for (const field of fields) {
           const el = document.getElementById(`price-clarify-${field.key}`);
           const value = el?.value || "";
           if (!value) {
-            Swal.showValidationMessage(`กรุณาเลือก: ${field.label}`);
-            return false;
+            const errEl = document.getElementById("priceClarifyError");
+            if (errEl) {
+              errEl.textContent = `กรุณาเลือก: ${field.label}`;
+              errEl.classList.remove("hidden");
+            }
+            return;
           }
-          answers[field.key] = field.key === "kva" ? Number(value) : value;
+          collected[field.key] = field.key === "kva" ? Number(value) : value;
         }
-        return answers;
-      }
+        resolve(collected);
+      });
+      document.getElementById("priceClarifyCancel")?.addEventListener("click", () => resolve(null));
     });
 
-    if (!result.isConfirmed || !result.value) return null;
+    if (!answers) return null;
+
+    const answerSummary = fields
+      .map(field => {
+        const chosen = (field.options || []).find(opt => String(opt.value) === String(answers[field.key]));
+        return `${field.label}: ${chosen?.label ?? answers[field.key]}`;
+      })
+      .join(" · ");
+    if (answerSummary) appendPriceAskMessage("user", answerSummary);
+
     if (type === "tr_install") {
-      return window.PriceQuoteEngine.mergeTrIntent(intent, result.value);
+      return window.PriceQuoteEngine.mergeTrIntent(intent, answers);
     }
     if (type === "material_pick") {
-      return window.PriceQuoteEngine.mergeMaterialIntent(intent, result.value);
+      return window.PriceQuoteEngine.mergeMaterialIntent(intent, answers);
     }
-    return window.PriceQuoteEngine.mergePoleIntent(intent, result.value);
+    return window.PriceQuoteEngine.mergePoleIntent(intent, answers);
   }
 
   async function promptPoleClarification(intent, question) {
@@ -1433,7 +1662,16 @@
   }
 
   function buildQueueReviewHtml() {
+    const total = state.aiReviewQueue.length;
+    const autoMatched = state.aiReviewQueue.filter(entry => entry.selectedItemId).length;
+    const pct = total ? Math.round(autoMatched * 100 / total) : 0;
     return `
+      <div class="queue-confidence-bar">
+        <div class="queue-confidence-label">
+          AI จับคู่อัตโนมัติ <strong>${autoMatched}/${total}</strong> รายการ (${pct}%)
+        </div>
+        <div class="queue-confidence-track"><div class="queue-confidence-fill" style="width:${pct}%"></div></div>
+      </div>
       <div class="queue-note">
         AI ช่วยอ่านเฉพาะรหัสพัสดุและจำนวน — ถ้าอ่านไม่เจอให้<strong>ค้นหาและเลือกพัสดุเอง</strong>จากช่องค้นหา (ไม่ต้องยกเลิกแล้วสแกนใหม่)
       </div>
@@ -1453,6 +1691,11 @@
         <div class="queue-topline">
           <div class="queue-badge">#${index + 1}</div>
           <div class="queue-source">${escapeHtml(entry.sourceName || "AI Scan")}</div>
+          ${entry.selectedItemId
+            ? `<span class="queue-match-badge is-auto">✓ จับคู่อัตโนมัติ</span>`
+            : (entry.matchedItems || []).length
+              ? `<span class="queue-match-badge is-pick">เลือกจาก ${(entry.matchedItems || []).length} ตัวเลือก</span>`
+              : `<span class="queue-match-badge is-manual">ค้นหาเอง</span>`}
           <button type="button" class="queue-skip-btn" data-queue-action="skip" data-queue-index="${index}">ข้ามรายการ</button>
         </div>
         <div class="queue-grid">
@@ -2456,6 +2699,7 @@
 
   function renderHistory(data) {
     state.historyRowCache = {};
+    updateImpactStrip(data);
     const rows = sortAndFilterHistoryData(data);
 
     if (!data.length) {

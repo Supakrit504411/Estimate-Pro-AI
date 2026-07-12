@@ -80,7 +80,7 @@
 
       const userLabel = document.getElementById("authUserLabel");
       if (userLabel) {
-        userLabel.textContent = user.username;
+        userLabel.textContent = user.displayName || user.username;
       }
 
       const roleLabel = document.getElementById("authRoleLabel");

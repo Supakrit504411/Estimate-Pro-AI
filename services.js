@@ -47,6 +47,10 @@
       return request(config.endpoints.login, { username, password });
     },
 
+    lineLogin(accessToken) {
+      return request(config.endpoints.lineLogin, { accessToken });
+    },
+
     getMasterData() {
       return request(config.endpoints.masterData, null, "GET");
     },

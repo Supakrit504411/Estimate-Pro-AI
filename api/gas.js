@@ -28,12 +28,22 @@ module.exports = async function handler(req, res) {
   const isGet = req.method === "GET";
 
   try {
+    const clientIp = String(req.headers["x-forwarded-for"] || "")
+      .split(",")[0].trim() || req.socket?.remoteAddress || "";
+    const clientUa = String(req.headers["user-agent"] || "");
+    const outboundBody = isGet
+      ? undefined
+      : JSON.stringify({
+          ...(req.body || {}),
+          _client: { ip: clientIp, ua: clientUa }
+        });
+
     const gasResponse = await fetch(targetUrl, {
       method: req.method,
       headers: {
         "Content-Type": "application/json"
       },
-      body: isGet ? undefined : JSON.stringify(req.body || {})
+      body: outboundBody
     });
 
     const text = await gasResponse.text();
