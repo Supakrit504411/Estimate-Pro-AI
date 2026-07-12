@@ -5177,3 +5177,43 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   background: rgba(255, 255, 255, 0.08);
   color: #f3ead9;
 }
+
+/* Survey map — fullscreen + utility controls */
+.survey-map-shell.is-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 4000;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+}
+
+.survey-map-shell.is-fullscreen .survey-map {
+  height: 100% !important;
+}
+
+body.survey-fullscreen-active {
+  overflow: hidden;
+}
+
+.survey-map-ctrl a {
+  font-size: 16px;
+  line-height: 30px;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  color: #333;
+}
+
+.survey-map-ctrl a:hover {
+  background: #f4f4f4;
+}
+
+.survey-map-ctrl a.is-active {
+  background: #c7911b;
+  color: #fff;
+}

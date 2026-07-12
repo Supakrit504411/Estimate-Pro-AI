@@ -479,6 +479,12 @@
       ? ` | แนบไฟล์ ${state.attachFiles.length} รายการ`
       : "";
 
+    if (!state.segments.length) {
+      els.modeHint.textContent = "ยังไม่มีส่วนงาน — กด + MV / + LV บนแถบเครื่องมือก่อน จึงจะปักหมุดได้";
+      updateToolbarActiveState();
+      return;
+    }
+
     if (!state.placeMode) {
       els.modeHint.textContent = `Span ${state.selectedSpan} ม. — เลือกเครื่องมือด้านขวาเพื่อปักหมุด${attachNote}`;
       updateToolbarActiveState();
@@ -746,7 +752,14 @@
     showDefaultsPanel();
     renderSegmentList();
     if (state.sessionActive) {
-      Swal.fire("เพิ่มส่วนงานแล้ว", `เลือก ${seg.label} — ปักจุดเริ่มได้`, "success", { timer: 2000, showConfirmButton: false });
+      Swal.fire({
+        toast: true,
+        position: "top",
+        icon: "success",
+        title: `เพิ่ม ${seg.label} แล้ว — ปักจุดเริ่มได้`,
+        timer: 1800,
+        showConfirmButton: false
+      });
     }
   }
 
@@ -1603,14 +1616,70 @@
       : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
   }
 
+  const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
   function applyMapTheme() {
     if (!state.map || !window.L) return;
     if (state.tileLayer) {
       state.map.removeLayer(state.tileLayer);
     }
-    state.tileLayer = L.tileLayer(getMapTileUrl("light"), {
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(state.map);
+    if (state.baseMode === "satellite") {
+      state.tileLayer = L.tileLayer(SATELLITE_TILE_URL, {
+        attribution: "&copy; Esri World Imagery",
+        maxZoom: 19
+      }).addTo(state.map);
+    } else {
+      state.tileLayer = L.tileLayer(getMapTileUrl("light"), {
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(state.map);
+    }
+  }
+
+  function toggleMapFullscreen() {
+    const shell = document.querySelector(".survey-map-shell");
+    if (!shell) return;
+    const active = shell.classList.toggle("is-fullscreen");
+    document.body.classList.toggle("survey-fullscreen-active", active);
+    const btn = document.getElementById("surveyMapFsBtn");
+    if (btn) {
+      btn.textContent = active ? "✕" : "⛶";
+      btn.title = active ? "ออกจากเต็มจอ (Esc)" : "ขยายแผนที่เต็มจอ";
+    }
+    scheduleMapResize();
+  }
+
+  function toggleBaseLayer() {
+    state.baseMode = state.baseMode === "satellite" ? "street" : "satellite";
+    const btn = document.getElementById("surveyMapSatBtn");
+    if (btn) btn.classList.toggle("is-active", state.baseMode === "satellite");
+    applyMapTheme();
+  }
+
+  function addMapUtilityControls() {
+    const utilControl = L.control({ position: "topleft" });
+    utilControl.onAdd = () => {
+      const div = L.DomUtil.create("div", "leaflet-bar survey-map-ctrl");
+      div.innerHTML = ""
+        + '<a href="#" id="surveyMapFsBtn" title="ขยายแผนที่เต็มจอ" role="button" aria-label="ขยายแผนที่เต็มจอ">⛶</a>'
+        + '<a href="#" id="surveyMapSatBtn" title="สลับแผนที่ถนน/ดาวเทียม" role="button" aria-label="สลับภาพดาวเทียม">🛰</a>';
+      L.DomEvent.disableClickPropagation(div);
+      div.querySelector("#surveyMapFsBtn").addEventListener("click", event => {
+        event.preventDefault();
+        toggleMapFullscreen();
+      });
+      div.querySelector("#surveyMapSatBtn").addEventListener("click", event => {
+        event.preventDefault();
+        toggleBaseLayer();
+      });
+      return div;
+    };
+    utilControl.addTo(state.map);
+    L.control.scale({ imperial: false, position: "bottomright" }).addTo(state.map);
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && document.querySelector(".survey-map-shell.is-fullscreen")) {
+        toggleMapFullscreen();
+      }
+    });
   }
 
   function initMap() {
@@ -1619,6 +1688,7 @@
     state.map = L.map(els.mapEl, { zoomControl: false }).setView(center, surveyConfig.defaultZoom || 15);
     L.control.zoom({ position: "bottomleft" }).addTo(state.map);
     applyMapTheme();
+    addMapUtilityControls();
     state.map.on("click", handleMapClick);
     state.map.on("move", updateAimOverlay);
     state.map.on("moveend", updateAimOverlay);
