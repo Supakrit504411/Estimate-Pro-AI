@@ -2227,6 +2227,7 @@ div:where(.swal2-container).swal2-backdrop-show {
   background: transparent !important;
   color: var(--text) !important;
   justify-items: stretch !important;
+  overflow: visible !important;
 }
 
 .pea-swal-popup .swal2-radio label,
@@ -2262,6 +2263,10 @@ div:where(.swal2-container).swal2-backdrop-show {
 .pea-swal-popup .swal2-radio label span,
 .swal2-popup .swal2-radio label span {
   color: var(--text) !important;
+  min-width: 0 !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  flex: 1 1 0% !important;
 }
 
 .pea-swal-popup .swal2-radio label:has(input:checked),

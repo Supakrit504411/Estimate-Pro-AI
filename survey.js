@@ -5,7 +5,7 @@
   const presetsApi = window.SurveyPresetsApi || {};
 
   const SURVEY_SWAL_COMPACT = {
-    width: "min(92vw, 320px)",
+    width: "min(92vw, 380px)",
     customClass: { popup: "pea-swal-popup swal-survey-compact" }
   };
 
