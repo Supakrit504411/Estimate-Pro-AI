@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="app-build" content="hero-v2-0084848">
+  <meta name="color-scheme" content="dark light">
+  <title>PEA Estimation AI Pro 2026</title>
+  <script>
+    (function () {
+      var pref = "dark";
+      try { pref = localStorage.getItem("pea_theme_v1") || "dark"; } catch (e) {}
+      if (pref !== "dark" && pref !== "light" && pref !== "auto") pref = "dark";
+      var effective = pref === "auto"
+        ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+        : pref;
+      document.documentElement.setAttribute("data-theme-pref", pref);
+      document.documentElement.setAttribute("data-theme", effective);
+      document.documentElement.style.colorScheme = effective;
+      var themeColor = effective === "light" ? "#f7f3f5" : "#000000";
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "theme-color";
+        document.head.appendChild(meta);
+      }
+      meta.content = themeColor;
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="./styles.css?v=20260713a">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    if (window.Swal) {
+      window.Swal = window.Swal.mixin({
+        buttonsStyling: false,
+        customClass: {
+          popup: "pea-swal-popup",
+          title: "pea-swal-title",
+          htmlContainer: "pea-swal-body",
+          confirmButton: "pea-swal-btn pea-swal-btn-confirm",
+          cancelButton: "pea-swal-btn pea-swal-btn-cancel",
+          denyButton: "pea-swal-btn pea-swal-btn-cancel",
+          actions: "pea-swal-actions",
+          input: "pea-swal-input",
+          validationMessage: "pea-swal-validation",
+          closeButton: "pea-swal-close"
+        }
+      });
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <section id="loginGate" class="login-gate">
+    <div class="login-bg" aria-hidden="true">
+      <canvas id="loginBgCanvas" class="login-bg-canvas"></canvas>
+      <div class="login-bg-grid"></div>
+      <div class="login-bg-orb login-bg-orb-gold"></div>
+      <div class="login-bg-orb login-bg-orb-magenta"></div>
+      <div class="login-bg-scanline"></div>
+    </div>
+    <div class="theme-switch theme-switch-login" role="group" aria-label="โหมดสี">
+      <button type="button" class="theme-switch-btn" data-theme-pref="dark" aria-pressed="true" title="โหมดมืด">มืด</button>
+      <button type="button" class="theme-switch-btn" data-theme-pref="light" aria-pressed="false" title="โหมดสว่าง">สว่าง</button>
+      <button type="button" class="theme-switch-btn" data-theme-pref="auto" aria-pressed="false" title="ตามระบบ">ออโต้</button>
+    </div>
+    <div class="login-layout">
+      <aside class="login-hero-panel" aria-label="จุดเด่นของระบบ">
+        <span class="brand-tag">PEA Innovation 2026</span>
+        <h2 class="login-hero-headline">ประมาณการงานไฟฟ้า<br><span class="login-hero-accent">จากชั่วโมง → 15 วินาที</span></h2>
+        <ul class="login-hero-points">
+          <li>
+            <span class="login-hero-icon">🤖</span>
+            <div><strong>AI อ่าน BOM จากรูปถ่าย</strong><span>ถ่ายรูป → ได้ BOQ พร้อมรหัสพัสดุอัตโนมัติ</span></div>
+          </li>
+          <li>
+            <span class="login-hero-icon">🗺️</span>
+            <div><strong>สำรวจหน้างานบนแผนที่</strong><span>ปักหมุด → ระบบวางเสา + Guy/Surge/Ground ตามมาตรฐาน กฟภ.</span></div>
+          </li>
+          <li>
+            <span class="login-hero-icon">💬</span>
+            <div><strong>ถามราคาแบบแชท</strong><span>NLU + AI ตอบราคาพัสดุพร้อมรหัส · Export Excel/PDF</span></div>
+          </li>
+        </ul>
+        <div class="login-hero-stats">
+          <div><strong>72</strong><span>ชุด SET กฟภ.</span></div>
+          <div><strong>4</strong><span>ประเภทงบอัตโนมัติ</span></div>
+          <div><strong>~15s</strong><span>AI Scan → BOQ</span></div>
+        </div>
+      </aside>
+      <div class="login-card panel">
+      <div class="login-brand">
+        <span class="brand-tag">Secure Access</span>
+        <h1 class="login-title">PEA ESTIMATION AI PRO</h1>
+        <p class="login-subtitle">เข้าสู่ระบบเพื่อใช้งานตามสิทธิ์ที่กำหนดในชีต Config</p>
+      </div>
+      <button id="lineLoginBtn" class="line-login-btn" type="button">
+        <svg class="line-login-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 5.64 2 10.13c0 4.03 3.58 7.4 8.41 8.04.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1.02.9.56 1.1-.47 5.92-3.49 8.08-5.97C21.66 13.4 22 11.83 22 10.13 22 5.64 17.52 2 12 2z"/></svg>
+        เข้าสู่ระบบด้วย LINE
+      </button>
+      <p id="lineLoginHint" class="login-line-hint hidden"></p>
+
+      <div class="login-divider"><span>หรือ</span></div>
+
+      <button id="passwordLoginToggle" class="login-password-toggle" type="button" aria-expanded="false">
+        เข้าสู่ระบบด้วยรหัสผ่าน ▾
+      </button>
+
+      <form id="loginForm" class="login-form login-form-collapsed">
+        <div class="input-shell">
+          <label class="input-label" for="loginUsername">Username</label>
+          <input id="loginUsername" type="text" autocomplete="username" placeholder="ชื่อผู้ใช้">
+        </div>
+        <div class="input-shell">
+          <label class="input-label" for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="รหัสผ่าน">
+        </div>
+        <button id="loginSubmitBtn" class="primary-btn login-submit" type="submit">เข้าสู่ระบบ</button>
+      </form>
+      <p id="loginError" class="login-error hidden" role="alert"></p>
+      </div>
+    </div>
+  </section>
+
+  <div id="appMain" class="hidden">
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-card">
+        <div class="hero-head">
+          <div class="brand">
+            <span class="brand-tag">AI Estimation Console</span>
+            <h1 class="brand-title">
+              <span class="brand-title-main">PEA ESTIMATION <span class="brand-ai">AI</span> PRO</span>
+              <span class="brand-title-year">2026</span>
+            </h1>
+          </div>
+        </div>
+        <div class="hero-meta">
+          <p class="brand-subtitle">ระบบประมาณการ <span class="brand-quote">"<span class="brand-speed">รู้ราคาใน 15 วินาที</span>"</span></p>
+          <div class="auth-bar">
+            <div class="theme-switch theme-switch-compact" role="group" aria-label="โหมดสี">
+              <button type="button" class="theme-switch-btn" data-theme-pref="dark" aria-pressed="true" title="โหมดมืด">◐</button>
+              <button type="button" class="theme-switch-btn" data-theme-pref="light" aria-pressed="false" title="โหมดสว่าง">○</button>
+              <button type="button" class="theme-switch-btn" data-theme-pref="auto" aria-pressed="false" title="ตามระบบ">A</button>
+            </div>
+            <div class="auth-user">
+              <span id="authUserLabel" class="auth-user-name">-</span>
+              <span id="authRoleLabel" class="auth-user-role">user</span>
+            </div>
+            <button id="logoutBtn" class="auth-logout-btn" type="button" aria-label="ออกจากระบบ"><span class="auth-logout-text">ออกจากระบบ</span><span class="auth-logout-short" aria-hidden="true">ออก</span></button>
+          </div>
+        </div>
+
+        <div class="tab-bar">
+          <button id="t1" class="tab-item active" type="button">สร้างงานใหม่</button>
+          <button id="t3" class="tab-item" type="button">สำรวจหน้างาน</button>
+          <button id="t4" class="tab-item" type="button">ถาม AI</button>
+          <button id="t2" class="tab-item" type="button">ประวัติโครงการ</button>
+          <button id="t5" class="tab-item auth-hidden" type="button">Admin</button>
+        </div>
+
+        <div id="impactStrip" class="impact-strip hidden" aria-label="สรุปผลการใช้งาน"></div>
+      </div>
+    </header>
+
+    <section id="view1" class="view view-page">
+      <div class="view-grid">
+        <div>
+          <div class="panel">
+            <div class="section-head">
+              <div>
+                <h2 id="formTitle" class="section-title">ข้อมูลโครงการ</h2>
+                <p class="section-note">กรอกชื่อโครงการ แล้วเลือกประเภทงบที่ต้องการ</p>
+              </div>
+              <span class="mini-tag">Ver 1.0</span>
+            </div>
+
+            <div class="input-shell">
+              <label class="input-label" for="pjName">Project Name</label>
+              <input type="text" id="pjName" placeholder="ระบุชื่อโครงการ / สถานที่ / งานที่ต้องการประมาณ">
+            </div>
+
+            <div class="budget-grid">
+              <button class="btn-type" id="m1" type="button" data-budget-type="01.1" disabled>
+                <div>
+                  <strong>งบ 01.1</strong>
+                  <small>PEA 100%</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m2" type="button" data-budget-type="02.1" disabled>
+                <div>
+                  <strong>งบ 02.1</strong>
+                  <small>CUS 100% ไม่รวมกำไร</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m3" type="button" data-budget-type="02.2" disabled>
+                <div>
+                  <strong>งบ 02.2</strong>
+                  <small>CUS 100% + กำไร 30%</small>
+                </div>
+                <span>+</span>
+              </button>
+              <button class="btn-type" id="m4" type="button" data-budget-type="03.1" disabled>
+                <div>
+                  <strong>งบ 03.1</strong>
+                  <small>PEA 50% ,CUS 50%</small>
+                </div>
+                <span>+</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <span class="hint-pill">1</span>
+              <span>เลือกงบได้มากกว่า 1 ประเภทในโครงการเดียว — ระบบคำนวณค่าแรง/เปอร์เซ็นต์ให้อัตโนมัติ</span>
+            </div>
+          </div>
+
+          <div id="aiSection" class="panel scan-zone hidden">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title">AI Scan Intake</h2>
+                <p class="section-note">สแกนรูปหรือ PDF</p>
+              </div>
+              <span class="mini-tag">AI Agent</span>
+            </div>
+
+            <input type="file" id="aiFile" accept="image/*,application/pdf" style="display:none;" multiple>
+            <button id="scanBtn" class="scan-btn" type="button">ถ่ายรูป / เลือกไฟล์เพื่อสแกน AI</button>
+
+            <div class="hint-row">
+              <span class="hint-pill">2</span>
+              <span>ถ่ายรูป BOM หรือแนบ PDF — AI อ่านรหัสพัสดุ+จำนวนให้ แล้วตรวจก่อนนำเข้าใน Review Queue</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div id="budgetSpace"></div>
+
+          <div id="saveZone" class="summary-card hidden">
+            <div class="summary-strip">
+              <div>
+                <div class="summary-label">Grand Total</div>
+                <div id="grandText" class="summary-value">0.00 บาท</div>
+              </div>
+              <div class="summary-side">
+                จำนวนงบ
+                <strong id="budgetCount">0</strong>
+              </div>
+            </div>
+            <button id="saveProjectBtn" class="primary-btn" type="button">บันทึกโครงการ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view3" class="view view-page hidden">
+      <div class="survey-layout">
+        <div id="surveyPrePanel" class="panel survey-pre-panel">
+          <div class="section-head">
+            <div>
+              <h2 class="section-title">Field Survey</h2>
+              <p class="section-note">ตั้งค่าล่วงหน้า แนบรูปหน้างาน แล้วเริ่มสำรวจบนแผนที่</p>
+            </div>
+            <span class="mini-tag">Span Map</span>
+          </div>
+
+          <div id="surveySegmentPanel" class="survey-segment-panel">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">ส่วนงานในโครงการ</span>
+              <span class="optional-tag">เพิ่มได้หลายส่วน</span>
+            </div>
+            <p class="survey-defaults-note">เพิ่ม MV / LV / TR ก่อนหรือหลังเข้าแผนที่ก็ได้ — ลำดับใดก่อนก็ได้</p>
+            <div id="surveySegmentList" class="survey-segment-list"></div>
+            <div class="survey-segment-add-row">
+              <button type="button" class="ghost-btn survey-seg-add" data-add-segment="mv">+ MV</button>
+              <button type="button" class="ghost-btn survey-seg-add" data-add-segment="lv">+ LV</button>
+              <button type="button" class="ghost-btn survey-seg-add is-tr" data-add-segment="tr">+ TR</button>
+            </div>
+          </div>
+
+          <div id="surveySystemPanel" class="survey-system-panel hidden">
+            <div id="surveyVoltageStep" class="survey-system-step">
+              <div class="survey-system-step-head">
+                <span class="survey-system-step-num">1</span>
+                <span class="survey-system-step-title">เลือกระบบแรงดัน</span>
+                <span id="surveyVoltageBadge" class="survey-system-badge hidden"></span>
+                <button id="surveyVoltageEdit" class="survey-system-edit hidden" type="button">แก้ไข</button>
+              </div>
+              <div id="surveyVoltageChoices" class="survey-choice-row">
+                <button class="survey-choice-btn" type="button" data-voltage="mv">MV</button>
+                <button class="survey-choice-btn" type="button" data-voltage="lv">LV</button>
+              </div>
+            </div>
+
+            <div id="surveyPhaseStep" class="survey-system-step is-locked hidden">
+              <div class="survey-system-step-head">
+                <span class="survey-system-step-num">2</span>
+                <span class="survey-system-step-title">เลือกระบบเฟส</span>
+                <span id="surveyPhaseBadge" class="survey-system-badge hidden"></span>
+                <button id="surveyPhaseEdit" class="survey-system-edit hidden" type="button">แก้ไข</button>
+              </div>
+              <div id="surveyPhaseChoices" class="survey-choice-row">
+                <button class="survey-choice-btn" type="button" data-phase="1p">1P</button>
+                <button class="survey-choice-btn" type="button" data-phase="3p">3P</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="surveyDefaultsPanel" class="survey-defaults-panel hidden">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">ค่า Default พัสดุ</span>
+              <span class="optional-tag">ไม่บังคับ</span>
+            </div>
+            <p class="survey-defaults-note">ตั้งค่าล่วงหน้าเพื่อเติมอัตโนมัติหลังสำรวจเสร็จ — แก้ไขรายหมุดได้ภายหลัง</p>
+            <div class="survey-defaults-grid">
+              <div class="survey-defaults-group">
+                <h3 class="survey-defaults-label">ทางตรง</h3>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightPole">เสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightPole" data-default-group="straight" data-default-field="poleMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightHead">หัวเสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightHead" data-default-group="straight" data-default-field="headMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultStraightCable">สายไฟ (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultStraightCable" data-default-group="straight" data-default-field="cableMaterialId"></select>
+                </div>
+                <div class="survey-field survey-ohgw-field" data-ohgw-group="straight">
+                  <label for="surveyDefaultStraightOhgw">OHGW (ชุด Set)</label>
+                  <div class="survey-ohgw-row">
+                    <label class="survey-ohgw-check">
+                      <input type="checkbox" id="surveyDefaultStraightOhgwInstall" data-default-group="straight" data-default-field="ohgwInstall" checked>
+                      <span>ติดตั้ง</span>
+                    </label>
+                    <select id="surveyDefaultStraightOhgw" data-default-group="straight" data-default-field="ohgwSetId"></select>
+                  </div>
+                </div>
+              </div>
+              <div class="survey-defaults-group is-curve">
+                <h3 class="survey-defaults-label">ทางโค้ง</h3>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurvePole">เสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurvePole" data-default-group="curve" data-default-field="poleMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurveHead">หัวเสา (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurveHead" data-default-group="curve" data-default-field="headMaterialId"></select>
+                </div>
+                <div class="survey-field">
+                  <label for="surveyDefaultCurveCable">สายไฟ (รหัสพัสดุ)</label>
+                  <select id="surveyDefaultCurveCable" data-default-group="curve" data-default-field="cableMaterialId"></select>
+                </div>
+                <div class="survey-field survey-ohgw-field" data-ohgw-group="curve">
+                  <label for="surveyDefaultCurveOhgw">OHGW (ชุด Set)</label>
+                  <div class="survey-ohgw-row">
+                    <label class="survey-ohgw-check">
+                      <input type="checkbox" id="surveyDefaultCurveOhgwInstall" data-default-group="curve" data-default-field="ohgwInstall" checked>
+                      <span>ติดตั้ง</span>
+                    </label>
+                    <select id="surveyDefaultCurveOhgw" data-default-group="curve" data-default-field="ohgwSetId"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="survey-attach-panel">
+            <div class="survey-defaults-head">
+              <span class="survey-defaults-title">รูป/ไฟล์หน้างาน</span>
+              <span class="optional-tag">ไม่บังคับ</span>
+            </div>
+            <p class="survey-defaults-note">แนบรูปหรือไฟล์หน้างาน — บันทึกเข้า Drive พร้อมโครงการ (คอลัมน์ E)</p>
+            <input type="file" id="surveyFileInput" accept="image/*,application/pdf" multiple hidden>
+            <button id="surveyAttachBtn" class="ghost-btn" type="button">แนบรูป/ไฟล์หน้างาน</button>
+            <div id="surveyAttachList" class="survey-attach-list"></div>
+          </div>
+
+          <button id="surveyBeginBtn" class="primary-btn survey-begin-btn" type="button">เริ่มสำรวจ</button>
+        </div>
+
+        <div id="surveyMapStage" class="survey-map-stage hidden">
+          <div class="survey-map-shell">
+            <div id="surveyMap" class="survey-map"></div>
+            <div id="surveyMapStatsOverlay" class="survey-map-stats hidden" aria-live="polite"></div>
+            <div id="surveyMapAim" class="survey-map-aim hidden" aria-hidden="true">
+              <div class="survey-map-aim-crosshair"></div>
+            </div>
+            <div id="surveyMapAimDist" class="survey-map-aim-distance hidden"></div>
+            <button id="surveyPlaceAimBtn" class="survey-place-aim-btn hidden" type="button">ปักที่กากบาท</button>
+            <button id="surveyTabMenuBtn" class="survey-tab-menu-btn hidden" type="button" aria-label="เปิดเมนูแท็บ">☰ เมนู</button>
+            <button id="surveyToolbarToggle" class="survey-toolbar-toggle" type="button" aria-expanded="false">เครื่องมือ ▾</button>
+
+            <aside id="surveyToolbar" class="survey-toolbar is-collapsed-mobile">
+              <button id="surveyBackBtn" class="survey-tool-btn" type="button" data-survey-tool="back" title="ย้อนกลับ" disabled>↩</button>
+              <button id="surveyForwardBtn" class="survey-tool-btn" type="button" data-survey-tool="forward" title="เดินหน้า" disabled>↪</button>
+              <div class="survey-toolbar-divider"></div>
+              <button id="surveyGpsBtn" class="survey-tool-btn" type="button" data-survey-tool="gps">ใช้ GPS</button>
+              <button id="surveyStartBtn" class="survey-tool-btn" type="button" data-survey-tool="start" disabled>ปักจุดเริ่ม</button>
+              <button id="surveyAddPointBtn" class="survey-tool-btn" type="button" data-survey-tool="control" disabled>ปักหมุดถัดไป</button>
+              <button id="surveyCurveInBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_in" disabled>เข้าโค้ง</button>
+              <button id="surveyCurveWaypointBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_waypoint" disabled>จุดบนโค้ง</button>
+              <button id="surveyCurveOutBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_out" disabled>ออกโค้ง</button>
+              <div class="survey-toolbar-divider"></div>
+              <div id="surveyActiveSegment" class="survey-active-segment">—</div>
+              <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
+              <button id="surveyAddLvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv">+ LV</button>
+              <button id="surveyTrBtn" class="survey-tool-btn is-tr" type="button" data-survey-tool="tr_pick">ติด TR</button>
+              <button id="surveyAddLvFromTrBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv_tr">+ LV จาก TR</button>
+              <div class="survey-toolbar-divider"></div>
+              <button id="surveyAttachBtnMap" class="survey-tool-btn" type="button" data-survey-tool="attach">แนบรูป</button>
+              <div id="surveySummary" class="survey-toolbar-stat"></div>
+              <button id="surveyCompleteBtn" class="survey-tool-btn is-primary" type="button" data-survey-tool="complete" disabled>สำรวจเสร็จ</button>
+              <button id="surveyResetBtn" class="survey-tool-btn is-muted" type="button" data-survey-tool="reset">เริ่มใหม่</button>
+            </aside>
+
+            <div id="surveyModeHint" class="survey-map-hint">เลือกเครื่องมือด้านขวาเพื่อปักหมุด</div>
+          </div>
+
+          <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
+          <div class="survey-actions secondary hidden" id="surveySpecActions">
+            <button id="surveyExportKmlBtn" class="ghost-btn" type="button">📍 ส่งออก KML (GIS)</button>
+            <button id="surveyGenerateBtn" class="primary-btn" type="button" disabled>สร้างรายการประมาณการ</button>
+            <button id="surveySaveProjectBtn" class="primary-btn is-gold hidden" type="button">บันทึกโครงการ</button>
+          </div>
+        </div>
+
+        <div id="surveySidePanel" class="panel survey-side-panel hidden">
+          <div class="section-head">
+            <div>
+              <h2 id="surveySideTitle" class="section-title">คู่มือสำรวจ</h2>
+              <p id="surveySideNote" class="section-note">ปักหมุด 0 แล้วปักปลายทาง — ระบบวางเสาตามเส้นถนนบนแผนที่ให้อัตโนมัติ</p>
+            </div>
+            <button id="surveyExportKmlSideBtn" class="ghost-btn survey-kml-side-btn hidden" type="button" title="ส่งออกพิกัดเสาเป็น KML">📍 ส่งออก KML</button>
+          </div>
+          <div id="surveyPoleList" class="survey-pole-list">
+            <div class="survey-empty">กดเริ่มสำรวจ → เลือก Span → ปักหมุดบนแผนที่</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view4" class="view view-page hidden">
+      <div id="priceAskPanel" class="panel price-ask-panel">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">ถาม AI</h2>
+            <p class="section-note">เลือกคำถามที่พบบ่อย หรือพิมพ์ kVA / รหัสพัสดุ — ระบบจับคู่จาก master โดยตรง</p>
+          </div>
+          <span class="mini-tag">AI</span>
+        </div>
+
+        <div class="price-ask-row">
+          <input
+            id="priceAskInput"
+            class="price-ask-input"
+            type="text"
+            placeholder="ติดตั้งหม้อแปลง 50 kVA กี่บาท"
+            autocomplete="off"
+          >
+          <select id="priceAskBudget" class="price-ask-budget" aria-label="ประเภทงบ">
+            <option value="01.1">งบ 01.1</option>
+            <option value="02.1">งบ 02.1</option>
+            <option value="02.2">งบ 02.2</option>
+            <option value="03.1">งบ 03.1</option>
+          </select>
+          <button id="priceAskBtn" class="primary-btn price-ask-btn" type="button">ถาม AI</button>
+        </div>
+
+        <div id="priceAskChips" class="price-ask-chips"></div>
+
+        <div id="priceAskResult" class="price-ask-result hidden"></div>
+      </div>
+    </section>
+
+    <section id="view2" class="view view-page hidden">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Project History</h2>
+            <p class="section-note">ค้นหาโครงการย้อนหลัง ตรวจดูรายการวัสดุ แก้ไข หรือลบรายการเดิมได้จากจุดเดียว</p>
+          </div>
+          <button id="reloadHistoryBtn" class="ghost-btn" type="button">รีโหลด</button>
+        </div>
+
+        <div class="history-toolbar">
+          <div class="input-shell history-search-shell">
+            <label class="input-label" for="histSearch">Search History</label>
+            <input type="text" id="histSearch" class="search-input" placeholder="ค้นหาชื่อโครงการ เช่น สงขลา, ศรีสงคราม...">
+          </div>
+          <div class="history-filter-row">
+            <select id="histSort" class="search-input history-sort-select" aria-label="เรียงลำดับ">
+              <option value="newest">ใหม่ → เก่า</option>
+              <option value="oldest">เก่า → ใหม่</option>
+              <option value="amount-desc">ยอดสูง → ต่ำ</option>
+              <option value="amount-asc">ยอดต่ำ → สูง</option>
+            </select>
+            <label class="history-mine-toggle">
+              <input id="histMineOnly" type="checkbox">
+              <span>ของฉันเท่านั้น</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="history-legend" aria-hidden="true">
+          <span class="history-legend-item history-accent-own">ของฉัน</span>
+          <span class="history-legend-item history-accent-edit">แชร์แก้ไข</span>
+          <span class="history-legend-item history-accent-shared">แชร์ดู</span>
+          <span class="history-legend-item history-accent-public">สาธารณะ</span>
+        </div>
+
+        <div id="histContent">
+          <div class="empty-state">
+            <div class="hero-orb empty-orb">SYNC</div>
+            <div>กำลังโหลดข้อมูลประวัติโครงการ...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view5" class="view view-page hidden auth-hidden">
+      <div class="panel admin-panel">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Admin Console</h2>
+            <p class="section-note">ผู้ใช้จาก Config · โครงการทั้งหมด · Audit log ล่าสุด</p>
+          </div>
+          <button id="reloadAdminBtn" class="ghost-btn" type="button">รีโหลด</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-block">
+            <h3 class="admin-block-title">ผู้ใช้ (Config)</h3>
+            <div id="adminUsers" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block">
+            <h3 class="admin-block-title">โครงการทั้งหมด</h3>
+            <div id="adminProjects" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block admin-block-wide">
+            <h3 class="admin-block-title">Price Ask Feedback</h3>
+            <p class="section-note">รวบรวมจากปุ่ม「ตอบไม่ตรง」ในแท็บถาม AI · เก็บในเบราว์เซอร์ + sync GAS (ถ้ามี)</p>
+            <div id="adminPriceAskFeedback" class="admin-table-wrap"></div>
+          </div>
+          <div class="admin-block admin-block-wide">
+            <h3 class="admin-block-title">Project Audit</h3>
+            <div class="admin-audit-toolbar">
+              <input type="text" id="adminAuditSearch" class="search-input admin-audit-search" placeholder="ค้นหา user / project / detail…" aria-label="ค้นหา audit">
+              <select id="adminAuditAction" class="search-input admin-audit-action" aria-label="กรอง action">
+                <option value="all">ทุก action</option>
+                <option value="share">share</option>
+                <option value="delete">delete</option>
+              </select>
+              <button id="adminAuditExportBtn" class="ghost-btn" type="button">Export CSV</button>
+            </div>
+            <div id="adminAudit" class="admin-table-wrap admin-audit-wrap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div>Developed by PEA Nakhon Phanom - Customer Service and Relations Section</div>
+      <div>(นายศุภกฤษ ทะวัง ชผ.บส.กฟจ.นพ.)</div>
+    </footer>
+
+    <nav class="app-bottom-nav" id="appBottomNav" aria-label="เมนูหลัก">
+      <button type="button" class="bottom-nav-item" data-tab-nav="1" aria-label="สร้างงานใหม่">
+        <span class="bottom-nav-icon" aria-hidden="true">✎</span>
+        <span class="bottom-nav-label">งานใหม่</span>
+      </button>
+      <button type="button" class="bottom-nav-item is-center" data-tab-nav="3" aria-label="สำรวจหน้างาน">
+        <span class="bottom-nav-bubble"><span class="bottom-nav-icon">⌖</span></span>
+        <span class="bottom-nav-label">สำรวจ</span>
+      </button>
+      <button type="button" class="bottom-nav-item" data-tab-nav="4" aria-label="ถาม AI">
+        <span class="bottom-nav-icon" aria-hidden="true">฿</span>
+        <span class="bottom-nav-label">ถาม AI</span>
+      </button>
+      <button type="button" class="bottom-nav-item" data-tab-nav="2" aria-label="ประวัติโครงการ">
+        <span class="bottom-nav-icon" aria-hidden="true">☰</span>
+        <span class="bottom-nav-label">ประวัติ</span>
+      </button>
+      <button type="button" class="bottom-nav-item auth-hidden" data-tab-nav="5" aria-label="Admin Console">
+        <span class="bottom-nav-icon" aria-hidden="true">⚙</span>
+        <span class="bottom-nav-label">Admin</span>
+      </button>
+    </nav>
+  </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./config.js"></script>
+  <script src="./theme.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./survey-presets.js"></script>
+  <script src="./price-quote-catalog.js"></script>
+  <script src="./price-ask-glossary.js"></script>
+  <script src="./price-ask-nlu.js"></script>
+  <script src="./budget-formula.js"></script>
+  <script src="./price-quote-pole.js"></script>
+  <script src="./survey-project.js"></script>
+  <script src="./services.js"></script>
+  <script src="./price-quote-engine.js"></script>
+  <script src="./price-ask-feedback.js"></script>
+  <script src="./app.js"></script>
+  <script src="./survey.js"></script>
+</body>
+</html>

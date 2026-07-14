@@ -1,4 +1,30 @@
-node_modules/
-*.log
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS / Editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# ── ไม่ push ขึ้น GitHub (เก็บในเครื่องเท่านั้น) ──
+# Backend source + API keys จริง — copy ไป GAS Editor เอง
+GAS.txt
+
+# เอกสาร skill ส่วนตัว (ถ้ามี)
+skill.md
+
+# เอกสาร / README — เก็บ local เท่านั้น ไม่ push GitHub
+*.md
