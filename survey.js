@@ -3221,16 +3221,92 @@
     const budgetIndex = await window.AppCore.pickOrCreateBudgetIndex();
     if (budgetIndex === null) return;
 
-    for (const line of ready) {
-      await window.AppCore.addItemWithLabor(budgetIndex, line.item, line.qty);
-    }
+    const reviewItems = ready.map(line => {
+      const labor = line.item.laborOptions?.[0] || { desc: "ค่าแรงมาตรฐาน", price: line.item.labPrice };
+      return {
+        ...line.item,
+        qty: line.qty,
+        laborIndex: 0,
+        labPrice: labor.price,
+        laborDesc: labor.desc
+      };
+    });
+
+    const escH = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    const buildReviewHtml = items => {
+      const rows = items.map((entry, i) => {
+        const laborOpts = entry.laborOptions || [];
+        const laborCell = laborOpts.length > 1
+          ? `<select class="staging-labor-select" data-ridx="${i}">${laborOpts.map((lo, li) =>
+              `<option value="${li}" ${li === entry.laborIndex ? "selected" : ""}>${escH(lo.desc)} (${lo.price})</option>`
+            ).join("")}</select>`
+          : `<span>${escH(entry.laborDesc)}</span>`;
+        const total = (entry.matPrice + entry.labPrice) * entry.qty;
+        return `<tr>
+          <td title="${escH(entry.id)}">${escH(entry.name)}</td>
+          <td>${laborCell}</td>
+          <td><input type="number" class="staging-qty-input" value="${entry.qty}" step="any" min="0.01" data-ridx="${i}"></td>
+          <td class="rtotal">${total.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+          <td><button type="button" class="staging-remove" data-ridx="${i}">✕</button></td>
+        </tr>`;
+      }).join("");
+      const grand = items.reduce((s,e) => s + (e.matPrice + e.labPrice) * e.qty, 0);
+      return `<div class="staging-table-wrap"><table class="staging-table">
+        <thead><tr><th>รายการ</th><th>ค่าแรง</th><th>จำนวน</th><th>รวม</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="3" style="text-align:right;font-weight:700;">รวมทั้งหมด</td><td class="rtotal" style="font-weight:700;">${grand.toLocaleString(undefined,{minimumFractionDigits:2})}</td><td></td></tr></tfoot>
+      </table></div>`;
+    };
+
+    const { isConfirmed } = await Swal.fire({
+      title: `ตรวจสอบรายการ (${reviewItems.length} รายการ)`,
+      html: buildReviewHtml(reviewItems),
+      width: "min(95vw, 750px)",
+      showCancelButton: true,
+      confirmButtonText: "ยืนยันเพิ่มทั้งหมด",
+      cancelButtonText: "ยกเลิก",
+      didOpen: () => {
+        const popup = Swal.getPopup();
+        popup.addEventListener("input", e => {
+          const idx = e.target.dataset?.ridx !== undefined ? Number(e.target.dataset.ridx) : null;
+          if (idx === null) return;
+          if (e.target.classList.contains("staging-qty-input")) {
+            const v = parseFloat(e.target.value);
+            if (Number.isFinite(v) && v > 0) { reviewItems[idx].qty = v; popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems); }
+          }
+        });
+        popup.addEventListener("change", e => {
+          const idx = e.target.dataset?.ridx !== undefined ? Number(e.target.dataset.ridx) : null;
+          if (idx === null) return;
+          if (e.target.classList.contains("staging-labor-select")) {
+            const li = Number(e.target.value);
+            const labor = reviewItems[idx].laborOptions[li];
+            if (labor) { reviewItems[idx].laborIndex = li; reviewItems[idx].labPrice = labor.price; reviewItems[idx].laborDesc = labor.desc; popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems); }
+          }
+        });
+        popup.addEventListener("click", e => {
+          if (e.target.classList.contains("staging-remove")) {
+            const idx = Number(e.target.dataset.ridx);
+            reviewItems.splice(idx, 1);
+            popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems);
+          }
+        });
+      }
+    });
+
+    if (!isConfirmed || !reviewItems.length) return;
+
+    reviewItems.forEach(entry => {
+      window.AppCore.addItemDirect(budgetIndex, entry);
+    });
+    window.AppCore.render();
 
     state.surveyEstimateImported = true;
     updateSurveyWorkflowUi();
 
     Swal.fire({
       title: "นำเข้าสำเร็จ",
-      text: "รายการถูกเพิ่มเข้างบแล้ว — กด「บันทึกโครงการ」ด้านล่างเพื่อเก็บลงประวัติ",
+      text: `เพิ่ม ${reviewItems.length} รายการเข้างบแล้ว — กด「บันทึกโครงการ」ด้านล่างเพื่อเก็บลงประวัติ`,
       icon: "success",
       timer: 3200,
       showConfirmButton: true,

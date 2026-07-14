@@ -12,7 +12,8 @@
     currentFileUrl: "",
     tempFileList: [],
     aiReviewQueue: [],
-    activeSurveyMeta: null
+    activeSurveyMeta: null,
+    staging: {}
   };
 
   let lastPriceQuote = null;
@@ -429,6 +430,7 @@
 
     els.budgetSpace.addEventListener("click", handleBudgetSpaceClick);
     els.budgetSpace.addEventListener("input", handleBudgetSpaceInput);
+    els.budgetSpace.addEventListener("change", handleStagingEvent);
 
     if (els.priceAskBtn) {
       els.priceAskBtn.addEventListener("click", handlePriceAsk);
@@ -1382,6 +1384,8 @@
           <div id="box-${bIdx}" class="res-box"></div>
         </div>
 
+        <div id="staging-${bIdx}" class="staging-container hidden"></div>
+
         <div class="item-list">
           ${budget.items.length ? sortDetailsForSetGrouping(budget.items, displaySurveyMeta).map(({ item, setIds, primarySet, originalIndex }) => `
             <div class="item-row ${primarySet ? "is-set-item" : ""} ${setIds.length && primarySet ? "is-set-grouped" : ""}">
@@ -1412,6 +1416,7 @@
     `).join("")}`;
 
     updateGrandTotal();
+    state.budgets.forEach((_, bIdx) => renderStagingTable(bIdx));
   }
 
   function handleBudgetSpaceClick(event) {
@@ -1439,6 +1444,12 @@
         case "remove-item":
           removeItem(budgetIndex, itemIndex);
           return;
+        case "staging-confirm":
+          confirmStaging(budgetIndex);
+          return;
+        case "staging-clear":
+          clearStaging(budgetIndex);
+          return;
         default:
           break;
       }
@@ -1448,7 +1459,7 @@
     if (resultItem) {
       const budgetIndex = Number(resultItem.dataset.budgetIndex);
       const item = JSON.parse(resultItem.dataset.item);
-      hideAndAsk(budgetIndex, item);
+      addToStaging(budgetIndex, item);
     }
   }
 
@@ -1456,7 +1467,9 @@
     const budgetIndex = event.target.dataset.searchInput;
     if (budgetIndex !== undefined) {
       findItems(event.target, Number(budgetIndex));
+      return;
     }
+    handleStagingEvent(event);
   }
 
   function duplicateBudget(index) {
@@ -2099,7 +2112,8 @@
       title: `${category.icon || ""} เลือก${category.label}`,
       html: listHtml,
       width: "min(100%, 420px)",
-      showConfirmButton: false,
+      showConfirmButton: true,
+      confirmButtonText: "เสร็จสิ้น",
       showCloseButton: true,
       didOpen: () => {
         const popup = Swal.getPopup();
@@ -2107,15 +2121,21 @@
         const resultsBox = popup.querySelector("#quickPickResults");
         const itemMap = new Map(hits.map(item => [item.id, item]));
 
-        const handlePick = async item => {
-          Swal.close();
+        const pickedIds = new Set();
+        const handlePick = async (item, btnEl) => {
           if (item.isSet) {
-            await addSetToBudget(budgetIndex, item);
+            Swal.close();
+            addSetToStaging(budgetIndex, item);
             return;
           }
           const master = findMasterItem(item.id);
           if (master) {
-            hideAndAsk(budgetIndex, master);
+            addToStaging(budgetIndex, master);
+            pickedIds.add(item.id);
+            if (btnEl) {
+              btnEl.classList.add("picked");
+              btnEl.insertAdjacentHTML("beforeend", '<span class="pick-check">✓</span>');
+            }
             return;
           }
           Swal.fire(
@@ -2129,7 +2149,7 @@
           const button = event.target.closest(".quick-pick-item");
           if (!button) return;
           const item = itemMap.get(button.dataset.itemId);
-          if (item) handlePick(item);
+          if (item) handlePick(item, button);
         });
 
         filterInput.addEventListener("input", () => {
@@ -2169,6 +2189,145 @@
       </div>
     `).join("");
     box.style.display = "block";
+  }
+
+  function getStagingList(budgetIndex) {
+    if (!state.staging[budgetIndex]) state.staging[budgetIndex] = [];
+    return state.staging[budgetIndex];
+  }
+
+  function addToStaging(budgetIndex, item, qty = 1) {
+    document.querySelectorAll(".res-box").forEach(box => { box.style.display = "none"; });
+    const list = getStagingList(budgetIndex);
+    const defaultLabor = item.laborOptions?.[0] || { desc: "ค่าแรงมาตรฐาน", price: item.labPrice };
+    list.push({
+      _uid: Date.now() + Math.random(),
+      ...item,
+      qty: parseFloat(qty) || 1,
+      laborIndex: 0,
+      labPrice: defaultLabor.price,
+      laborDesc: defaultLabor.desc
+    });
+    renderStagingTable(budgetIndex);
+  }
+
+  function addSetToStaging(budgetIndex, setEntry) {
+    const setObj = window.SurveyPresetsApi?.getSet?.(setEntry.id)
+      || window.SURVEY_PRESETS?.sets?.[String(setEntry.id)];
+    if (!setObj?.items?.length) {
+      Swal.fire("ไม่พบชุด SET", `ไม่พบรายการในชุด ${setEntry.id}`, "warning");
+      return;
+    }
+    const lines = window.SurveyPresetsApi?.expandTrSetItems?.(setObj.id, {}) || setObj.items;
+    let added = 0;
+    const missing = [];
+    lines.forEach(line => {
+      const master = findMasterItem(line.id);
+      if (!master) { missing.push(line.id); return; }
+      addToStaging(budgetIndex, master, parseFloat(line.qty) || 1);
+      added++;
+    });
+    if (!added) {
+      Swal.fire("ไม่สามารถเพิ่มชุด SET", missing.length ? `ไม่พบราคา master ของรหัส: ${missing.slice(0, 5).join(", ")}` : "ไม่มีรายการในชุดนี้", "warning");
+    } else if (missing.length) {
+      Swal.fire("เพิ่มชุด SET แล้ว", `เพิ่ม ${added} รายการ — ไม่พบราคา master สำหรับ ${missing.length} รหัส`, "info");
+    }
+  }
+
+  function renderStagingTable(budgetIndex) {
+    const container = document.getElementById(`staging-${budgetIndex}`);
+    if (!container) return;
+    const list = getStagingList(budgetIndex);
+    if (!list.length) {
+      container.innerHTML = "";
+      container.classList.add("hidden");
+      return;
+    }
+    container.classList.remove("hidden");
+    const rows = list.map((entry, i) => {
+      const laborOpts = entry.laborOptions || [];
+      const laborSelect = laborOpts.length > 1
+        ? `<select class="staging-labor-select" data-staging-idx="${i}">${laborOpts.map((lo, li) =>
+            `<option value="${li}" ${li === entry.laborIndex ? "selected" : ""}>${escapeHtml(lo.desc)} (${lo.price})</option>`
+          ).join("")}</select>`
+        : `<span class="staging-labor-fixed">${escapeHtml(entry.laborDesc)}</span>`;
+      const lineTotal = (entry.matPrice + entry.labPrice) * entry.qty;
+      return `<tr>
+        <td class="staging-name" title="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</td>
+        <td class="staging-labor">${laborSelect}</td>
+        <td class="staging-qty"><input type="number" class="staging-qty-input" value="${entry.qty}" step="any" min="0.01" data-staging-idx="${i}"></td>
+        <td class="staging-total">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><button type="button" class="staging-remove" data-staging-idx="${i}">✕</button></td>
+      </tr>`;
+    }).join("");
+    const grandTotal = list.reduce((s, e) => s + (e.matPrice + e.labPrice) * e.qty, 0);
+    container.innerHTML = `
+      <div class="staging-header">
+        <span>รายการที่เลือก (${list.length} รายการ)</span>
+        <span class="staging-grand-total">รวม ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</span>
+      </div>
+      <div class="staging-table-wrap">
+        <table class="staging-table">
+          <thead><tr><th>รายการ</th><th>ค่าแรง</th><th>จำนวน</th><th>รวม</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="staging-actions">
+        <button type="button" class="staging-confirm-btn" data-action="staging-confirm" data-budget-index="${budgetIndex}">✓ ยืนยันเพิ่ม ${list.length} รายการ</button>
+        <button type="button" class="staging-clear-btn" data-action="staging-clear" data-budget-index="${budgetIndex}">ล้างทั้งหมด</button>
+      </div>`;
+  }
+
+  function handleStagingEvent(event) {
+    const target = event.target;
+    const idx = target.dataset?.stagingIdx !== undefined ? Number(target.dataset.stagingIdx) : null;
+    const stagingContainer = target.closest("[id^='staging-']");
+    if (!stagingContainer) return;
+    const budgetIndex = Number(stagingContainer.id.replace("staging-", ""));
+    const list = getStagingList(budgetIndex);
+
+    if (target.classList.contains("staging-qty-input") && idx !== null) {
+      const val = parseFloat(target.value);
+      if (Number.isFinite(val) && val > 0) {
+        list[idx].qty = val;
+        renderStagingTable(budgetIndex);
+      }
+      return;
+    }
+    if (target.classList.contains("staging-labor-select") && idx !== null) {
+      const li = Number(target.value);
+      const labor = list[idx].laborOptions[li];
+      if (labor) {
+        list[idx].laborIndex = li;
+        list[idx].labPrice = labor.price;
+        list[idx].laborDesc = labor.desc;
+        renderStagingTable(budgetIndex);
+      }
+      return;
+    }
+    if (target.classList.contains("staging-remove") && idx !== null) {
+      list.splice(idx, 1);
+      renderStagingTable(budgetIndex);
+      return;
+    }
+  }
+
+  function confirmStaging(budgetIndex) {
+    const list = getStagingList(budgetIndex);
+    if (!list.length) return;
+    list.forEach(entry => {
+      state.budgets[budgetIndex].items.push({
+        ...entry,
+        total: (entry.matPrice + entry.labPrice) * entry.qty
+      });
+    });
+    state.staging[budgetIndex] = [];
+    render();
+  }
+
+  function clearStaging(budgetIndex) {
+    state.staging[budgetIndex] = [];
+    renderStagingTable(budgetIndex);
   }
 
   async function hideAndAsk(budgetIndex, item, defaultQty = null) {
@@ -4214,7 +4373,13 @@
       state.tempFileList = state.tempFileList.filter(file => file.source !== "survey");
     },
     getProjectFileCount: () => state.tempFileList.length,
-    addItemWithLabor: (budgetIndex, item, qty) => hideAndAsk(budgetIndex, item, qty),
+    addItemWithLabor: (budgetIndex, item, qty) => addToStaging(budgetIndex, item, qty),
+    addItemDirect: (budgetIndex, item) => {
+      state.budgets[budgetIndex].items.push({
+        ...item,
+        total: (item.matPrice + item.labPrice) * item.qty
+      });
+    },
     pickOrCreateBudgetIndex,
     confirmSaveProject: options => confirmSave(options),
     addBudgetType: type => addBudget(type),
