@@ -28,3 +28,11 @@ skill.md
 
 # เอกสาร / README — เก็บ local เท่านั้น ไม่ push GitHub
 *.md
+
+# ── Backup files & version archives (keep locally, don't push) ──
+*-Ver*.txt
+*-ver*.txt
+Prompt*.txt
+*-สำรอง*/
+*-old*/
+Codex-*
