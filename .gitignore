@@ -35,4 +35,15 @@ skill.md
 Prompt*.txt
 *-สำรอง*/
 *-old*/
-Codex-*
+Codex-*/
+
+# ── Non-project files (docs, images, Excel, notes) ──
+*.txt
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.xlsx
+*.xls
+*.docx
+*.pdf
