@@ -14,14 +14,14 @@
   --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
 
   /* ── core palette ── */
-  --bg: #0a0608;
-  --bg-alt: #0e080c;
-  --panel: #12090f;
-  --surface: #16100e;
-  --line: rgba(116, 4, 95, 0.22);
-  --line-strong: rgba(116, 4, 95, 0.42);
-  --text: #f7f0f4;
-  --muted: #9a8a94;
+  --bg: #131217;
+  --bg-alt: #17161c;
+  --panel: #1b1a21;
+  --surface: #201f26;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #f2f1f4;
+  --muted: #9b97a3;
   --primary: #74045f;
   --primary-soft: #e056c0;
   --secondary: #9b3a82;
@@ -35,33 +35,33 @@
   --bottom-nav-offset: 64px;
 
   /* ── backgrounds (simplified) ── */
-  --body-bg: #0a0608;
-  --hero-bg: rgba(10, 6, 8, 0.88);
-  --input-bg: rgba(255, 255, 255, 0.04);
-  --input-border: rgba(255, 255, 255, 0.08);
-  --input-placeholder: rgba(237, 246, 255, 0.36);
-  --input-focus-ring: rgba(113, 232, 255, 0.08);
-  --bottom-nav-bg: rgba(10, 6, 8, 0.94);
-  --bottom-nav-border: rgba(116, 4, 95, 0.35);
+  --body-bg: #131217;
+  --hero-bg: rgba(19, 18, 23, 0.88);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-placeholder: rgba(242, 241, 244, 0.36);
+  --input-focus-ring: rgba(224, 86, 192, 0.12);
+  --bottom-nav-bg: rgba(19, 18, 23, 0.95);
+  --bottom-nav-border: rgba(255, 255, 255, 0.1);
   --bottom-nav-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
-  --swal-backdrop: rgba(0, 0, 0, 0.78);
-  --swal-panel-bg: #1c0e16;
-  --swal-panel-border: rgba(116, 4, 95, 0.42);
-  --swal-title: #faf4f8;
+  --swal-backdrop: rgba(0, 0, 0, 0.66);
+  --swal-panel-bg: #201f26;
+  --swal-panel-border: rgba(255, 255, 255, 0.12);
+  --swal-title: #f6f5f8;
   --theme-switch-bg: rgba(255, 255, 255, 0.05);
-  --theme-switch-active: rgba(116, 4, 95, 0.42);
-  --accent-panel-bg: rgba(245, 201, 106, 0.06);
-  --accent-panel-border: rgba(245, 201, 106, 0.14);
-  --accent-panel-divider: rgba(245, 201, 106, 0.24);
-  --elevated-panel-bg: #160a12;
+  --theme-switch-active: rgba(116, 4, 95, 0.5);
+  --accent-panel-bg: rgba(199, 145, 27, 0.05);
+  --accent-panel-border: rgba(199, 145, 27, 0.14);
+  --accent-panel-divider: rgba(199, 145, 27, 0.24);
+  --elevated-panel-bg: #1b1a21;
   --elevated-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   --field-on-panel-bg: rgba(0, 0, 0, 0.45);
   --chip-bg: rgba(116, 4, 95, 0.12);
   --chip-text: #f0dce8;
   --chip-hover-bg: rgba(116, 4, 95, 0.22);
-  --table-sticky-bg: #120e0a;
-  --table-sticky-text: #f5e8f0;
-  --map-shell-bg: #0a1524;
+  --table-sticky-bg: #1b1a21;
+  --table-sticky-text: #f2f1f4;
+  --map-shell-bg: #191d24;
   --map-toolbar-bg: rgba(4, 11, 21, 0.92);
   --overlay-btn-bg: rgba(255, 255, 255, 0.05);
   --overlay-btn-border: rgba(255, 255, 255, 0.1);
@@ -93,11 +93,11 @@
   --queue-source-bg: rgba(113, 232, 255, 0.08);
   --queue-source-text: #9ef0ff;
   --queue-label-text: var(--muted);
-  --scan-zone-bg: #160a12;
-  --scan-zone-border: rgba(116, 4, 95, 0.22);
-  --dropdown-bg: #201c1a;
-  --dropdown-option-bg: #2a1522;
-  --popover-bg: #0e080c;
+  --scan-zone-bg: #1b1a21;
+  --scan-zone-border: rgba(255, 255, 255, 0.1);
+  --dropdown-bg: #26252d;
+  --dropdown-option-bg: #26252d;
+  --popover-bg: #1b1a21;
   --swal-cancel-text: #e8dce4;
   --swal-input-bg: var(--field-on-panel-bg);
   --quick-pick-bg: rgba(22, 12, 18, 0.55);
@@ -105,9 +105,9 @@
   --quick-pick-muted: var(--muted);
   --danger-soft-text: #ffd7df;
   --text-on-gradient: #fff;
-  --dropdown-list-bg: #071f1f;
+  --dropdown-list-bg: #26252d;
   --list-divider: rgba(255, 255, 255, 0.06);
-  --list-hover: rgba(113, 232, 255, 0.08);
+  --list-hover: rgba(224, 86, 192, 0.08);
   --queue-badge-bg: rgba(143, 107, 255, 0.12);
   --index-badge-bg: rgba(113, 232, 255, 0.12);
   --index-badge-border: rgba(113, 232, 255, 0.22);
@@ -116,8 +116,8 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f7f3f5;
-  --bg-alt: #ece4e8;
+  --bg: #faf9fb;
+  --bg-alt: #f0eef2;
   --panel: #ffffff;
   --surface: #fefefe;
   --line: rgba(116, 4, 95, 0.14);
@@ -127,12 +127,12 @@
   --primary: #74045f;
   --primary-soft: #9b2878;
   --secondary: #852669;
-  --gold: #a67310;
-  --gold-soft: #c7911b;
+  --gold: #c7911b;
+  --gold-soft: #a67310;
   --danger: #c73659;
-  --shadow: 0 4px 16px rgba(116, 4, 95, 0.08);
-  --body-bg: #f7f3f5;
-  --hero-bg: rgba(247, 243, 245, 0.92);
+  --shadow: 0 2px 12px rgba(24, 18, 28, 0.07);
+  --body-bg: #faf9fb;
+  --hero-bg: rgba(250, 249, 251, 0.92);
   --input-bg: #ffffff;
   --input-border: rgba(116, 4, 95, 0.14);
   --input-placeholder: rgba(26, 18, 22, 0.38);
@@ -2336,7 +2336,7 @@ div:where(.swal2-container).swal2-backdrop-show {
   display: none !important;
 }
 
-.pea-swal-popup:not(.swal2-loading) .swal2-confirm {
+.pea-swal-popup:not(.swal2-loading) .swal2-confirm:not([style*="display: none"]) {
   display: inline-flex !important;
 }
 
@@ -5319,4 +5319,605 @@ body.survey-fullscreen-active {
 .survey-map-ctrl a.is-active {
   background: #c7911b;
   color: #fff;
+}
+
+/* ============================================================
+   UX 2026-07-18: Span segmented control + tap-first pin flow
+   ============================================================ */
+
+/* Span segmented (ใน Swal) */
+.span-segmented {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+
+.span-seg-btn {
+  min-width: 72px;
+  min-height: 56px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line, rgba(128, 128, 128, 0.35));
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.span-seg-btn small {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.span-seg-btn:active { transform: scale(0.96); }
+
+.span-seg-btn.is-selected {
+  border-color: var(--primary, #74045f);
+  background: var(--primary, #74045f);
+  color: #fff;
+}
+
+.span-seg-btn.is-selected small { opacity: 0.85; }
+
+/* Span control บนแถบเครื่องมือสำรวจ */
+.survey-span-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.survey-span-label {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-right: 2px;
+}
+
+.survey-span-btn {
+  min-width: 44px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line, rgba(128, 128, 128, 0.35));
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.survey-span-btn.is-selected {
+  border-color: var(--primary, #74045f);
+  background: var(--primary, #74045f);
+  color: #fff;
+}
+
+/* Bottom sheet เลือกประเภทหมุด */
+.pea-swal-sheet {
+  width: min(480px, 100vw) !important;
+  border-radius: 20px 20px 0 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.pea-sheet-show { animation: peaSheetUp 0.22s ease-out; }
+.pea-sheet-hide { animation: peaSheetDown 0.18s ease-in forwards; }
+
+@keyframes peaSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes peaSheetDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.pin-role-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.pin-role-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line, rgba(128, 128, 128, 0.3));
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.pin-role-btn:active { transform: scale(0.98); }
+.pin-role-btn:hover { border-color: var(--primary, #74045f); }
+
+.pin-role-icon {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(116, 4, 95, 0.12);
+  flex-shrink: 0;
+}
+
+.pin-role-btn.is-start .pin-role-icon { background: rgba(46, 160, 67, 0.15); }
+.pin-role-btn.is-curve_in .pin-role-icon,
+.pin-role-btn.is-curve_out .pin-role-icon,
+.pin-role-btn.is-curve_waypoint .pin-role-icon { background: rgba(212, 130, 30, 0.15); }
+
+.pin-role-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pin-role-text strong { font-size: 15px; }
+.pin-role-text small { font-size: 12px; opacity: 0.65; }
+
+/* Touch targets สำหรับงานสนามบนมือถือ */
+.survey-tool-btn,
+#surveyToolbarToggle,
+#surveyPlaceAimBtn,
+#surveyTabMenuBtn {
+  min-height: 44px;
+}
+
+.leaflet-touch .leaflet-control-zoom a,
+.leaflet-control-zoom a {
+  width: 42px;
+  height: 42px;
+  line-height: 42px;
+  font-size: 19px;
+}
+
+/* ============================================================
+   Clean Enterprise retheme 2026-07-18
+   - ลดเอฟเฟกต์ cyberpunk, ใช้ตัวเลขแบบ tabular แทน Orbitron
+   - Login เรียบสะอาด ตามธีมแอป
+   ============================================================ */
+
+.budget-code,
+.summary-value,
+.survey-toolbar-stat strong,
+.survey-stat strong,
+.distance-leg strong,
+.login-hero-stats strong,
+.impact-tile strong {
+  font-family: "Sarabun", sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* Login: ปิดฉากหลัง animation ทั้งหมด ให้เป็นการ์ดสะอาดตามธีม */
+.login-gate {
+  background: var(--body-bg) !important;
+}
+
+.login-bg-canvas,
+.login-bg-grid,
+.login-bg-orb,
+.login-bg-scanline {
+  display: none !important;
+  animation: none !important;
+}
+
+.login-gate .login-card {
+  background: var(--panel);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.login-gate .login-hero-panel {
+  color: var(--text);
+}
+
+.login-gate .login-hero-accent {
+  background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.login-gate .login-hero-stats > div {
+  border-color: var(--line);
+  background: var(--subtle-surface);
+}
+
+.login-gate .login-hero-stats strong {
+  color: var(--primary-soft);
+}
+
+.login-line-hint {
+  color: var(--muted);
+}
+
+.login-divider {
+  color: var(--muted);
+}
+
+.login-divider::before,
+.login-divider::after {
+  background: var(--line);
+}
+
+.login-password-toggle {
+  color: var(--muted);
+}
+
+.login-password-toggle:hover {
+  color: var(--primary);
+}
+
+[data-theme="light"] .login-gate .login-card .input-shell input {
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+/* impact tiles / stats: สีตามธีม แทน cyan */
+.impact-tile strong,
+.queue-confidence-label strong {
+  color: var(--primary-soft);
+}
+
+[data-theme="light"] .impact-tile strong,
+[data-theme="light"] .queue-confidence-label strong {
+  color: var(--primary);
+}
+
+.login-hero-accent {
+  background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ===== AI Review Queue: confidence row highlight ===== */
+.queue-row.is-conf-high {
+  border-left: 4px solid var(--success);
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+}
+.queue-row.is-conf-mid {
+  border-left: 4px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+}
+.queue-row.is-conf-low {
+  border-left: 4px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.queue-conf-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.queue-conf-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 10px;
+}
+.queue-conf-dot:first-child { margin-left: 0; }
+.queue-conf-dot.is-high { background: var(--success); }
+.queue-conf-dot.is-mid { background: var(--warn); }
+.queue-conf-dot.is-low { background: var(--danger); }
+
+/* ===== ถาม AI: typing indicator + shimmer skeleton ===== */
+.price-ask-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 4px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.price-ask-typing {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.price-ask-typing i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  animation: priceAskBounce 1.1s ease-in-out infinite;
+}
+.price-ask-typing i:nth-child(2) { animation-delay: 0.15s; }
+.price-ask-typing i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes priceAskBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+.price-ask-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.price-ask-shimmer {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--subtle-surface) 25%,
+    var(--subtle-surface-strong) 50%,
+    var(--subtle-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: priceAskShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes priceAskShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ===== High-contrast fieldwork mode ===== */
+#surveyFieldModeBtn.is-active {
+  background: #ffb300;
+  color: #1a1216;
+  border-color: #ffb300;
+  font-weight: 700;
+}
+
+body.field-contrast .survey-pin {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+body.field-contrast .survey-pin.is-auto {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  background: #0d47a1;
+  color: #fff;
+}
+
+body.field-contrast .survey-pin.is-zero,
+body.field-contrast .survey-pin.is-start {
+  background: #e65100;
+  color: #fff;
+}
+
+body.field-contrast .survey-pin.is-curve-in,
+body.field-contrast .survey-pin.is-curve-out {
+  background: #4a148c;
+  color: #fff;
+}
+
+body.field-contrast .survey-pin.is-tr {
+  background: #1b5e20;
+  color: #fff;
+}
+
+body.field-contrast .survey-map-hint {
+  background: rgba(0, 0, 0, 0.88);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Luxury accents 2026-07-18 — ขาว / ม่วง Pantone 7650C / ทอง Pantone 1245C
+   ============================================================ */
+
+/* แท็บ active: เส้นใต้ไล่สีม่วง → ทอง */
+.tab-item.active {
+  border-image: linear-gradient(90deg, var(--primary), var(--gold)) 1;
+  border-bottom-width: 3px;
+}
+
+/* ปุ่มหลัก: gradient ม่วง-ทองหรูหรา (ชุดเดียวกับปุ่มยืนยันใน SweetAlert) */
+.primary-btn,
+.scan-btn {
+  background: linear-gradient(145deg, var(--gold) 0%, var(--primary-soft) 45%, var(--primary) 100%);
+  color: var(--text-on-gradient);
+  box-shadow: 0 4px 14px rgba(116, 4, 95, 0.28);
+}
+
+.primary-btn:hover,
+.scan-btn:hover {
+  filter: brightness(1.06);
+}
+
+/* แผงเนื้อหา: เส้นไฮไลต์ทองบางๆ ด้านบน */
+.panel {
+  border-top: 1px solid transparent;
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--gold) 55%, transparent 100%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* การ์ด login: แถบมงกุฎม่วง-ทองด้านบน */
+.login-gate .login-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-gate .login-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+}
+
+/* ตัวเลขสถิติหน้า login และ impact tiles: ทองหรู */
+.login-gate .login-hero-stats strong,
+.impact-tile.is-accent strong {
+  color: var(--gold);
+}
+
+/* ปุ่ม span ที่เลือก + หมุดเลือกใน sheet: ขอบทองรับกับม่วง */
+.survey-span-btn.is-selected,
+.span-seg-btn.is-selected {
+  box-shadow: 0 0 0 1px var(--gold), 0 2px 8px rgba(116, 4, 95, 0.25);
+}
+
+.pin-role-btn:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold) inset;
+}
+
+/* chip คำถามที่พบบ่อย: ขอบทองจางเมื่อ hover */
+.chip:hover,
+.faq-chip:hover {
+  border-color: rgba(199, 145, 27, 0.5);
+}
+
+/* ============================================================
+   Login split-screen 2026-07-18 — สองคอลัมน์ได้สัดส่วน มีเส้นแบ่งกลาง
+   ============================================================ */
+
+.login-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: clamp(16px, 4vw, 48px);
+}
+
+.login-gate .login-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+  gap: 0;
+  width: min(100%, 1080px);
+  align-items: center;
+}
+
+.login-gate .login-hero-panel {
+  max-width: 520px;
+  margin-left: auto;
+  padding: 8px clamp(28px, 5vw, 72px) 8px 4px;
+}
+
+/* ฝั่งฟอร์ม: แผงแบนเรียบ คั่นด้วยเส้นกลาง (ไม่ใช่กล่องลอย) */
+.login-gate .login-card {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--line-strong);
+  border-radius: 0;
+  box-shadow: none;
+  max-width: 480px;
+  padding: 16px clamp(4px, 2vw, 16px) 16px clamp(28px, 5vw, 72px);
+}
+
+.login-gate .login-card::before {
+  display: none;
+}
+
+.login-gate .login-card .login-title {
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+
+/* จอแคบ: กลับเป็นการ์ดเดี่ยว จัดกลาง */
+@media (max-width: 860px) {
+  .login-gate .login-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .login-gate .login-card {
+    border-left: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .login-gate .login-card::before {
+    display: block;
+  }
+  .login-gate .login-hero-panel {
+    margin: 0 auto;
+    padding: 0 4px;
+  }
+}
+
+/* ============================================================
+   Minimal cards 2026-07-18 — ลดความหนาของกล่อง/การ์ดทั้งแอป
+   ============================================================ */
+
+.panel {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+}
+
+.panel::after {
+  opacity: 0.4;
+}
+
+.budget-grid {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn-type {
+  padding: 10px 12px;
+}
+
+.section-title,
+.panel h2 {
+  font-size: var(--text-lg);
+}
+
+.view {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 720px) {
+  .panel {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
 }
