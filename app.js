@@ -1283,13 +1283,12 @@
         didOpen: () => {
           Swal.getPopup().querySelectorAll(".swal-choice-btn").forEach(btn => {
             btn.addEventListener("click", () => {
-              const value = btn.dataset.choice;
+              // resolve ก่อน close — willClose/dismiss จะมาทีหลังและกลายเป็น no-op
+              resolve(btn.dataset.choice);
               Swal.close();
-              resolve(value);
             });
           });
-        },
-        willClose: () => resolve(undefined)
+        }
       }).then(result => {
         if (result.isDismissed) resolve(undefined);
       });
