@@ -5889,14 +5889,21 @@ body.field-contrast .survey-map-hint {
   .login-gate .login-card::before {
     display: block;
   }
+  /* มือถือ: แสดงรูป hero เป็นการ์ดด้านบน เหนือฟอร์ม login */
   .login-gate .login-hero-panel {
+    order: -1;
     margin: 0 auto;
-    padding: 0 4px;
-    background-image: none;
+    padding: 0;
+    width: 100%;
     min-height: 0;
-    box-shadow: none;
-    border-radius: 0;
-    overflow: visible;
+    aspect-ratio: 772 / 755;
+    max-height: 46vh;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .login-gate .login-hero-panel > * {
+    display: none;
   }
 }
 
