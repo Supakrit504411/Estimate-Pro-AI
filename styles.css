@@ -5827,27 +5827,39 @@ body.field-contrast .survey-map-hint {
 }
 
 .login-gate .login-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr);
   gap: 0;
-  width: min(100%, 1080px);
-  align-items: center;
+  width: min(100%, 1180px);
+  align-items: stretch;
 }
 
+/* ฝั่งซ้ายกว้าง แสดงภาพ hero (สไตล์ KRIYA) — เนื้อหาในภาพแทนลิสต์จุดเด่น */
 .login-gate .login-hero-panel {
-  max-width: 520px;
-  margin-left: auto;
-  padding: 8px clamp(28px, 5vw, 72px) 8px 4px;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: clamp(420px, 72vh, 640px);
+  border-radius: 22px;
+  background: #071018 url("./assets/login-hero-left.png") center / cover no-repeat;
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-/* ฝั่งฟอร์ม: แผงแบนเรียบ คั่นด้วยเส้นกลาง (ไม่ใช่กล่องลอย) */
+@media (min-width: 861px) {
+  .login-gate .login-hero-panel > * {
+    display: none;
+  }
+}
+
+/* ฝั่งฟอร์ม: แผงแบนเรียบ จัดกึ่งกลางแนวตั้ง */
 .login-gate .login-card {
   background: transparent;
   border: none;
-  border-left: 1px solid var(--line-strong);
   border-radius: 0;
   box-shadow: none;
-  max-width: 480px;
-  padding: 16px clamp(4px, 2vw, 16px) 16px clamp(28px, 5vw, 72px);
+  max-width: 460px;
+  align-self: center;
+  padding: 16px clamp(4px, 2vw, 16px) 16px clamp(28px, 4vw, 64px);
 }
 
 .login-gate .login-card::before {
@@ -5880,6 +5892,11 @@ body.field-contrast .survey-map-hint {
   .login-gate .login-hero-panel {
     margin: 0 auto;
     padding: 0 4px;
+    background-image: none;
+    min-height: 0;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
   }
 }
 
@@ -6031,4 +6048,32 @@ body.field-contrast .survey-map-hint {
   .impact-tile span {
     white-space: normal;
   }
+}
+
+/* Toast แจ้งเตือน: ขนาดกะทัดรัด ไม่ใช้สไตล์ popup ใหญ่ */
+.pea-swal-popup.swal2-toast {
+  width: auto !important;
+  max-width: min(88vw, 420px);
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  align-items: center;
+}
+
+.pea-swal-popup.swal2-toast::after,
+.pea-swal-popup.swal2-toast::before {
+  display: none !important;
+}
+
+.pea-swal-popup.swal2-toast .swal2-title {
+  font-size: 13px !important;
+  font-weight: 600;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left;
+}
+
+.pea-swal-popup.swal2-toast .swal2-icon {
+  transform: scale(0.7);
+  margin: 0 4px 0 0 !important;
 }

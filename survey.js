@@ -798,12 +798,10 @@
   }
 
   async function pickPhaseForType(type) {
-    const { value } = await Swal.fire({
+    const value = await window.AppCore.pickFromChoiceButtons({
       title: `${type.toUpperCase()} — เลือกเฟส`,
-      input: "select",
-      inputOptions: { "1p": "1P", "3p": "3P" },
-      inputValue: type === "lv" ? "3p" : "1p",
-      showCancelButton: true
+      options: { "1p": "1P", "3p": "3P" },
+      selectedValue: type === "lv" ? "3p" : "1p"
     });
     return value || null;
   }
@@ -890,43 +888,33 @@
       ? projectApi.findPoleById({ segments: state.segments, trInstalls: state.trInstalls }, hostPoleId)
       : null;
 
-    const { value: isExisting } = await Swal.fire({
+    const isExisting = await window.AppCore.pickFromChoiceButtons({
       title: "ประเภทเสา TR Host",
-      input: "radio",
-      inputOptions: {
+      options: {
         surveyed: "เสาที่สำรวจไว้",
         existing: "เสาเดิมหน้างาน (ไม่นับเสาใน BOM)"
       },
-      inputValue: hostInfo ? "surveyed" : "existing",
-      showCancelButton: true,
-      ...SURVEY_SWAL_COMPACT
+      selectedValue: hostInfo ? "surveyed" : "existing"
     });
     if (!isExisting) return;
 
-    const { value: installType } = await Swal.fire({
+    const installType = await window.AppCore.pickFromChoiceButtons({
       title: "รูปแบบติดตั้ง",
-      input: "select",
-      inputOptions: {
+      options: {
         singlePole: "แวนบนเสา (Single Pole)",
         platform: "แท่นหม้อ (Platform)"
       },
-      inputValue: "singlePole",
-      showCancelButton: true,
-      ...SURVEY_SWAL_COMPACT
+      selectedValue: "singlePole"
     });
     if (!installType) return;
 
-    const phaseResult = installType === "singlePole"
-      ? await Swal.fire({
+    const phase = installType === "singlePole"
+      ? await window.AppCore.pickFromChoiceButtons({
         title: "เฟส TR",
-        input: "select",
-        inputOptions: { "1p": "1P", "3p": "3P" },
-        inputValue: "3p",
-        showCancelButton: true,
-        ...SURVEY_SWAL_COMPACT
+        options: { "1p": "1P", "3p": "3P" },
+        selectedValue: "3p"
       })
-      : { value: "3p" };
-    const phase = phaseResult.value;
+      : "3p";
     if (!phase) return;
 
     const catalog = presetsApi.getTrInstallCatalog();

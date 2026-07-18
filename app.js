@@ -4401,6 +4401,7 @@
   };
 
   window.AppCore = {
+    pickFromChoiceButtons,
     getDataStore: () => state.dataStore,
     getBudgets: () => state.budgets,
     getProjectName: () => els.pjName.value.trim(),

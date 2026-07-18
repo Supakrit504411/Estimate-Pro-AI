@@ -47,3 +47,6 @@ Codex-*/
 *.xls
 *.docx
 *.pdf
+
+# Allow bundled UI assets
+!assets/*.png
