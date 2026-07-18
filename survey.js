@@ -76,6 +76,8 @@
     els.backBtn = document.getElementById("surveyBackBtn");
     els.forwardBtn = document.getElementById("surveyForwardBtn");
     els.gpsBtn = document.getElementById("surveyGpsBtn");
+    els.spanControl = document.getElementById("surveySpanControl");
+    els.fieldModeBtn = document.getElementById("surveyFieldModeBtn");
     els.startBtn = document.getElementById("surveyStartBtn");
     els.addPointBtn = document.getElementById("surveyAddPointBtn");
     els.curveInBtn = document.getElementById("surveyCurveInBtn");
@@ -124,12 +126,17 @@
     if (els.beginBtn) els.beginBtn.addEventListener("click", beginSurveySession);
     if (els.backBtn) els.backBtn.addEventListener("click", undoSurvey);
     if (els.forwardBtn) els.forwardBtn.addEventListener("click", redoSurvey);
-    els.gpsBtn.addEventListener("click", () => guardSpan(() => useCurrentLocation()));
-    els.startBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("start")));
-    els.addPointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("control")));
-    els.curveInBtn.addEventListener("click", () => guardSpan(beginCurveIn));
-    els.curveWaypointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_waypoint")));
-    els.curveOutBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_out")));
+    if (els.gpsBtn) els.gpsBtn.addEventListener("click", () => guardSpan(() => useCurrentLocation()));
+    if (els.startBtn) els.startBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("start")));
+    if (els.addPointBtn) els.addPointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("control")));
+    if (els.curveInBtn) els.curveInBtn.addEventListener("click", () => guardSpan(beginCurveIn));
+    if (els.curveWaypointBtn) els.curveWaypointBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_waypoint")));
+    if (els.curveOutBtn) els.curveOutBtn.addEventListener("click", () => guardSpan(() => beginPlaceMode("curve_out")));
+    if (els.spanControl) bindSpanControl();
+    if (els.fieldModeBtn) {
+      els.fieldModeBtn.addEventListener("click", toggleFieldMode);
+      syncFieldModeUi();
+    }
     els.completeBtn.addEventListener("click", () => { completeSurvey(); });
     els.generateBtn.addEventListener("click", generateEstimate);
     els.resetBtn.addEventListener("click", resetSurvey);
@@ -266,26 +273,45 @@
       .replace(/"/g, "&quot;");
   }
 
+  const DEFAULT_SPAN = 40;
+
+  async function pickSpanSegmented({ title, text, presets, defaultValue }) {
+    let picked = null;
+    await Swal.fire({
+      title,
+      text,
+      html: `
+        <div class="span-segmented" role="group" aria-label="เลือก Span">
+          ${presets.map(span => `
+            <button type="button" class="span-seg-btn${Number(span) === Number(defaultValue) ? " is-selected" : ""}" data-span="${span}">
+              ${span}<small>เมตร</small>
+            </button>
+          `).join("")}
+        </div>
+      `,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: "ยกเลิก",
+      didOpen: popup => {
+        popup.querySelectorAll("[data-span]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            picked = Number(btn.dataset.span);
+            Swal.close();
+          });
+        });
+      }
+    });
+    return picked;
+  }
+
   async function pickSpanOnStart() {
     const presets = surveyConfig.spanPresets || [15, 20, 40, 80];
-    const options = {};
-    presets.forEach(span => {
-      options[span] = `${span} เมตร`;
-    });
-
-    const { value, isDismissed } = await Swal.fire({
+    return pickSpanSegmented({
       title: "เลือก Span",
-      text: "ระยะ Span ระหว่างเสา (บังคับ)",
-      input: "select",
-      inputOptions: options,
-      inputValue: String(presets[0]),
-      showCancelButton: true,
-      confirmButtonText: "เริ่มสำรวจ",
-      cancelButtonText: "ยกเลิก"
+      text: "ระยะ Span ระหว่างเสา",
+      presets,
+      defaultValue: presets.includes(DEFAULT_SPAN) ? DEFAULT_SPAN : presets[0]
     });
-
-    if (isDismissed || !value) return null;
-    return Number(value);
   }
 
   async function promptProjectNameIfNeeded() {
@@ -326,8 +352,7 @@
   }
 
   async function beginSurveySession() {
-    const span = await pickSpanOnStart();
-    if (!span) return;
+    const span = state.selectedSpan || DEFAULT_SPAN;
 
     const ready = await promptProjectNameIfNeeded();
     if (!ready) return;
@@ -448,6 +473,7 @@
     if (!els.toolButtons) return;
     els.toolButtons.forEach(btn => {
       const tool = btn.dataset.surveyTool;
+      if (tool === "field_mode") return;
       if (!tool || tool === "back" || tool === "forward" || tool === "complete" || tool === "reset" || tool === "attach"
         || tool === "add_mv" || tool === "add_lv" || tool === "tr_pick" || tool === "add_lv_tr") {
         btn.classList.remove("is-active");
@@ -457,11 +483,70 @@
     });
   }
 
+  const FIELD_MODE_KEY = "pea_survey_field_mode_v1";
+  const FIELD_LINE_COLORS = { mv: "#d50000", lv: "#0d47a1", tr: "#1b5e20" };
+
+  function isFieldMode() {
+    try {
+      return localStorage.getItem(FIELD_MODE_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function toggleFieldMode() {
+    const next = !isFieldMode();
+    try {
+      localStorage.setItem(FIELD_MODE_KEY, next ? "1" : "0");
+    } catch (error) { /* localStorage unavailable */ }
+    syncFieldModeUi();
+    updateMapLayers();
+  }
+
+  function syncFieldModeUi() {
+    const on = isFieldMode();
+    document.body.classList.toggle("field-contrast", on);
+    if (els.fieldModeBtn) {
+      els.fieldModeBtn.classList.toggle("is-active", on);
+      els.fieldModeBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+  }
+
+  function bindSpanControl() {
+    const presets = surveyConfig.spanPresets || [15, 20, 40, 80];
+    els.spanControl.innerHTML = `
+      <span class="survey-span-label">Span</span>
+      ${presets.map(span => `
+        <button type="button" class="survey-span-btn" data-span="${span}">${span}</button>
+      `).join("")}
+    `;
+    els.spanControl.querySelectorAll("[data-span]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const span = Number(btn.dataset.span);
+        state.selectedSpan = span;
+        const activeSeg = getActiveLineSegment();
+        if (activeSeg) activeSeg.selectedSpan = span;
+        syncSpanControl();
+        updateModeHint();
+      });
+    });
+    syncSpanControl();
+  }
+
+  function syncSpanControl() {
+    if (!els.spanControl) return;
+    const current = Number(state.selectedSpan || DEFAULT_SPAN);
+    els.spanControl.querySelectorAll("[data-span]").forEach(btn => {
+      btn.classList.toggle("is-selected", Number(btn.dataset.span) === current);
+    });
+  }
+
   function updateModeHint() {
     if (!els.modeHint) return;
+    syncSpanControl();
 
     if (!state.sessionActive) {
-      els.modeHint.textContent = "กดเริ่มสำรวจเพื่อเลือก Span และเข้าโหมดแผนที่";
+      els.modeHint.textContent = "กดเริ่มสำรวจเพื่อเข้าโหมดแผนที่ (Span เริ่มต้น 40 ม. ปรับได้บนแถบเครื่องมือ)";
       return;
     }
 
@@ -486,7 +571,7 @@
     }
 
     if (!state.placeMode) {
-      els.modeHint.textContent = `Span ${state.selectedSpan} ม. — เลือกเครื่องมือด้านขวาเพื่อปักหมุด${attachNote}`;
+      els.modeHint.textContent = `Span ${state.selectedSpan} ม. — แตะแผนที่เพื่อปักหมุด ระบบจะถามประเภทหมุด${attachNote}`;
       updateToolbarActiveState();
       return;
     }
@@ -509,7 +594,7 @@
     return Boolean(
       state.sessionActive
       && state.phase === "surveying"
-      && state.placeMode
+      && (state.placeMode || getActiveLineSegment())
     );
   }
 
@@ -580,7 +665,7 @@
   }
 
   async function placeAtMapCenter() {
-    if (!state.map || !state.placeMode || state.phase !== "surveying") return;
+    if (!state.map || state.phase !== "surveying" || !state.sessionActive) return;
     const center = state.map.getCenter();
     if (state.placeMode === "tr_pick") {
       await handleTrMapClick({ lat: center.lat, lng: center.lng });
@@ -1744,21 +1829,13 @@
   }
 
   async function pickCurveSpan() {
-    const options = {};
-    (surveyConfig.curveSpanPresets || [15, 20]).forEach(span => {
-      options[span] = `${span} เมตร`;
-    });
-
-    const { value } = await Swal.fire({
+    const presets = surveyConfig.curveSpanPresets || [15, 20];
+    return pickSpanSegmented({
       title: "เข้าโค้ง — เลือก Span",
       text: "ช่วงโค้งใช้ Span 15 หรือ 20 เมตรเท่านั้น",
-      input: "select",
-      inputOptions: options,
-      inputValue: "15",
-      showCancelButton: true
+      presets,
+      defaultValue: presets[0]
     });
-
-    return value ? Number(value) : null;
   }
 
   async function askConvertToCurveIn(ctrl) {
@@ -1863,24 +1940,75 @@
     updateModeHint();
   }
 
-  async function handleMapClick(event) {
-    if (state.phase !== "surveying" || !state.placeMode) return;
+  function getAvailableRoles() {
+    const roles = [];
+    const hasStart = state.controlPoints.length > 0;
+    const inCurve = Boolean(getCurveInPoint()) && !getCurveOutPoint();
 
-    const point = { lat: event.latlng.lat, lng: event.latlng.lng };
-
-    if (state.placeMode === "tr_pick") {
-      await handleTrMapClick(point);
-      return;
+    if (!hasStart) {
+      roles.push("start");
+      return roles;
     }
-
-    if (!getActiveLineSegment()) {
-      Swal.fire("เพิ่มส่วนงาน", "กด + MV หรือ + LV ก่อนปักหมุด", "info");
-      state.placeMode = null;
-      updateModeHint();
-      return;
+    if (!inCurve) {
+      roles.push("control");
+      roles.push("curve_in");
+    } else {
+      roles.push("curve_waypoint");
+      roles.push("curve_out");
     }
+    return roles;
+  }
 
-    if (state.placeMode === "start") {
+  const PIN_ROLE_META = {
+    start: { label: "ปักจุดเริ่ม (หมุด 0)", hint: "จุดต่อระบบจำหน่ายเดิม", icon: "🚩" },
+    control: { label: "ปักทางตรง", hint: "วางเสาตามถนนด้วย Span ที่เลือก", icon: "📍" },
+    curve_in: { label: "ต้นเข้าโค้ง", hint: "เริ่มช่วงโค้ง (Span 15/20 ม.)", icon: "↪" },
+    curve_waypoint: { label: "จุดบนโค้ง", hint: "จุดกลางโค้งตามแนวถนนจริง", icon: "〰" },
+    curve_out: { label: "ต้นออกโค้ง", hint: "จบช่วงโค้ง กลับสู่ทางตรง", icon: "↩" }
+  };
+
+  async function promptPinRole(roles) {
+    if (!roles.length) return null;
+    let picked = null;
+    await Swal.fire({
+      title: "หมุดนี้คืออะไร?",
+      html: `
+        <div class="pin-role-sheet">
+          ${roles.map(role => {
+            const meta = PIN_ROLE_META[role];
+            return `
+              <button type="button" class="pin-role-btn is-${role}" data-role="${role}">
+                <span class="pin-role-icon">${meta.icon}</span>
+                <span class="pin-role-text">
+                  <strong>${meta.label}</strong>
+                  <small>${meta.hint}</small>
+                </span>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      `,
+      position: "bottom",
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: "ยกเลิก",
+      customClass: { popup: "pea-swal-sheet" },
+      showClass: { popup: "pea-sheet-show" },
+      hideClass: { popup: "pea-sheet-hide" },
+      didOpen: popup => {
+        popup.querySelectorAll("[data-role]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            picked = btn.dataset.role;
+            Swal.close();
+          });
+        });
+      }
+    });
+    return picked;
+  }
+
+  async function placeControlPoint(role, point) {
+    if (role === "start") {
       const activeSeg = getActiveLineSegment();
       if (activeSeg?.startFromTrInstallId) {
         const tr = state.trInstalls.find(t => t.id === activeSeg.startFromTrInstallId);
@@ -1898,28 +2026,60 @@
         role: "start",
         headSetId
       }];
-      state.placeMode = null;
     } else {
-      const role = state.placeMode;
       const ctrl = {
         id: makeId("ctrl"),
         lat: point.lat,
         lng: point.lng,
-        role
+        role,
+        spanM: state.selectedSpan || DEFAULT_SPAN
       };
 
       if (role === "curve_in") {
-        ctrl.curveSpan = state.pendingCurveSpan || 15;
+        const curveSpan = state.pendingCurveSpan || await pickCurveSpan();
+        if (!curveSpan) return;
+        ctrl.curveSpan = curveSpan;
         state.pendingCurveSpan = null;
       }
 
       state.controlPoints.push(ctrl);
-      state.placeMode = null;
     }
 
+    state.placeMode = null;
     await rebuildPolesFromControls();
     pushHistory();
     updateModeHint();
+  }
+
+  async function handleMapClick(event) {
+    if (state.phase !== "surveying" || !state.sessionActive) return;
+
+    const point = { lat: event.latlng.lat, lng: event.latlng.lng };
+
+    if (state.placeMode === "tr_pick") {
+      await handleTrMapClick(point);
+      return;
+    }
+
+    if (!getActiveLineSegment()) {
+      Swal.fire("เพิ่มส่วนงาน", "กด + MV หรือ + LV ก่อนปักหมุด", "info");
+      state.placeMode = null;
+      updateModeHint();
+      return;
+    }
+
+    if (!getPresetConfig()) {
+      Swal.fire("Preset ไม่พร้อม", "ส่วนงานที่เลือกยังไม่มีค่า preset", "warning");
+      return;
+    }
+
+    // Tap-first: ถ้ากดปุ่มเครื่องมือค้างไว้ (legacy placeMode) ใช้ role นั้นเลย ไม่ถามซ้ำ
+    const role = state.placeMode && state.placeMode !== "tr_pick"
+      ? state.placeMode
+      : await promptPinRole(getAvailableRoles());
+    if (!role) return;
+
+    await placeControlPoint(role, point);
   }
 
   async function handleControlMarkerClick(pole) {
@@ -2147,7 +2307,7 @@
     const pathPoints = await fetchRoutePath(anchors);
     state.routedPaths.push(pathPoints);
     state.routedLegs.push({ fromIdx, toIdx, path: pathPoints });
-    const positions = interpolateAlongPath(pathPoints, state.selectedSpan);
+    const positions = interpolateAlongPath(pathPoints, toCtrl.spanM || state.selectedSpan);
     appendPositions(poles, positions, toCtrl, null, "straight");
   }
 
@@ -2629,16 +2789,20 @@
 
     const activeId = state.activeSegmentId;
 
+    const fieldMode = isFieldMode();
+
     state.segments.filter(s => s.kind === "line").forEach(seg => {
       const isActive = seg.id === activeId;
-      const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
-      const lineOpacity = isActive ? 0.85 : 0.4;
+      const baseColor = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
+      const color = fieldMode ? (FIELD_LINE_COLORS[seg.type] || baseColor) : baseColor;
+      const lineOpacity = fieldMode ? (isActive ? 1 : 0.75) : (isActive ? 0.85 : 0.4);
+      const weightBoost = fieldMode ? 2 : 0;
 
       (seg.routedPaths || []).forEach(path => {
         if (path.length < 2) return;
         state.polylines.push(L.polyline(
           path.map(p => [p.lat, p.lng]),
-          { color, weight: isActive ? 5 : 4, opacity: lineOpacity * 0.55 }
+          { color, weight: (isActive ? 5 : 4) + weightBoost, opacity: fieldMode ? lineOpacity : lineOpacity * 0.55 }
         ).addTo(state.map));
       });
 
@@ -2652,7 +2816,7 @@
       if ((seg.poles || []).length > 1) {
         state.polylines.push(L.polyline(
           seg.poles.map(p => [p.lat, p.lng]),
-          { color, weight: 3, dashArray: "6 8", opacity: lineOpacity }
+          { color, weight: 3 + weightBoost, dashArray: "6 8", opacity: lineOpacity }
         ).addTo(state.map));
       }
 

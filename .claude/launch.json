@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "pea-estimate",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd Codex-Estimate Pro && npx http-server -p 8080 -c-1"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "-p", "8080", "-c-1"],
       "port": 8080
     }
   ]

@@ -3,7 +3,7 @@
   const MODES = ["dark", "light", "auto"];
 
   function normalizeMode(value) {
-    return MODES.includes(value) ? value : "dark";
+    return MODES.includes(value) ? value : "light";
   }
 
   function resolveEffective(preference) {
@@ -13,9 +13,9 @@
 
   function getPreference() {
     try {
-      return normalizeMode(localStorage.getItem(STORAGE_KEY) || "dark");
+      return normalizeMode(localStorage.getItem(STORAGE_KEY) || "light");
     } catch (error) {
-      return "dark";
+      return "light";
     }
   }
 
@@ -33,7 +33,7 @@
   }
 
   function updateThemeColor(effective) {
-    const color = effective === "light" ? "#f7f3f5" : "#000000";
+    const color = effective === "light" ? "#faf9fb" : "#131217";
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");

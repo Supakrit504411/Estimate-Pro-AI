@@ -8,16 +8,16 @@
   <title>PEA Estimation AI Pro 2026</title>
   <script>
     (function () {
-      var pref = "dark";
-      try { pref = localStorage.getItem("pea_theme_v1") || "dark"; } catch (e) {}
-      if (pref !== "dark" && pref !== "light" && pref !== "auto") pref = "dark";
+      var pref = "light";
+      try { pref = localStorage.getItem("pea_theme_v1") || "light"; } catch (e) {}
+      if (pref !== "dark" && pref !== "light" && pref !== "auto") pref = "light";
       var effective = pref === "auto"
         ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
         : pref;
       document.documentElement.setAttribute("data-theme-pref", pref);
       document.documentElement.setAttribute("data-theme", effective);
       document.documentElement.style.colorScheme = effective;
-      var themeColor = effective === "light" ? "#f7f3f5" : "#000000";
+      var themeColor = effective === "light" ? "#faf9fb" : "#131217";
       var meta = document.querySelector('meta[name="theme-color"]');
       if (!meta) {
         meta = document.createElement("meta");
@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="./styles.css?v=20260713a">
+  <link rel="stylesheet" href="./styles.css?v=20260718a">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     if (window.Swal) {
@@ -399,11 +399,8 @@
               <button id="surveyForwardBtn" class="survey-tool-btn" type="button" data-survey-tool="forward" title="เดินหน้า" disabled>↪</button>
               <div class="survey-toolbar-divider"></div>
               <button id="surveyGpsBtn" class="survey-tool-btn" type="button" data-survey-tool="gps">ใช้ GPS</button>
-              <button id="surveyStartBtn" class="survey-tool-btn" type="button" data-survey-tool="start" disabled>ปักจุดเริ่ม</button>
-              <button id="surveyAddPointBtn" class="survey-tool-btn" type="button" data-survey-tool="control" disabled>ปักหมุดถัดไป</button>
-              <button id="surveyCurveInBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_in" disabled>เข้าโค้ง</button>
-              <button id="surveyCurveWaypointBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_waypoint" disabled>จุดบนโค้ง</button>
-              <button id="surveyCurveOutBtn" class="survey-tool-btn is-curve" type="button" data-survey-tool="curve_out" disabled>ออกโค้ง</button>
+              <div id="surveySpanControl" class="survey-span-control" role="group" aria-label="ระยะ Span ระหว่างเสา"></div>
+              <button id="surveyFieldModeBtn" class="survey-tool-btn" type="button" data-survey-tool="field_mode" title="เพิ่มความคมชัดของเส้นและหมุดสำหรับงานกลางแดด">☀ กลางแจ้ง</button>
               <div class="survey-toolbar-divider"></div>
               <div id="surveyActiveSegment" class="survey-active-segment">—</div>
               <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
@@ -417,7 +414,7 @@
               <button id="surveyResetBtn" class="survey-tool-btn is-muted" type="button" data-survey-tool="reset">เริ่มใหม่</button>
             </aside>
 
-            <div id="surveyModeHint" class="survey-map-hint">เลือกเครื่องมือด้านขวาเพื่อปักหมุด</div>
+            <div id="surveyModeHint" class="survey-map-hint">แตะแผนที่เพื่อปักหมุด — ระบบจะถามประเภทหมุด</div>
           </div>
 
           <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
@@ -437,7 +434,7 @@
             <button id="surveyExportKmlSideBtn" class="ghost-btn survey-kml-side-btn hidden" type="button" title="ส่งออกพิกัดเสาเป็น KML">📍 ส่งออก KML</button>
           </div>
           <div id="surveyPoleList" class="survey-pole-list">
-            <div class="survey-empty">กดเริ่มสำรวจ → เลือก Span → ปักหมุดบนแผนที่</div>
+            <div class="survey-empty">กดเริ่มสำรวจ → แตะแผนที่เพื่อปักหมุด → เลือกประเภทหมุด</div>
           </div>
         </div>
       </div>

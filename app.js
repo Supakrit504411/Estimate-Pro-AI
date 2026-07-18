@@ -513,7 +513,16 @@
       }
     }
 
-    els.priceAskResult.innerHTML = `${renderPriceAskThreadHtml()}<div class="price-ask-loading">กำลังคำนวณราคา...</div>`;
+    els.priceAskResult.innerHTML = `${renderPriceAskThreadHtml()}
+      <div class="price-ask-loading">
+        <span class="price-ask-typing"><i></i><i></i><i></i></span>
+        <span>AI กำลังวิเคราะห์ราคา...</span>
+        <div class="price-ask-skeleton">
+          <div class="price-ask-shimmer" style="width:82%"></div>
+          <div class="price-ask-shimmer" style="width:64%"></div>
+          <div class="price-ask-shimmer" style="width:73%"></div>
+        </div>
+      </div>`;
 
     let intent = null;
     let parseSource = "faq";
@@ -1651,6 +1660,11 @@
           AI จับคู่อัตโนมัติ <strong>${autoMatched}/${total}</strong> รายการ (${pct}%)
         </div>
         <div class="queue-confidence-track"><div class="queue-confidence-fill" style="width:${pct}%"></div></div>
+        <div class="queue-conf-legend">
+          <span class="queue-conf-dot is-high"></span> จับคู่แล้ว — สแกนผ่านได้
+          <span class="queue-conf-dot is-mid"></span> ต้องเลือกจากตัวเลือก
+          <span class="queue-conf-dot is-low"></span> ต้องค้นหาเอง
+        </div>
       </div>
       <div class="queue-note">
         AI ช่วยอ่านเฉพาะรหัสพัสดุและจำนวน — ถ้าอ่านไม่เจอให้<strong>ค้นหาและเลือกพัสดุเอง</strong>จากช่องค้นหา (ไม่ต้องยกเลิกแล้วสแกนใหม่)
@@ -1666,8 +1680,14 @@
     const laborOptions = selectedItem ? selectedItem.laborOptions : [];
     const matchOptions = entry.matchedItems || [];
 
+    const confClass = entry.selectedItemId
+      ? "is-conf-high"
+      : (entry.matchedItems || []).length
+        ? "is-conf-mid"
+        : "is-conf-low";
+
     return `
-      <div class="queue-row" data-queue-row="${index}">
+      <div class="queue-row ${confClass}" data-queue-row="${index}">
         <div class="queue-topline">
           <div class="queue-badge">#${index + 1}</div>
           <div class="queue-source">${escapeHtml(entry.sourceName || "AI Scan")}</div>
