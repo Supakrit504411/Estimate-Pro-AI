@@ -5921,3 +5921,114 @@ body.field-contrast .survey-map-hint {
     border-radius: 12px;
   }
 }
+
+/* ============================================================
+   UX round 2026-07-18 (2) — choice buttons, history map modal,
+   ลำดับในตาราง review, dashboard มินิมอล
+   ============================================================ */
+
+/* ตัวเลือกแบบปุ่ม แทน dropdown (สร้างงบ/เปลี่ยนประเภทงบ/เลือกงบนำเข้า) */
+.swal-choice-text {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.swal-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.swal-choice-btn {
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.swal-choice-btn:hover {
+  border-color: var(--gold);
+  background: var(--chip-bg);
+}
+
+.swal-choice-btn.is-selected {
+  border-color: var(--primary-soft);
+  background: var(--chip-bg);
+  box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+/* Modal แผนที่สำรวจจากหน้าประวัติ */
+.history-map-trigger {
+  cursor: pointer;
+}
+
+.history-map-trigger:hover .history-name {
+  color: var(--primary-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.history-map-modal img {
+  width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.history-map-caption {
+  margin: 8px 0 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+/* คอลัมน์ลำดับในตารางตรวจสอบรายการ */
+.staging-table th.staging-no,
+.staging-table td.staging-no {
+  width: 34px;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dashboard มินิมอล: ตัวเลข+ป้ายอยู่บรรทัดเดียวกัน กล่องบางลง */
+.impact-strip {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.impact-tile {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.impact-tile strong {
+  display: inline;
+  font-size: clamp(14px, 2vw, 17px);
+}
+
+.impact-tile span {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .impact-tile span {
+    white-space: normal;
+  }
+}

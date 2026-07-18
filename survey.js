@@ -1480,6 +1480,84 @@
     return projectApi?.computeSurveyPoleStats?.(project) || null;
   }
 
+  // วาดเส้นทาง+หมุด+TR ลง canvas ด้วยพิกัดจาก latLngToContainerPoint โดยตรง
+  // ใช้ทั้งใน fallback (scale 1) และทับภาพ html2canvas (scale ตามความละเอียดจริง)
+  // เพราะ html2canvas เรนเดอร์ SVG overlay ของ Leaflet เพี้ยนตำแหน่ง
+  function drawRouteOverlayOnCanvas(ctx, map, scale, offsetX, offsetY) {
+    if (!map) return;
+    const px = pt => ({ x: pt.x * scale + offsetX, y: pt.y * scale + offsetY });
+    const project = { segments: state.segments, trInstalls: state.trInstalls };
+    const lineSegs = project.segments.filter(s => s.kind === "line");
+
+    lineSegs.forEach(seg => {
+      const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
+      const poles = seg.poles || [];
+
+      (seg.routedPaths || []).forEach(path => {
+        if (!path || path.length < 2) return;
+        const pts = path.map(p => px(map.latLngToContainerPoint([p.lat, p.lng])));
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.45;
+        ctx.lineWidth = 4 * scale;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+
+      if (poles.length > 1) {
+        const pts = poles.map(p => px(map.latLngToContainerPoint([p.lat, p.lng])));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3 * scale;
+        ctx.setLineDash([8 * scale, 6 * scale]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      poles.forEach((pole, index) => {
+        const pt = px(map.latLngToContainerPoint([pole.lat, pole.lng]));
+        const isStart = pole.source === "start" || pole.number === 0;
+        ctx.fillStyle = isStart ? "#f5c96a" : color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, (isStart ? 11 : 8) * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.85)";
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+        ctx.fillStyle = "#03111f";
+        ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+      });
+    });
+
+    (project.trInstalls || []).forEach(tr => {
+      const pt = px(map.latLngToContainerPoint([tr.lat, tr.lng]));
+      const r = 10 * scale;
+      ctx.fillStyle = "#ff6b35";
+      ctx.beginPath();
+      ctx.moveTo(pt.x, pt.y - r);
+      ctx.lineTo(pt.x + r, pt.y);
+      ctx.lineTo(pt.x, pt.y + r);
+      ctx.lineTo(pt.x - r, pt.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5 * scale;
+      ctx.stroke();
+      ctx.fillStyle = "#1a0a00";
+      ctx.font = `bold ${8 * scale}px Sarabun,sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("TR", pt.x, pt.y);
+    });
+  }
+
   async function drawRouteCanvasFallback() {
     syncActiveSegmentToStore();
     const map = state.map;
@@ -1493,77 +1571,7 @@
     ctx.fillStyle = "#0a1524";
     ctx.fillRect(0, 0, width, height);
 
-    const project = { segments: state.segments, trInstalls: state.trInstalls };
-    const lineSegs = project.segments.filter(s => s.kind === "line");
-
-    lineSegs.forEach(seg => {
-      const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
-      const poles = seg.poles || [];
-
-      (seg.routedPaths || []).forEach(path => {
-        if (!path || path.length < 2 || !map) return;
-        const pts = path.map(p => map.latLngToContainerPoint([p.lat, p.lng]));
-        ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.45;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      });
-
-      if (poles.length > 1 && map) {
-        const pts = poles.map(p => map.latLngToContainerPoint([p.lat, p.lng]));
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 6]);
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      poles.forEach((pole, index) => {
-        if (!map) return;
-        const pt = map.latLngToContainerPoint([pole.lat, pole.lng]);
-        const isStart = pole.source === "start" || pole.number === 0;
-        ctx.fillStyle = isStart ? "#f5c96a" : color;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, isStart ? 11 : 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.85)";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.fillStyle = "#03111f";
-        ctx.font = "bold 9px Sarabun,sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
-      });
-    });
-
-    (project.trInstalls || []).forEach(tr => {
-      if (!map) return;
-      const pt = map.latLngToContainerPoint([tr.lat, tr.lng]);
-      ctx.fillStyle = "#ff6b35";
-      ctx.beginPath();
-      ctx.moveTo(pt.x, pt.y - 10);
-      ctx.lineTo(pt.x + 10, pt.y);
-      ctx.lineTo(pt.x, pt.y + 10);
-      ctx.lineTo(pt.x - 10, pt.y);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.fillStyle = "#1a0a00";
-      ctx.font = "bold 8px Sarabun,sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("TR", pt.x, pt.y);
-    });
+    drawRouteOverlayOnCanvas(ctx, map, 1, 0, 0);
 
     const legendX = 10;
     let legendY = 14;
@@ -1631,7 +1639,12 @@
     await delay(900);
     scheduleMapResize();
 
-    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn].filter(Boolean);
+    // ซ่อนเส้น/หมุดของ Leaflet ระหว่าง capture — html2canvas วาด SVG overlay เพี้ยนตำแหน่ง
+    // แล้วค่อยวาดเส้น+หมุดทับเองด้วยพิกัดที่ถูกต้องหลังได้ภาพพื้นแผนที่
+    const leafletPanes = ["overlay-pane", "marker-pane", "shadow-pane"]
+      .map(name => els.mapEl?.querySelector(`.leaflet-${name}`))
+      .filter(Boolean);
+    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn, ...leafletPanes].filter(Boolean);
     const prevDisplay = hideEls.map(el => el.style.display);
     hideEls.forEach(el => { el.style.display = "none"; });
 
@@ -1652,8 +1665,18 @@
           logging: false,
           scale: window.innerWidth < 720 ? 1.5 : 2
         });
+        const ctx = canvas.getContext("2d");
+        const scale = canvas.width / (captureTarget.clientWidth || canvas.width);
+        const shellRect = captureTarget.getBoundingClientRect();
+        const mapRect = els.mapEl.getBoundingClientRect();
+        drawRouteOverlayOnCanvas(
+          ctx,
+          state.map,
+          scale,
+          (mapRect.left - shellRect.left) * scale,
+          (mapRect.top - shellRect.top) * scale
+        );
         if (stats) {
-          const ctx = canvas.getContext("2d");
           drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
         }
         base64 = canvas.toDataURL("image/png").split(",")[1];
@@ -3407,6 +3430,7 @@
           : `<span>${escH(entry.laborDesc)}</span>`;
         const total = (entry.matPrice + entry.labPrice) * entry.qty;
         return `<tr>
+          <td class="staging-no">${i + 1}</td>
           <td title="${escH(entry.id)}">${escH(entry.name)}</td>
           <td>${laborCell}</td>
           <td><input type="number" class="staging-qty-input" value="${entry.qty}" step="any" min="0.01" data-ridx="${i}"></td>
@@ -3416,9 +3440,9 @@
       }).join("");
       const grand = items.reduce((s,e) => s + (e.matPrice + e.labPrice) * e.qty, 0);
       return `<div class="staging-table-wrap"><table class="staging-table">
-        <thead><tr><th>รายการ</th><th>ค่าแรง</th><th>จำนวน</th><th>รวม</th><th></th></tr></thead>
+        <thead><tr><th class="staging-no">#</th><th>รายการ</th><th>ค่าแรง</th><th>จำนวน</th><th>รวม</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><td colspan="3" style="text-align:right;font-weight:700;">รวมทั้งหมด</td><td class="rtotal" style="font-weight:700;">${grand.toLocaleString(undefined,{minimumFractionDigits:2})}</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;">รวมทั้งหมด</td><td class="rtotal" style="font-weight:700;">${grand.toLocaleString(undefined,{minimumFractionDigits:2})}</td><td></td></tr></tfoot>
       </table></div>`;
     };
 

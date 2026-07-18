@@ -1264,17 +1264,47 @@
     return true;
   }
 
+  // ตัวเลือกน้อย — แสดงเป็นปุ่มกดเลือกได้ทันทีแทน dropdown
+  function pickFromChoiceButtons({ title, text, options, selectedValue }) {
+    const escAttr = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const buttons = Object.entries(options).map(([value, label]) => `
+      <button type="button" class="swal-choice-btn ${String(value) === String(selectedValue) ? "is-selected" : ""}" data-choice="${escAttr(value)}">
+        ${escapeHtml(label)}
+      </button>
+    `).join("");
+    return new Promise(resolve => {
+      Swal.fire({
+        title,
+        html: `${text ? `<p class="swal-choice-text">${escapeHtml(text)}</p>` : ""}<div class="swal-choice-list">${buttons}</div>`,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: "ยกเลิก",
+        customClass: { popup: "pea-swal-popup" },
+        didOpen: () => {
+          Swal.getPopup().querySelectorAll(".swal-choice-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+              const value = btn.dataset.choice;
+              Swal.close();
+              resolve(value);
+            });
+          });
+        },
+        willClose: () => resolve(undefined)
+      }).then(result => {
+        if (result.isDismissed) resolve(undefined);
+      });
+    });
+  }
+
   async function pickOrCreateBudgetIndex() {
     if (state.budgets.length === 1) return 0;
 
     if (state.budgets.length > 1) {
       const budgetOptions = {};
       state.budgets.forEach((budget, index) => { budgetOptions[index] = `งบ ${budget.type}`; });
-      const { value: budgetIndex } = await Swal.fire({
+      const budgetIndex = await pickFromChoiceButtons({
         title: "เลือกงบที่จะนำเข้า",
-        input: "select",
-        inputOptions: budgetOptions,
-        showCancelButton: true
+        options: budgetOptions
       });
       if (budgetIndex === undefined) return null;
       return Number(budgetIndex);
@@ -1283,14 +1313,11 @@
     const ready = await ensureProjectNameForBudget();
     if (!ready) return null;
 
-    const { value: budgetType } = await Swal.fire({
+    const budgetType = await pickFromChoiceButtons({
       title: "สร้างงบใหม่",
       text: "ยังไม่มีงบในโครงการ — เลือกประเภทงบเพื่อเริ่มนำเข้ารายการ",
-      input: "select",
-      inputOptions: BUDGET_TYPE_OPTIONS,
-      inputValue: "01.1",
-      showCancelButton: true,
-      confirmButtonText: "สร้างงบ"
+      options: BUDGET_TYPE_OPTIONS,
+      selectedValue: "01.1"
     });
     if (!budgetType) return null;
 
@@ -1308,17 +1335,10 @@
   }
 
   async function changeBudgetType(index) {
-    const { value: newType } = await Swal.fire({
+    const newType = await pickFromChoiceButtons({
       title: "เปลี่ยนประเภทงบ",
-      input: "select",
-      inputOptions: {
-        "01.1": "งบ 01.1",
-        "02.1": "งบ 02.1",
-        "02.2": "งบ 02.2",
-        "03.1": "งบ 03.1"
-      },
-      inputValue: state.budgets[index].type,
-      showCancelButton: true
+      options: BUDGET_TYPE_OPTIONS,
+      selectedValue: state.budgets[index].type
     });
 
     if (newType) {
@@ -2909,7 +2929,7 @@
       const actionButtons = [viewBtn, shareBtn, editBtn, deleteBtn].filter(Boolean).join("");
       return `
         <article class="history-card ${accentClass}" data-project-id="${escapeHtml(projectId)}">
-          <div class="history-row history-row-main">
+          <div class="history-row history-row-main history-map-trigger" role="button" tabindex="0" title="คลิกเพื่อดูแผนที่สำรวจ" onclick="window.AppActions.previewSurveyMap('${escapeJs(projectId)}')">
             <span class="history-index">${index + 1}</span>
             <div class="history-main-body">
               <h3 class="history-name">${escapeHtml(row[2])}</h3>
@@ -4312,8 +4332,67 @@
       .replace(/"/g, '\\"');
   }
 
+  // Modal กลางจอแสดง "แผนที่สำรวจ (ปักหมุด)" เมื่อคลิกรายการประวัติ
+  // ให้เห็นภาพรวมก่อนตัดสินใจ ดู/แชร์/แก้ไข
+  async function previewSurveyMap(projectId) {
+    const cached = state.historyRowCache?.[projectId];
+    if (!cached) return;
+
+    const mapUrl = (cached.imgStr || "").split("|").filter(Boolean).find(url => /Survey_Map/i.test(url));
+    if (!mapUrl) {
+      Swal.fire({
+        title: cached.name || "โครงการ",
+        text: "โครงการนี้ไม่มีแผนที่สำรวจ (ยังไม่ได้ปักหมุดบนแผนที่)",
+        icon: "info",
+        customClass: { popup: "pea-swal-popup" }
+      });
+      return;
+    }
+
+    if (!cached.mapPreviewDataUrl) {
+      Swal.fire({
+        title: "กำลังโหลดแผนที่สำรวจ...",
+        allowOutsideClick: false,
+        customClass: { popup: "pea-swal-popup" },
+        didOpen: () => Swal.showLoading()
+      });
+      const previews = await fetchDrivePreviews([mapUrl]);
+      const fileId = extractDriveFileId(mapUrl);
+      const preview = fileId ? previews[fileId] : null;
+      if (!preview?.base64 || !preview.mime?.startsWith("image/")) {
+        Swal.fire({
+          title: "โหลดแผนที่ไม่สำเร็จ",
+          text: "ไม่สามารถดึงรูปแผนที่จาก Drive ได้ ลองกด \"ดู\" เพื่อเปิดรายละเอียดเต็มแทน",
+          icon: "warning",
+          customClass: { popup: "pea-swal-popup" }
+        });
+        return;
+      }
+      cached.mapPreviewDataUrl = `data:${preview.mime};base64,${preview.base64}`;
+    }
+
+    Swal.fire({
+      title: escapeHtml(cached.name || "แผนที่สำรวจ"),
+      html: `
+        <div class="history-map-modal">
+          <img src="${cached.mapPreviewDataUrl}" alt="แผนที่สำรวจ (ปักหมุด)">
+          <p class="history-map-caption">แผนที่สำรวจ (ปักหมุด) · ${escapeHtml(cached.dateDisplay || "")}</p>
+        </div>
+      `,
+      width: "min(94vw, 900px)",
+      showConfirmButton: true,
+      confirmButtonText: "ดูรายละเอียดโครงการ",
+      showCancelButton: true,
+      cancelButtonText: "ปิด",
+      customClass: { popup: "pea-swal-popup" }
+    }).then(result => {
+      if (result.isConfirmed) viewDetail(projectId);
+    });
+  }
+
   window.AppActions = {
     viewDetail,
+    previewSurveyMap,
     exportToExcel,
     exportProjectReportPdf,
     askEdit,
@@ -4359,7 +4438,8 @@
     clearSurveyFiles: () => {
       state.tempFileList = state.tempFileList.filter(file => file.source !== "survey");
     },
-    getProjectFileCount: () => state.tempFileList.length,
+    getProjectFileList: () => state.tempFileList,
+    getProjectFileCount:() => state.tempFileList.length,
     addItemWithLabor: (budgetIndex, item, qty) => addToStaging(budgetIndex, item, qty),
     addItemDirect: (budgetIndex, item) => {
       state.budgets[budgetIndex].items.push({
