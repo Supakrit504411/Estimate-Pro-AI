@@ -403,10 +403,13 @@
               <button id="surveyFieldModeBtn" class="survey-tool-btn" type="button" data-survey-tool="field_mode" title="เพิ่มความคมชัดของเส้นและหมุดสำหรับงานกลางแดด">☀ กลางแจ้ง</button>
               <div class="survey-toolbar-divider"></div>
               <div id="surveyActiveSegment" class="survey-active-segment">—</div>
-              <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
-              <button id="surveyAddLvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv">+ LV</button>
-              <button id="surveyTrBtn" class="survey-tool-btn is-tr" type="button" data-survey-tool="tr_pick">ติด TR</button>
-              <button id="surveyAddLvFromTrBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv_tr">+ LV จาก TR</button>
+              <button id="surveySegToolsToggle" class="survey-tool-btn survey-seg-tools-toggle" type="button" aria-expanded="true">＋ เพิ่มส่วน / TR ▾</button>
+              <div id="surveySegTools" class="survey-seg-tools">
+                <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
+                <button id="surveyAddLvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv">+ LV</button>
+                <button id="surveyTrBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="tr_pick">ติด TR</button>
+                <button id="surveyAddLvFromTrBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv_tr">+ LV จาก TR</button>
+              </div>
               <div class="survey-toolbar-divider"></div>
               <button id="surveyAttachBtnMap" class="survey-tool-btn" type="button" data-survey-tool="attach">แนบรูป</button>
               <div id="surveySummary" class="survey-toolbar-stat"></div>

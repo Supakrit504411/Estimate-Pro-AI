@@ -3954,11 +3954,7 @@ body.survey-map-active .survey-map-stage.is-active:not(.is-spec) .survey-map-she
   background: rgba(113, 232, 255, 0.08);
 }
 
-.survey-tool-btn.is-tr {
-  border-color: rgba(255, 140, 60, 0.35);
-  background: rgba(255, 140, 60, 0.1);
-  color: #ffc98a;
-}
+/* ปุ่มติด TR ใช้สไตล์เดียวกับปุ่มส่วนงานอื่น (ไม่แยกสี) */
 
 .survey-segment-spec-head {
   display: flex;
@@ -6083,4 +6079,43 @@ body.field-contrast .survey-map-hint {
 .pea-swal-popup.swal2-toast .swal2-icon {
   transform: scale(0.7);
   margin: 0 4px 0 0 !important;
+}
+
+/* กลุ่มปุ่มเพิ่มส่วน/TR ใน toolbar: ยุบ-กางได้ */
+.survey-seg-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.survey-seg-tools.is-collapsed {
+  display: none;
+}
+
+.survey-seg-tools-toggle {
+  font-size: var(--text-xs);
+  opacity: 0.9;
+}
+
+/* มุมขวา header: theme switch + ชื่อผู้ใช้ + ออกจากระบบ อยู่บรรทัดเดียว */
+.auth-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.auth-user {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  text-align: right;
+}
+
+.auth-user-role {
+  font-size: 10px;
+  opacity: 0.7;
 }

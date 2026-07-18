@@ -159,6 +159,24 @@
       });
     }
 
+    // กลุ่มปุ่มเพิ่มส่วน/TR: ยุบหลังผู้ใช้เลือกเครื่องมือ กดหัวข้อเพื่อกางใหม่
+    const segTools = document.getElementById("surveySegTools");
+    const segToolsToggle = document.getElementById("surveySegToolsToggle");
+    if (segTools && segToolsToggle) {
+      const setSegTools = open => {
+        segTools.classList.toggle("is-collapsed", !open);
+        segToolsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        segToolsToggle.textContent = open ? "＋ เพิ่มส่วน / TR ▾" : "＋ เพิ่มส่วน / TR ▸";
+      };
+      segToolsToggle.addEventListener("click", () => {
+        setSegTools(segTools.classList.contains("is-collapsed"));
+      });
+      segTools.addEventListener("click", e => {
+        if (e.target.closest("button")) setSegTools(false);
+      });
+      window.__surveySetSegTools = setSegTools;
+    }
+
     if (els.toolbarToggle) {
       els.toolbarToggle.addEventListener("click", toggleMobileToolbar);
     }
@@ -619,6 +637,46 @@
       state.aimLine.remove();
       state.aimLine = null;
     }
+    if (state.aimSvg) state.aimSvg.style.display = "none";
+  }
+
+  // เส้นวัดระยะวาดเป็น SVG ในพิกัดหน้าจอทับ #surveyMap โดยตรง (ไม่ใช่ Leaflet layer)
+  // ปลายเส้นจึงตรงกลางกากบาทเสมอ ไม่มี lag ตอน pan/zoom
+  function ensureAimSvg() {
+    if (state.aimSvg && state.aimSvg.isConnected) return state.aimSvg;
+    const shell = els.mapEl?.parentElement;
+    if (!shell) return null;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "survey-aim-line-svg");
+    svg.style.cssText = "position:absolute;pointer-events:none;z-index:590;display:none;";
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("stroke", "#ff6b6b");
+    line.setAttribute("stroke-width", "2");
+    line.setAttribute("stroke-dasharray", "6 8");
+    line.setAttribute("stroke-opacity", "0.9");
+    svg.appendChild(line);
+    shell.appendChild(svg);
+    state.aimSvg = svg;
+    return svg;
+  }
+
+  function drawAimLineScreen(ref) {
+    const svg = ensureAimSvg();
+    if (!svg || !state.map || !els.mapEl) return;
+    const pt = state.map.latLngToContainerPoint([ref.lat, ref.lng]);
+    const w = els.mapEl.clientWidth;
+    const h = els.mapEl.clientHeight;
+    svg.style.left = els.mapEl.offsetLeft + "px";
+    svg.style.top = els.mapEl.offsetTop + "px";
+    svg.style.width = w + "px";
+    svg.style.height = h + "px";
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const line = svg.firstChild;
+    line.setAttribute("x1", pt.x);
+    line.setAttribute("y1", pt.y);
+    line.setAttribute("x2", w / 2);
+    line.setAttribute("y2", h / 2);
+    svg.style.display = "";
   }
 
   function hideAimOverlay() {
@@ -654,10 +712,7 @@
         els.mapAimDist.textContent = `${Math.round(dist)} ม. จาก${ref.label ? ` ${ref.label}` : ""}`;
         els.mapAimDist.classList.remove("hidden");
       }
-      state.aimLine = L.polyline(
-        [[ref.lat, ref.lng], [center.lat, center.lng]],
-        { color: "#ff6b6b", weight: 2, dashArray: "6 8", opacity: 0.9 }
-      ).addTo(state.map);
+      drawAimLineScreen(ref);
     } else if (els.mapAimDist) {
       els.mapAimDist.textContent = "เลื่อนแผนที่ให้กากบาทตรงจุดปัก";
       els.mapAimDist.classList.remove("hidden");
@@ -1788,6 +1843,8 @@
     state.map.on("click", handleMapClick);
     state.map.on("move", updateAimOverlay);
     state.map.on("moveend", updateAimOverlay);
+    state.map.on("zoom", updateAimOverlay);
+    state.map.on("zoomend", updateAimOverlay);
     state.mapReady = true;
   }
 
@@ -3491,6 +3548,7 @@
   }
 
   function resetSurvey() {
+    window.__surveySetSegTools?.(true);
     state.controlPoints = [];
     state.poles = [];
     state.segments = [];
