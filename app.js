@@ -2578,6 +2578,18 @@
     };
   }
 
+  // ผู้ใช้ที่สมัครผ่าน LINE มี username เป็น LINE userId (U + hex 32 ตัว) อ่านไม่รู้เรื่อง
+  // — ใช้ชื่อโปรไฟล์ถ้า backend ส่งมา ไม่งั้นย่อเป็น "ผู้ใช้ LINE (…ท้าย 6 ตัว)"
+  function formatShareUserName(user) {
+    const display = user?.displayName || user?.name || user?.nickname;
+    if (display) return String(display);
+    const username = String(user?.username || "");
+    if (/^U[0-9a-f]{30,}$/i.test(username)) {
+      return `ผู้ใช้ LINE (…${username.slice(-6)})`;
+    }
+    return username;
+  }
+
   function buildSharePickerHtml(cached, shareUsers, coverage) {
     const viewSet = new Set(parseUserList(cached.sharedView).map(u => u.toLowerCase()));
     const editSet = new Set(parseUserList(cached.sharedEdit).map(u => u.toLowerCase()));
@@ -2589,7 +2601,7 @@
       const editChecked = editSet.has(key) ? "checked" : "";
       return `
         <div class="share-user-row">
-          <span class="share-user-name">${escapeHtml(user.username)}</span>
+          <span class="share-user-name" title="${escapeHtml(user.username)}">${escapeHtml(formatShareUserName(user))}</span>
           <span class="share-user-role">${escapeHtml(user.role || "user")}</span>
           <label class="share-user-check">
             <input type="checkbox" class="share-cb-view" data-user="${escapeHtml(user.username)}" ${viewChecked}>
@@ -2604,7 +2616,7 @@
     }).join("");
 
     const remainingHint = coverage.remaining.length
-      ? `<p class="share-remaining">ยังไม่ได้แชร์: ${coverage.remaining.map(u => escapeHtml(u.username)).join(", ")}</p>`
+      ? `<p class="share-remaining">ยังไม่ได้แชร์: ${coverage.remaining.map(u => escapeHtml(formatShareUserName(u))).join(", ")}</p>`
       : `<p class="share-remaining share-remaining-done">แชร์ครบทุกผู้ใช้แล้ว</p>`;
 
     return `

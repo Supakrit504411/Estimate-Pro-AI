@@ -1665,10 +1665,15 @@
 
     const bounds = L.latLngBounds(latlngs);
     scheduleMapResize();
-    // เว้นขอบขวาบนมากขึ้น กันเส้น/หมุดไปซ้อนกล่อง "สรุปเสา" ที่มุมขวาบนของภาพ
+    // เว้นขอบให้พ้นกล่อง "สรุปเสา" มุมขวาบน แต่จำกัดตามขนาดจอ (จอมือถือแคบ
+    // ถ้าเว้นตายตัว 240px จะบังคับซูมออกจนหมุดกองรวมกัน) + ปิด animation
+    // เพื่อให้พิกัดนิ่งก่อน capture
+    const mapW = els.mapEl?.clientWidth || 900;
+    const mapH = els.mapEl?.clientHeight || 600;
     state.map.fitBounds(bounds, {
-      paddingTopLeft: L.point(60, 150),
-      paddingBottomRight: L.point(240, 60)
+      animate: false,
+      paddingTopLeft: L.point(40, Math.min(150, Math.round(mapH * 0.2))),
+      paddingBottomRight: L.point(Math.min(240, Math.round(mapW * 0.28)), 50)
     });
     await delay(900);
     scheduleMapResize();
@@ -1678,7 +1683,8 @@
     const leafletPanes = ["overlay-pane", "marker-pane", "shadow-pane"]
       .map(name => els.mapEl?.querySelector(`.leaflet-${name}`))
       .filter(Boolean);
-    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn, ...leafletPanes].filter(Boolean);
+    const aimSvgEl = els.mapEl?.parentElement?.querySelector(".survey-aim-line-svg");
+    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn, aimSvgEl, ...leafletPanes].filter(Boolean);
     const prevDisplay = hideEls.map(el => el.style.display);
     hideEls.forEach(el => { el.style.display = "none"; });
 

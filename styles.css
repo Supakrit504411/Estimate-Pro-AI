@@ -6337,3 +6337,149 @@ body.field-contrast .survey-map-hint {
   letter-spacing: 0;
   font-weight: 700;
 }
+
+/* ============================================================
+   De-slop รอบเก็บงาน 2026-07-19
+   ============================================================ */
+
+/* ตาราง "ตรวจสอบรายการ": จอแคบให้เลื่อนแนวนอน ไม่บีบจนตัวอักษรเรียงแนวตั้ง */
+.staging-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.staging-table {
+  min-width: 560px;
+  width: 100%;
+}
+
+.staging-table th,
+.staging-table td {
+  white-space: normal;
+  word-break: normal;
+}
+
+.staging-table td[title] {
+  min-width: 180px;
+  text-align: left;
+}
+
+/* มุมขวาบน: ไม่ให้ปุ่ม "ออก" ล้นการ์ด */
+.hero-head {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.auth-bar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .auth-bar {
+    padding: 3px 5px 3px 4px;
+    gap: 6px;
+  }
+  .auth-user-name {
+    display: inline-block;
+    max-width: 88px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .auth-user-role {
+    display: none;
+  }
+}
+
+/* ลูกโลก SYNC/ZERO เรืองแสง → ตัดทิ้ง เหลือข้อความสถานะเรียบๆ */
+.empty-state .hero-orb,
+.empty-orb {
+  display: none !important;
+}
+
+.empty-state {
+  color: var(--muted);
+  padding: 28px 0;
+}
+
+/* Legend สถานะแชร์: จุดสีเล็ก + ข้อความสีปกติ (เดิมข้อความเป็นสีสด) */
+.history-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 0 4px;
+}
+
+.history-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.history-legend-item::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.history-legend-item.history-accent-own::before { background: var(--accent-own); }
+.history-legend-item.history-accent-edit::before { background: var(--accent-edit); }
+.history-legend-item.history-accent-shared::before { background: var(--accent-shared); }
+.history-legend-item.history-accent-public::before { background: var(--accent-public); }
+
+.history-legend-item.history-accent-own,
+.history-legend-item.history-accent-edit,
+.history-legend-item.history-accent-shared,
+.history-legend-item.history-accent-public {
+  color: var(--muted);
+}
+
+/* ตัวกรอง "ของฉันเท่านั้น": checkbox ธรรมดา ไม่ใช่กล่องยักษ์ */
+.history-mine-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 6px 0;
+}
+
+.history-mine-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+  appearance: auto;
+  -webkit-appearance: auto;
+}
+
+/* chip วันที่/ID ในรายการประวัติ: ข้อความเทาเรียบ ไม่มีกรอบสี */
+.history-meta .status-chip,
+.history-meta .type-chip {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 0;
+  font-size: var(--text-xs);
+}
+
+.history-amount {
+  color: var(--text) !important;
+}
+
+/* select เรียงลำดับ: ขนาดกะทัดรัด */
+.history-sort-select {
+  max-width: 180px;
+  min-height: 40px;
+}
