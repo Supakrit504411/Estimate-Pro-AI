@@ -17,7 +17,7 @@
       document.documentElement.setAttribute("data-theme-pref", pref);
       document.documentElement.setAttribute("data-theme", effective);
       document.documentElement.style.colorScheme = effective;
-      var themeColor = effective === "light" ? "#f5f1e8" : "#131217";
+      var themeColor = effective === "light" ? "#f4f4f6" : "#131217";
       var meta = document.querySelector('meta[name="theme-color"]');
       if (!meta) {
         meta = document.createElement("meta");
@@ -73,6 +73,12 @@
     <symbol id="icon-share" viewBox="0 0 24 24"><path d="M18 16.08a2.91 2.91 0 00-1.96.77L8.91 12.7A3.25 3.25 0 009 12a3.25 3.25 0 00-.09-.7l7.05-4.11A2.97 2.97 0 0018 8a3 3 0 10-3-3c0 .24.04.47.09.7L8.04 9.81A2.97 2.97 0 006 9a3 3 0 100 6 2.97 2.97 0 002.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 102.92-2.92z"/></symbol>
     <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
     <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M9 2L7.17 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-3.17L15 2H9zm3 15a5 5 0 110-10 5 5 0 010 10z"/></symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-5h-1v3h2V2h-1zm0 17h-1v3h2v-3h-1zM4.22 5.64L2.8 7.05l2.12 2.12 1.41-1.41-2.11-2.12zm14.14 12.72l-1.41 1.41 2.12 2.12 1.41-1.41-2.12-2.12zM2 11v2h3v-2H2zm17 0v2h3v-2h-3zM5.64 19.78l1.41 1.41 2.12-2.12-1.41-1.41-2.12 2.12zM18.36 4.22l-2.12 2.12 1.41 1.41 2.12-2.12-1.41-1.41z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></symbol>
+    <symbol id="icon-doc-plus" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z"/></symbol>
+    <symbol id="icon-robot" viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h4a3 3 0 013 3v8a3 3 0 01-3 3H7a3 3 0 01-3-3v-8a3 3 0 013-3h4V5.73A2 2 0 0110 4a2 2 0 012-2zM8.5 11a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm7 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 17h8v1.5H8V17z"/></symbol>
   </svg>
 
   <section id="loginGate" class="login-gate">
@@ -94,15 +100,15 @@
         <h2 class="login-hero-headline">ประมาณการงานไฟฟ้า<br><span class="login-hero-accent">จากชั่วโมง → 15 วินาที</span></h2>
         <ul class="login-hero-points">
           <li>
-            <span class="login-hero-icon">🤖</span>
+            <span class="login-hero-icon"><svg class="icon icon-md" aria-hidden="true"><use href="#icon-robot"/></svg></span>
             <div><strong>AI อ่าน BOM จากรูปถ่าย</strong><span>ถ่ายรูป → ได้ BOQ พร้อมรหัสพัสดุอัตโนมัติ</span></div>
           </li>
           <li>
-            <span class="login-hero-icon">🗺️</span>
+            <span class="login-hero-icon"><svg class="icon icon-md" aria-hidden="true"><use href="#icon-map-pin"/></svg></span>
             <div><strong>สำรวจหน้างานบนแผนที่</strong><span>ปักหมุด → ระบบวางเสา + Guy/Surge/Ground ตามมาตรฐาน กฟภ.</span></div>
           </li>
           <li>
-            <span class="login-hero-icon">💬</span>
+            <span class="login-hero-icon"><svg class="icon icon-md" aria-hidden="true"><use href="#icon-chat"/></svg></span>
             <div><strong>ถามราคาแบบแชท</strong><span>NLU + AI ตอบราคาพัสดุพร้อมรหัส · Export Excel/PDF</span></div>
           </li>
         </ul>
@@ -391,7 +397,7 @@
             </div>
             <div id="surveyMapAimDist" class="survey-map-aim-distance hidden"></div>
             <button id="surveyPlaceAimBtn" class="survey-place-aim-btn hidden" type="button">ปักที่กากบาท</button>
-            <button id="surveyTabMenuBtn" class="survey-tab-menu-btn hidden" type="button" aria-label="เปิดเมนูแท็บ">☰ เมนู</button>
+            <button id="surveyTabMenuBtn" class="survey-tab-menu-btn hidden" type="button" aria-label="เปิดเมนูแท็บ"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-menu"/></svg> เมนู</button>
             <button id="surveyToolbarToggle" class="survey-toolbar-toggle" type="button" aria-expanded="false">เครื่องมือ ▾</button>
 
             <aside id="surveyToolbar" class="survey-toolbar is-collapsed-mobile">
@@ -400,10 +406,10 @@
               <div class="survey-toolbar-divider"></div>
               <button id="surveyGpsBtn" class="survey-tool-btn" type="button" data-survey-tool="gps">ใช้ GPS</button>
               <div id="surveySpanControl" class="survey-span-control" role="group" aria-label="ระยะ Span ระหว่างเสา"></div>
-              <button id="surveyFieldModeBtn" class="survey-tool-btn" type="button" data-survey-tool="field_mode" title="เพิ่มความคมชัดของเส้นและหมุดสำหรับงานกลางแดด">☀ กลางแจ้ง</button>
+              <button id="surveyFieldModeBtn" class="survey-tool-btn" type="button" data-survey-tool="field_mode" title="เพิ่มความคมชัดของเส้นและหมุดสำหรับงานกลางแดด"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-sun"/></svg> กลางแจ้ง</button>
               <div class="survey-toolbar-divider"></div>
               <div id="surveyActiveSegment" class="survey-active-segment">—</div>
-              <button id="surveySegToolsToggle" class="survey-tool-btn survey-seg-tools-toggle" type="button" aria-expanded="true">＋ เพิ่มส่วน / TR ▾</button>
+              <button id="surveySegToolsToggle" class="survey-tool-btn survey-seg-tools-toggle" type="button" aria-expanded="true"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-plus"/></svg> เพิ่มส่วน / TR ▾</button>
               <div id="surveySegTools" class="survey-seg-tools">
                 <button id="surveyAddMvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_mv">+ MV</button>
                 <button id="surveyAddLvBtn" class="survey-tool-btn is-seg" type="button" data-survey-tool="add_lv">+ LV</button>
@@ -422,7 +428,7 @@
 
           <div id="surveyDistanceLegs" class="survey-distance-legs hidden"></div>
           <div class="survey-actions secondary hidden" id="surveySpecActions">
-            <button id="surveyExportKmlBtn" class="ghost-btn" type="button">📍 ส่งออก KML (GIS)</button>
+            <button id="surveyExportKmlBtn" class="ghost-btn" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-download"/></svg> ส่งออก KML (GIS)</button>
             <button id="surveyGenerateBtn" class="primary-btn" type="button" disabled>สร้างรายการประมาณการ</button>
             <button id="surveySaveProjectBtn" class="primary-btn is-gold hidden" type="button">บันทึกโครงการ</button>
           </div>
@@ -434,7 +440,7 @@
               <h2 id="surveySideTitle" class="section-title">คู่มือสำรวจ</h2>
               <p id="surveySideNote" class="section-note">ปักหมุด 0 แล้วปักปลายทาง — ระบบวางเสาตามเส้นถนนบนแผนที่ให้อัตโนมัติ</p>
             </div>
-            <button id="surveyExportKmlSideBtn" class="ghost-btn survey-kml-side-btn hidden" type="button" title="ส่งออกพิกัดเสาเป็น KML">📍 ส่งออก KML</button>
+            <button id="surveyExportKmlSideBtn" class="ghost-btn survey-kml-side-btn hidden" type="button" title="ส่งออกพิกัดเสาเป็น KML"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-download"/></svg> ส่งออก KML</button>
           </div>
           <div id="surveyPoleList" class="survey-pole-list">
             <div class="survey-empty">กดเริ่มสำรวจ → แตะแผนที่เพื่อปักหมุด → เลือกประเภทหมุด</div>

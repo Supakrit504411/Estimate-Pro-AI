@@ -166,7 +166,7 @@
       const setSegTools = open => {
         segTools.classList.toggle("is-collapsed", !open);
         segToolsToggle.setAttribute("aria-expanded", open ? "true" : "false");
-        segToolsToggle.textContent = open ? "＋ เพิ่มส่วน / TR ▾" : "＋ เพิ่มส่วน / TR ▸";
+        segToolsToggle.innerHTML = `<svg class="icon icon-sm" aria-hidden="true"><use href="#icon-plus"/></svg> เพิ่มส่วน / TR ${open ? "▾" : "▸"}`;
       };
       segToolsToggle.addEventListener("click", () => {
         setSegTools(segTools.classList.contains("is-collapsed"));
@@ -2018,12 +2018,13 @@
     return roles;
   }
 
+  const PIN_ICON_SVG = name => `<svg class="icon icon-md" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
   const PIN_ROLE_META = {
-    start: { label: "ปักจุดเริ่ม (หมุด 0)", hint: "จุดต่อระบบจำหน่ายเดิม", icon: "🚩" },
-    control: { label: "ปักทางตรง", hint: "วางเสาตามถนนด้วย Span ที่เลือก", icon: "📍" },
-    curve_in: { label: "ต้นเข้าโค้ง", hint: "เริ่มช่วงโค้ง (Span 15/20 ม.)", icon: "↪" },
-    curve_waypoint: { label: "จุดบนโค้ง", hint: "จุดกลางโค้งตามแนวถนนจริง", icon: "〰" },
-    curve_out: { label: "ต้นออกโค้ง", hint: "จบช่วงโค้ง กลับสู่ทางตรง", icon: "↩" }
+    start: { label: "ปักจุดเริ่ม (หมุด 0)", hint: "จุดต่อระบบจำหน่ายเดิม", icon: PIN_ICON_SVG("map-pin") },
+    control: { label: "ปักทางตรง", hint: "วางเสาตามถนนด้วย Span ที่เลือก", icon: PIN_ICON_SVG("map-pin") },
+    curve_in: { label: "ต้นเข้าโค้ง", hint: "เริ่มช่วงโค้ง (Span 15/20 ม.)", icon: PIN_ICON_SVG("redo") },
+    curve_waypoint: { label: "จุดบนโค้ง", hint: "จุดกลางโค้งตามแนวถนนจริง", icon: PIN_ICON_SVG("map-pin") },
+    curve_out: { label: "ต้นออกโค้ง", hint: "จบช่วงโค้ง กลับสู่ทางตรง", icon: PIN_ICON_SVG("undo") }
   };
 
   async function promptPinRole(roles) {

@@ -291,21 +291,14 @@
     // ประมาณ 45 นาที/โครงการ ที่ประหยัดได้เทียบกับการพิมพ์ BOM ด้วยมือ
     const hoursSaved = Math.round(projectCount * 45 / 60);
     strip.innerHTML = `
-      <div class="impact-tile">
-        <strong>${projectCount.toLocaleString()}</strong>
-        <span>โครงการทั้งหมด</span>
-      </div>
-      <div class="impact-tile">
-        <strong>${grandSum.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
-        <span>บาท ประมาณการรวม</span>
-      </div>
-      <div class="impact-tile">
-        <strong>${surveyCount.toLocaleString()}</strong>
-        <span>โครงการมีสำรวจแผนที่</span>
-      </div>
-      <div class="impact-tile is-accent">
-        <strong>~${hoursSaved.toLocaleString()} ชม.</strong>
-        <span>เวลาที่ประหยัดได้</span>
+      <div class="impact-hero">
+        <span class="impact-hero-label">ประมาณการรวม</span>
+        <span class="impact-hero-value">${grandSum.toLocaleString(undefined, { maximumFractionDigits: 0 })} <small>บาท</small></span>
+        <div class="impact-hero-meta">
+          <span>${projectCount.toLocaleString()} โครงการ</span>
+          <span>${surveyCount.toLocaleString()} มีแผนที่สำรวจ</span>
+          <span>ประหยัด ~${hoursSaved.toLocaleString()} ชม.</span>
+        </div>
       </div>
     `;
     strip.classList.remove("hidden");

@@ -33,7 +33,7 @@
   }
 
   function updateThemeColor(effective) {
-    const color = effective === "light" ? "#f5f1e8" : "#131217";
+    const color = effective === "light" ? "#f4f4f6" : "#131217";
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");
