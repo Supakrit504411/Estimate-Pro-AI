@@ -1702,46 +1702,79 @@
     hideEls.forEach(el => { el.style.display = "none"; });
 
     const stats = getSurveyPoleStatsForCapture();
-    const hadStatsHidden = els.mapStatsOverlay?.classList.contains("hidden");
-    if (stats && els.mapStatsOverlay) {
-      renderSurveyMapStatsOverlay(stats);
-      els.mapStatsOverlay.classList.remove("hidden");
-    }
 
-    const captureTarget = els.mapShell || els.mapEl;
+    // วาดภาพเองทั้งหมด (ไม่ใช้ html2canvas): ตำแหน่ง tiles อ่านจาก
+    // getBoundingClientRect จริงบนจอ และเส้น/หมุดใช้ latLngToContainerPoint
+    // — ทั้งสองเป็นพิกัดหน้าจอชุดเดียวกัน จึงตรงกันทุกอุปกรณ์/ทุก DPR
     let base64 = null;
-    if (window.html2canvas && captureTarget) {
-      try {
-        const canvas = await html2canvas(captureTarget, {
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          scale: window.innerWidth < 720 ? 1.5 : 2
-        });
-        if (stats) {
-          const ctx = canvas.getContext("2d");
-          drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
-        }
-        base64 = canvas.toDataURL("image/png").split(",")[1];
-      } catch (error) {
-        console.warn("html2canvas failed", error);
-      }
+    try {
+      base64 = await drawMapCaptureCanvas(stats);
+    } catch (error) {
+      console.warn("map capture failed", error);
     }
 
     hideEls.forEach((el, index) => {
       el.style.display = prevDisplay[index] || "";
     });
-    if (hadStatsHidden && els.mapStatsOverlay) {
-      els.mapStatsOverlay.classList.add("hidden");
-    } else {
-      updateSurveyMapStatsOverlay();
-    }
 
     if (!base64) {
       base64 = await drawRouteCanvasFallback();
     }
 
     return base64;
+  }
+
+  async function drawMapCaptureCanvas(stats) {
+    const mapEl = els.mapEl;
+    const map = state.map;
+    if (!mapEl || !map) return null;
+
+    const scale = 2;
+    const w = mapEl.clientWidth;
+    const h = mapEl.clientHeight;
+    const canvas = document.createElement("canvas");
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#e6e6ea";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const mapRect = mapEl.getBoundingClientRect();
+    const tiles = [...mapEl.querySelectorAll("img.leaflet-tile-loaded")];
+    await Promise.all(tiles.map(async img => {
+      try {
+        const res = await fetch(img.src, { mode: "cors" });
+        if (!res.ok) return;
+        const bmp = await createImageBitmap(await res.blob());
+        const r = img.getBoundingClientRect();
+        ctx.drawImage(
+          bmp,
+          (r.left - mapRect.left) * scale,
+          (r.top - mapRect.top) * scale,
+          r.width * scale,
+          r.height * scale
+        );
+        bmp.close?.();
+      } catch (error) {
+        /* tile เดียวพลาดไม่ให้ล้มทั้งภาพ */
+      }
+    }));
+
+    drawRouteOverlayOnCanvas(ctx, map, scale, 0, 0);
+
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillRect(canvas.width - 210 * scale / 2, canvas.height - 16 * scale, 210 * scale / 2, 16 * scale);
+    ctx.fillStyle = "#333";
+    ctx.font = `${10 * scale}px Sarabun,sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText("© OpenStreetMap contributors", canvas.width - 6 * scale, canvas.height - 8 * scale);
+
+    if (stats) {
+      drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
+    }
+
+    return canvas.toDataURL("image/png").split(",")[1];
   }
 
   async function captureAndStoreSurveyArtifacts() {
