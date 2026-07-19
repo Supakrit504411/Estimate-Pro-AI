@@ -50,3 +50,7 @@ Codex-*/
 
 # Allow bundled UI assets
 !assets/*.png
+
+# Allow project docs
+!README.md
+!CLAUDE.md
