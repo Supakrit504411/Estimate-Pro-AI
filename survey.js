@@ -632,6 +632,15 @@
     return null;
   }
 
+  // เส้นบนแผนที่ใช้ Canvas renderer (ไม่ใช่ SVG) — html2canvas จับ canvas ใน pane
+  // เดียวกับ tiles ได้ตรงกัน ภาพ capture จึงมีเส้นตรงตำแหน่งจริง
+  function getLineRenderer() {
+    if (!state.lineRenderer && state.map) {
+      state.lineRenderer = L.canvas({ padding: 0.5 });
+    }
+    return state.lineRenderer;
+  }
+
   function removeAimLine() {
     if (state.aimLine) {
       state.aimLine.remove();
@@ -1675,16 +1684,20 @@
       paddingTopLeft: L.point(40, Math.min(150, Math.round(mapH * 0.2))),
       paddingBottomRight: L.point(Math.min(240, Math.round(mapW * 0.28)), 50)
     });
-    await delay(900);
+    await delay(400);
     scheduleMapResize();
+    // รอ tiles โหลดครบก่อนถ่าย (สูงสุด 4 วิ) — กันภาพมีช่องเทาว่าง
+    for (let i = 0; i < 20; i++) {
+      const pending = els.mapEl?.querySelectorAll(".leaflet-tile:not(.leaflet-tile-loaded)").length || 0;
+      if (!pending) break;
+      await delay(200);
+    }
+    await delay(250);
 
-    // ซ่อนเส้น/หมุดของ Leaflet ระหว่าง capture — html2canvas วาด SVG overlay เพี้ยนตำแหน่ง
-    // แล้วค่อยวาดเส้น+หมุดทับเองด้วยพิกัดที่ถูกต้องหลังได้ภาพพื้นแผนที่
-    const leafletPanes = ["overlay-pane", "marker-pane", "shadow-pane"]
-      .map(name => els.mapEl?.querySelector(`.leaflet-${name}`))
-      .filter(Boolean);
+    // ให้ html2canvas จับหมุด/เส้นจริงของ Leaflet (เส้นเป็น Canvas renderer อยู่ pane
+    // เดียวกับ tiles จึงตรงกันเสมอ) — ซ่อนเฉพาะ UI ควบคุมและเส้นวัดระยะ
     const aimSvgEl = els.mapEl?.parentElement?.querySelector(".survey-aim-line-svg");
-    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn, aimSvgEl, ...leafletPanes].filter(Boolean);
+    const hideEls = [els.toolbar, els.modeHint, els.toolbarToggle, els.mapAim, els.mapAimDist, els.placeAimBtn, aimSvgEl].filter(Boolean);
     const prevDisplay = hideEls.map(el => el.style.display);
     hideEls.forEach(el => { el.style.display = "none"; });
 
@@ -1705,18 +1718,8 @@
           logging: false,
           scale: window.innerWidth < 720 ? 1.5 : 2
         });
-        const ctx = canvas.getContext("2d");
-        const scale = canvas.width / (captureTarget.clientWidth || canvas.width);
-        const shellRect = captureTarget.getBoundingClientRect();
-        const mapRect = els.mapEl.getBoundingClientRect();
-        drawRouteOverlayOnCanvas(
-          ctx,
-          state.map,
-          scale,
-          (mapRect.left - shellRect.left) * scale,
-          (mapRect.top - shellRect.top) * scale
-        );
         if (stats) {
+          const ctx = canvas.getContext("2d");
           drawSurveyStatsOverlay(ctx, canvas.width, canvas.height, stats);
         }
         base64 = canvas.toDataURL("image/png").split(",")[1];
@@ -2872,14 +2875,14 @@
       if ((seg.controlPoints || []).length > 1) {
         state.polylines.push(L.polyline(
           seg.controlPoints.map(c => [c.lat, c.lng]),
-          { color: "#f5c96a", weight: 2, dashArray: "4 6", opacity: isActive ? 1 : 0.45 }
+          { color: "#f5c96a", weight: 2, dashArray: "4 6", opacity: isActive ? 1 : 0.45, renderer: getLineRenderer() }
         ).addTo(state.map));
       }
 
       if ((seg.poles || []).length > 1) {
         state.polylines.push(L.polyline(
           seg.poles.map(p => [p.lat, p.lng]),
-          { color, weight: 3 + weightBoost, dashArray: "6 8", opacity: lineOpacity }
+          { color, weight: 3 + weightBoost, dashArray: "6 8", opacity: lineOpacity, renderer: getLineRenderer() }
         ).addTo(state.map));
       }
 
