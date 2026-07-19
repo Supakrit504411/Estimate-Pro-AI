@@ -705,9 +705,21 @@
       return;
     }
 
+    // ตรึงกากบาท/ป้ายระยะที่กึ่งกลางของ #surveyMap จริง (ไม่ใช่กึ่งกลาง shell
+    // ซึ่งบางจออาจสูงไม่เท่ากัน) — ให้ตรงกับ map.getCenter() ที่ใช้ปักเสมอ
+    const centerX = els.mapEl ? els.mapEl.offsetLeft + els.mapEl.clientWidth / 2 : null;
+    const centerY = els.mapEl ? els.mapEl.offsetTop + els.mapEl.clientHeight / 2 : null;
     if (els.mapAim) {
       els.mapAim.classList.remove("hidden");
       els.mapAim.setAttribute("aria-hidden", "false");
+      if (centerX != null) {
+        els.mapAim.style.left = `${centerX}px`;
+        els.mapAim.style.top = `${centerY}px`;
+      }
+    }
+    if (els.mapAimDist && centerX != null) {
+      els.mapAimDist.style.left = `${centerX}px`;
+      els.mapAimDist.style.top = `${centerY - 44}px`;
     }
     if (els.placeAimBtn) els.placeAimBtn.classList.remove("hidden");
 
