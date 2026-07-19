@@ -1890,6 +1890,19 @@
     state.map.on("moveend", updateAimOverlay);
     state.map.on("zoom", updateAimOverlay);
     state.map.on("zoomend", updateAimOverlay);
+
+    // Leaflet จำขนาด container ตอนสร้างไว้ — ถ้า layout เปลี่ยนภายหลัง
+    // (การ์ดสถิติโหลด/พับ toolbar/หมุนจอ) จุดกึ่งกลางภายในจะเพี้ยนจากที่ตาเห็น
+    // ทำให้ปักหมุดไม่ตรงกากบาท — ให้ sync ขนาดอัตโนมัติทุกครั้งที่กล่องเปลี่ยน
+    if (window.ResizeObserver && !state.mapResizeObserver) {
+      state.mapResizeObserver = new ResizeObserver(() => {
+        if (state.map) {
+          state.map.invalidateSize({ animate: false });
+          updateAimOverlay();
+        }
+      });
+      state.mapResizeObserver.observe(els.mapEl);
+    }
     state.mapReady = true;
   }
 
