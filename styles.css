@@ -116,49 +116,49 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #faf9fb;
-  --bg-alt: #f0eef2;
-  --panel: #ffffff;
-  --surface: #fefefe;
+  --bg: #f5f1e8;
+  --bg-alt: #ece6d8;
+  --panel: #fdfbf5;
+  --surface: #faf7ef;
   --line: rgba(116, 4, 95, 0.14);
   --line-strong: rgba(116, 4, 95, 0.26);
-  --text: #1a1216;
-  --muted: #6b5d66;
+  --text: #1f1a14;
+  --muted: #6f6357;
   --primary: #74045f;
   --primary-soft: #9b2878;
   --secondary: #852669;
   --gold: #c7911b;
   --gold-soft: #a67310;
   --danger: #c73659;
-  --shadow: 0 2px 12px rgba(24, 18, 28, 0.07);
-  --body-bg: #faf9fb;
-  --hero-bg: rgba(250, 249, 251, 0.92);
-  --input-bg: #ffffff;
+  --shadow: 0 2px 12px rgba(58, 48, 30, 0.08);
+  --body-bg: #f5f1e8;
+  --hero-bg: rgba(245, 241, 232, 0.92);
+  --input-bg: #fffdf8;
   --input-border: rgba(116, 4, 95, 0.14);
   --input-placeholder: rgba(26, 18, 22, 0.38);
   --input-focus-ring: rgba(116, 4, 95, 0.12);
-  --bottom-nav-bg: rgba(255, 255, 255, 0.96);
+  --bottom-nav-bg: rgba(253, 251, 245, 0.96);
   --bottom-nav-border: rgba(116, 4, 95, 0.18);
   --bottom-nav-shadow: 0 -2px 12px rgba(116, 4, 95, 0.08);
   --swal-backdrop: rgba(26, 18, 22, 0.32);
-  --swal-panel-bg: #ffffff;
+  --swal-panel-bg: #fdfbf5;
   --swal-panel-border: rgba(116, 4, 95, 0.18);
-  --swal-title: #1a1216;
+  --swal-title: #1f1a14;
   --theme-switch-bg: rgba(116, 4, 95, 0.06);
   --theme-switch-active: rgba(116, 4, 95, 0.16);
   --accent-panel-bg: rgba(199, 145, 27, 0.05);
   --accent-panel-border: rgba(116, 4, 95, 0.12);
   --accent-panel-divider: rgba(116, 4, 95, 0.18);
-  --elevated-panel-bg: #ffffff;
+  --elevated-panel-bg: #fdfbf5;
   --elevated-panel-shadow: 0 4px 16px rgba(116, 4, 95, 0.06);
   --field-on-panel-bg: var(--input-bg);
   --chip-bg: rgba(116, 4, 95, 0.08);
   --chip-text: var(--text);
   --chip-hover-bg: rgba(116, 4, 95, 0.14);
-  --table-sticky-bg: #ffffff;
+  --table-sticky-bg: #fdfbf5;
   --table-sticky-text: var(--text);
-  --map-shell-bg: #e3eaf2;
-  --map-toolbar-bg: rgba(255, 255, 255, 0.94);
+  --map-shell-bg: #e9e4d6;
+  --map-toolbar-bg: rgba(253, 251, 245, 0.94);
   --overlay-btn-bg: rgba(116, 4, 95, 0.04);
   --overlay-btn-border: rgba(116, 4, 95, 0.12);
   --overlay-divider: rgba(116, 4, 95, 0.1);
@@ -6097,7 +6097,7 @@ body.field-contrast .survey-map-hint {
   opacity: 0.9;
 }
 
-/* มุมขวา header: theme switch + ชื่อผู้ใช้ + ออกจากระบบ อยู่บรรทัดเดียว */
+/* มุมขวา header: theme switch + ชื่อผู้ใช้ + ออกจากระบบ รวมเป็นกล่อง pill เดียว */
 .auth-bar {
   display: flex;
   flex-direction: row;
@@ -6105,6 +6105,16 @@ body.field-contrast .survey-map-hint {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: nowrap;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--theme-switch-bg);
+}
+
+.auth-bar .theme-switch {
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .auth-user {
@@ -6118,4 +6128,42 @@ body.field-contrast .survey-map-hint {
 .auth-user-role {
   font-size: 10px;
   opacity: 0.7;
+}
+
+.auth-logout-btn {
+  border-radius: 999px;
+}
+
+/* ── Login: ฟอร์มฝั่งขวาลอยเลื่อนเข้าแบบ staggered ── */
+@keyframes loginRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-gate .login-card {
+  animation: loginRiseIn 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.login-gate .login-card > * {
+  animation: loginRiseIn 0.5s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.login-gate .login-card > *:nth-child(1) { animation-delay: 0.12s; }
+.login-gate .login-card > *:nth-child(2) { animation-delay: 0.22s; }
+.login-gate .login-card > *:nth-child(3) { animation-delay: 0.3s; }
+.login-gate .login-card > *:nth-child(4) { animation-delay: 0.38s; }
+.login-gate .login-card > *:nth-child(5) { animation-delay: 0.46s; }
+.login-gate .login-card > *:nth-child(n+6) { animation-delay: 0.54s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .login-gate .login-card,
+  .login-gate .login-card > * {
+    animation: none;
+  }
 }

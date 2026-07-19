@@ -1536,19 +1536,6 @@
       const color = seg.color || projectApi?.SEGMENT_COLORS?.[seg.type] || "#71e8ff";
       const poles = seg.poles || [];
 
-      (seg.routedPaths || []).forEach(path => {
-        if (!path || path.length < 2) return;
-        const pts = path.map(p => px(map.latLngToContainerPoint([p.lat, p.lng])));
-        ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.45;
-        ctx.lineWidth = 4 * scale;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      });
-
       if (poles.length > 1) {
         const pts = poles.map(p => px(map.latLngToContainerPoint([p.lat, p.lng])));
         ctx.strokeStyle = color;
@@ -1678,7 +1665,11 @@
 
     const bounds = L.latLngBounds(latlngs);
     scheduleMapResize();
-    state.map.fitBounds(bounds, { padding: [50, 50] });
+    // เว้นขอบขวาบนมากขึ้น กันเส้น/หมุดไปซ้อนกล่อง "สรุปเสา" ที่มุมขวาบนของภาพ
+    state.map.fitBounds(bounds, {
+      paddingTopLeft: L.point(60, 150),
+      paddingBottomRight: L.point(240, 60)
+    });
     await delay(900);
     scheduleMapResize();
 
@@ -2552,7 +2543,9 @@
     const result = [points[0]];
     let nextAt = spanM;
 
-    while (nextAt < total - spanM * 0.3) {
+    // วางเสาทุกระยะ span เต็ม — ข้ามเฉพาะกรณีตกใกล้จุดปลายมาก (<1 ม.) กันเสาซ้อนกัน
+    // (เดิมเว้น 30% ของ span ทำให้ปัก 48 ม. ที่ span 40 ไม่มีเสาที่ 40 ม.)
+    while (nextAt < total - 1) {
       result.push(pointAtPathDistance(points, nextAt));
       nextAt += spanM;
     }
@@ -2866,13 +2859,8 @@
       const lineOpacity = fieldMode ? (isActive ? 1 : 0.75) : (isActive ? 0.85 : 0.4);
       const weightBoost = fieldMode ? 2 : 0;
 
-      (seg.routedPaths || []).forEach(path => {
-        if (path.length < 2) return;
-        state.polylines.push(L.polyline(
-          path.map(p => [p.lat, p.lng]),
-          { color, weight: (isActive ? 5 : 4) + weightBoost, opacity: fieldMode ? lineOpacity : lineOpacity * 0.55 }
-        ).addTo(state.map));
-      });
+      // ไม่วาด routedPaths (แนวถนน OSRM) แยกอีกเส้น — ซ้อนกับเส้นแนวเสาจนดูเป็น 2 เส้น
+      // เสาถูกวางตามแนวถนนอยู่แล้ว เส้นแนวเสาเส้นเดียวจึงสื่อครบ
 
       if ((seg.controlPoints || []).length > 1) {
         state.polylines.push(L.polyline(

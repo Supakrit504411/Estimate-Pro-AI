@@ -4337,8 +4337,8 @@
     const cached = state.historyRowCache?.[projectId];
     if (!cached) return;
 
-    const mapUrl = (cached.imgStr || "").split("|").filter(Boolean).find(url => /Survey_Map/i.test(url));
-    if (!mapUrl) {
+    const urls = (cached.imgStr || "").split("|").filter(Boolean);
+    if (!urls.length) {
       Swal.fire({
         title: cached.name || "โครงการ",
         text: "โครงการนี้ไม่มีแผนที่สำรวจ (ยังไม่ได้ปักหมุดบนแผนที่)",
@@ -4355,19 +4355,33 @@
         customClass: { popup: "pea-swal-popup" },
         didOpen: () => Swal.showLoading()
       });
-      const previews = await fetchDrivePreviews([mapUrl]);
-      const fileId = extractDriveFileId(mapUrl);
-      const preview = fileId ? previews[fileId] : null;
-      if (!preview?.base64 || !preview.mime?.startsWith("image/")) {
+      // URL ของ Drive ไม่มีชื่อไฟล์ — ต้องดึง preview มาก่อนแล้วดูชื่อไฟล์ (Survey_Map)
+      // เช่นเดียวกับหน้า "ดู" รายละเอียด
+      const previews = await fetchDrivePreviews(urls);
+      let found = null;
+      for (const url of urls) {
+        const fileId = extractDriveFileId(url);
+        const preview = fileId ? previews[fileId] : null;
+        const name = preview?.name ? String(preview.name) : "";
+        if (!preview?.base64 || !preview.mime?.startsWith("image/")) continue;
+        if (/Survey_Map/i.test(url) || /Survey_Map/i.test(name)) {
+          found = preview;
+          break;
+        }
+      }
+      if (!found) {
+        const hasSurvey = cached.surveyMetaStr && cached.surveyMetaStr !== "{}" && cached.surveyMetaStr !== "null";
         Swal.fire({
-          title: "โหลดแผนที่ไม่สำเร็จ",
-          text: "ไม่สามารถดึงรูปแผนที่จาก Drive ได้ ลองกด \"ดู\" เพื่อเปิดรายละเอียดเต็มแทน",
-          icon: "warning",
+          title: cached.name || "โครงการ",
+          text: hasSurvey
+            ? "โหลดรูปแผนที่จาก Drive ไม่สำเร็จ — ลองกด \"ดู\" เพื่อเปิดรายละเอียดเต็มแทน"
+            : "โครงการนี้ไม่มีแผนที่สำรวจ (ยังไม่ได้ปักหมุดบนแผนที่)",
+          icon: hasSurvey ? "warning" : "info",
           customClass: { popup: "pea-swal-popup" }
         });
         return;
       }
-      cached.mapPreviewDataUrl = `data:${preview.mime};base64,${preview.base64}`;
+      cached.mapPreviewDataUrl = `data:${found.mime};base64,${found.base64}`;
     }
 
     Swal.fire({
