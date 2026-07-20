@@ -1214,32 +1214,34 @@
       if (!section) return;
 
       const defs = section.defaults || {};
+      const prev = state.defaults[group] || {};
       state.defaults[group] = {
-        poleMaterialId: defs.poleMaterialId || "",
-        headMaterialId: defs.headMaterialId || "",
-        cableMaterialId: defs.cableMaterialId || "",
-        ohgwSetId: defs.ohgwSetId || "",
-        ohgwInstall: Boolean(defs.ohgwInstall)
+        poleMaterialId: prev.poleMaterialId || defs.poleMaterialId || "",
+        headMaterialId: prev.headMaterialId || defs.headMaterialId || "",
+        cableMaterialId: prev.cableMaterialId || defs.cableMaterialId || "",
+        ohgwSetId: prev.ohgwSetId || defs.ohgwSetId || "",
+        ohgwInstall: prev.ohgwInstall != null ? prev.ohgwInstall : Boolean(defs.ohgwInstall)
       };
 
+      const merged = state.defaults[group];
       fillSelect(
         document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Pole`),
         poleCatalog,
-        defs.poleMaterialId,
+        merged.poleMaterialId,
         "-- เลือกเสา --",
         "pole"
       );
       fillSelect(
         document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Head`),
         presetsApi.getSetOptions(section.headSetIds),
-        defs.headMaterialId,
+        merged.headMaterialId,
         "-- เลือกหัวเสา (ชุด Set) --",
         "set"
       );
       fillSelect(
         document.getElementById(`surveyDefault${group === "straight" ? "Straight" : "Curve"}Cable`),
         presetsApi.getCableOptions(config, group),
-        defs.cableMaterialId,
+        merged.cableMaterialId,
         "-- เลือกสายไฟ --",
         "cable"
       );
@@ -1248,7 +1250,7 @@
       fillSelect(
         ohgwSelect,
         presetsApi.getSetOptions(section.ohgwSetIds),
-        defs.ohgwSetId,
+        merged.ohgwSetId,
         "-- เลือก OHGW (ชุด Set) --",
         "set"
       );
