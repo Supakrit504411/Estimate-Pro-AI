@@ -3195,12 +3195,19 @@
 
   function applyFieldToBulkGroup(group, field, value) {
     const touched = new Set();
-    forEachProjectPole(pole => {
+    forEachProjectPole((pole, seg) => {
       if (!poleMatchesBulkGroup(pole, group, field)) return;
       if (touched.has(pole.id)) return;
       touched.add(pole.id);
       pole[field] = value;
       markPoleSpecFilled(pole);
+      if (seg.id === state.activeSegmentId) {
+        const wpPole = state.poles.find(p => p.id === pole.id);
+        if (wpPole) {
+          wpPole[field] = value;
+          markPoleSpecFilled(wpPole);
+        }
+      }
     });
     return touched.size;
   }
@@ -3275,6 +3282,13 @@
 
     found.pole[field] = newValue;
     markPoleSpecFilled(found.pole);
+    if (found.segment.id === state.activeSegmentId) {
+      const wpPole = state.poles.find(p => p.id === poleId);
+      if (wpPole) {
+        wpPole[field] = newValue;
+        markPoleSpecFilled(wpPole);
+      }
+    }
     updateUiState();
   }
 

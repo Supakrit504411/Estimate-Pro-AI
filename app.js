@@ -1448,7 +1448,10 @@
       const budgetIndex = Number(resultItem.dataset.budgetIndex);
       const item = JSON.parse(resultItem.dataset.item);
       addToStaging(budgetIndex, item);
+      return;
     }
+
+    handleStagingEvent(event);
   }
 
   function handleBudgetSpaceInput(event) {
