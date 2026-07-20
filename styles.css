@@ -6483,3 +6483,375 @@ body.field-contrast .survey-map-hint {
   max-width: 180px;
   min-height: 40px;
 }
+
+/* ============================================================
+   Design-sync restyle 2026-07-21
+   Match mockup: PEA Estimation Pro.dc.html
+   ============================================================ */
+
+/* ── View header bar (mobile) ── */
+.view-header-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.view-header-bar .view-back-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  padding: 0;
+}
+
+.view-header-bar .view-back-btn:active {
+  background: var(--chip-bg);
+}
+
+.view-header-bar .view-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.view-header-bar .view-header-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(116, 4, 95, 0.1);
+  color: var(--primary);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+@media (max-width: 720px) {
+  .view-header-bar {
+    display: flex;
+  }
+}
+
+/* ── History restyle ── */
+.history-search-shell {
+  position: relative;
+}
+
+.history-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  pointer-events: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.history-search-shell .search-input {
+  padding-left: 36px;
+}
+
+.history-mine-toggle {
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.history-mine-toggle.is-active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(116, 4, 95, 0.08);
+}
+
+.history-card .history-row-actions {
+  flex-wrap: wrap;
+}
+
+.history-actions-inline {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.history-actions-inline .action-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-actions-inline .action-btn:active {
+  background: var(--chip-bg);
+}
+
+.history-actions-inline .action-btn.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.history-actions-inline .action-btn.danger:active {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+/* ── New Project restyle ── */
+.section-title-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.btn-type.is-selected {
+  background: rgba(116, 4, 95, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-type.is-selected strong {
+  color: var(--primary);
+}
+
+.btn-type.is-selected small {
+  color: var(--primary);
+}
+
+/* ── Survey toolbar restyle ── */
+.survey-span-btn {
+  border-radius: 999px;
+  padding: 8px 0;
+  font-weight: 600;
+}
+
+.survey-toolbar-stat {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--bg);
+}
+
+.survey-toolbar-stat .survey-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.survey-toolbar-stat .survey-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.survey-toolbar-stat .survey-stat-detail {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 720px) {
+  .survey-tool-btn[data-survey-tool="complete"],
+  .survey-tool-btn[data-survey-tool="reset"] {
+    flex: 1;
+  }
+  .survey-toolbar .survey-complete-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+}
+
+/* ── Ask AI restyle: chat-style layout ── */
+.price-ask-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.price-ask-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.price-ask-header-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.price-ask-header-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.price-ask-header-text .price-ask-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.price-ask-header-text .price-ask-header-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.price-ask-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.price-ask-chat {
+  max-height: none;
+}
+
+.price-ask-chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.price-ask-chat-bubble.is-user {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 14px 14px 4px 14px;
+}
+
+.price-ask-chat-bubble.is-assistant {
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  border-radius: 14px 14px 14px 4px;
+}
+
+.price-ask-chat-role {
+  display: none;
+}
+
+.price-ask-input-bar {
+  padding: 12px 14px 8px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.price-ask-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.price-ask-input-row .price-ask-input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  font-size: 13px;
+}
+
+.price-ask-send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.price-ask-send-btn:active {
+  transform: scale(0.9);
+}
+
+.price-ask-send-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: #fff;
+}
+
+.price-ask-chips-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.price-ask-chips-bar .price-ask-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  #view4 {
+    height: calc(100dvh - var(--bottom-nav-offset, 64px) - 48px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  #view4 .price-ask-panel {
+    flex: 1;
+    min-height: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .price-ask-row {
+    display: none;
+  }
+
+  .price-ask-result {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+}

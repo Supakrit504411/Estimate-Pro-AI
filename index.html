@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="./styles.css?v=20260721a">
+  <link rel="stylesheet" href="./styles.css?v=20260721b">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     if (window.Swal) {
@@ -185,6 +185,10 @@
     </header>
 
     <section id="view1" class="view view-page">
+      <div class="view-header-bar">
+        <button type="button" class="view-back-btn" onclick="switchTab(2)" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+        <span class="view-header-title">สร้างงานใหม่</span>
+      </div>
       <div class="view-grid">
         <div>
           <div class="panel">
@@ -451,34 +455,39 @@
 
     <section id="view4" class="view view-page hidden">
       <div id="priceAskPanel" class="panel price-ask-panel">
-        <div class="section-head">
-          <div>
-            <h2 class="section-title">ถาม AI</h2>
-            <p class="section-note">เลือกคำถามที่พบบ่อย หรือพิมพ์ kVA / รหัสพัสดุ — ระบบจับคู่จาก master โดยตรง</p>
+        <div class="price-ask-header">
+          <div class="price-ask-header-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <div class="price-ask-header-text">
+            <div class="price-ask-header-title">ถาม AI</div>
+            <div class="price-ask-header-sub">ราคาพัสดุ · รหัสวัสดุ · ชุด SET</div>
           </div>
-          <span class="mini-tag">AI</span>
-        </div>
-
-        <div class="price-ask-row">
-          <input
-            id="priceAskInput"
-            class="price-ask-input"
-            type="text"
-            placeholder="ติดตั้งหม้อแปลง 50 kVA กี่บาท"
-            autocomplete="off"
-          >
           <select id="priceAskBudget" class="price-ask-budget" aria-label="ประเภทงบ">
             <option value="01.1">งบ 01.1</option>
             <option value="02.1">งบ 02.1</option>
             <option value="02.2">งบ 02.2</option>
             <option value="03.1">งบ 03.1</option>
           </select>
-          <button id="priceAskBtn" class="primary-btn price-ask-btn" type="button">ถาม AI</button>
         </div>
 
-        <div id="priceAskChips" class="price-ask-chips"></div>
+        <div id="priceAskResult" class="price-ask-result price-ask-messages">
+          <div class="price-ask-chat">
+            <div class="price-ask-chat-bubble is-assistant"><p>สวัสดีครับ! ผมช่วยหาราคาพัสดุ รหัสวัสดุ หรือชุด SET ได้เลยครับ</p></div>
+          </div>
+        </div>
 
-        <div id="priceAskResult" class="price-ask-result hidden"></div>
+        <div class="price-ask-input-bar">
+          <div class="price-ask-input-row">
+            <input
+              id="priceAskInput"
+              class="price-ask-input"
+              type="text"
+              placeholder="ถามราคาพัสดุ เช่น ลูกถ้วย..."
+              autocomplete="off"
+            >
+            <button id="priceAskBtn" class="price-ask-send-btn" type="button" aria-label="ส่งคำถาม"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+          </div>
+          <div id="priceAskChips" class="price-ask-chips price-ask-chips-bar"></div>
+        </div>
       </div>
     </section>
 
@@ -494,6 +503,7 @@
 
         <div class="history-toolbar">
           <div class="input-shell history-search-shell">
+            <svg class="history-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             <label class="input-label" for="histSearch">ค้นหาโครงการ</label>
             <input type="text" id="histSearch" class="search-input" placeholder="ค้นหาชื่อโครงการ เช่น สงขลา, ศรีสงคราม...">
           </div>
@@ -598,20 +608,20 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./config.js?v=20260721a"></script>
-  <script src="./theme.js?v=20260721a"></script>
-  <script src="./auth.js?v=20260721a"></script>
-  <script src="./survey-presets.js?v=20260721a"></script>
-  <script src="./price-quote-catalog.js?v=20260721a"></script>
-  <script src="./price-ask-glossary.js?v=20260721a"></script>
-  <script src="./price-ask-nlu.js?v=20260721a"></script>
-  <script src="./budget-formula.js?v=20260721a"></script>
-  <script src="./price-quote-pole.js?v=20260721a"></script>
-  <script src="./survey-project.js?v=20260721a"></script>
-  <script src="./services.js?v=20260721a"></script>
-  <script src="./price-quote-engine.js?v=20260721a"></script>
-  <script src="./price-ask-feedback.js?v=20260721a"></script>
-  <script src="./app.js?v=20260721a"></script>
-  <script src="./survey.js?v=20260721a"></script>
+  <script src="./config.js?v=20260721b"></script>
+  <script src="./theme.js?v=20260721b"></script>
+  <script src="./auth.js?v=20260721b"></script>
+  <script src="./survey-presets.js?v=20260721b"></script>
+  <script src="./price-quote-catalog.js?v=20260721b"></script>
+  <script src="./price-ask-glossary.js?v=20260721b"></script>
+  <script src="./price-ask-nlu.js?v=20260721b"></script>
+  <script src="./budget-formula.js?v=20260721b"></script>
+  <script src="./price-quote-pole.js?v=20260721b"></script>
+  <script src="./survey-project.js?v=20260721b"></script>
+  <script src="./services.js?v=20260721b"></script>
+  <script src="./price-quote-engine.js?v=20260721b"></script>
+  <script src="./price-ask-feedback.js?v=20260721b"></script>
+  <script src="./app.js?v=20260721b"></script>
+  <script src="./survey.js?v=20260721b"></script>
 </body>
 </html>

@@ -1144,8 +1144,12 @@
     priceAskThread = [];
     if (els.priceAskInput) els.priceAskInput.value = "";
     if (els.priceAskResult) {
-      els.priceAskResult.classList.add("hidden");
-      els.priceAskResult.innerHTML = "";
+      els.priceAskResult.classList.remove("hidden");
+      els.priceAskResult.innerHTML = `
+        <div class="price-ask-chat">
+          <div class="price-ask-chat-bubble is-assistant"><p>สวัสดีครับ! ผมช่วยหาราคาพัสดุ รหัสวัสดุ หรือชุด SET ได้เลยครับ</p></div>
+        </div>
+      `;
     }
   }
 
