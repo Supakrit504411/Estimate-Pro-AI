@@ -2153,6 +2153,11 @@
         role: "start",
         headSetId
       }];
+      if (!state.defaults.straight.headMaterialId) {
+        state.defaults.straight.headMaterialId = headSetId;
+        const headSelect = document.getElementById("surveyDefaultStraightHead");
+        if (headSelect) headSelect.value = headSetId;
+      }
     } else {
       const ctrl = {
         id: makeId("ctrl"),
