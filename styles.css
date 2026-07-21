@@ -6896,6 +6896,8 @@ body.field-contrast .survey-map-hint {
 
 /* ── Mobile: auth bar + view-header minimal ── */
 @media (max-width: 720px) {
+  /* ซ่อน impact strip บน mobile ทั้งหมด — แสดงเฉพาะ desktop ประวัติโครงการ */
+  #impactStrip { display: none !important; }
   /* ซ่อน theme switch บน mobile — ตั้งค่าครั้งเดียวแล้วจำใน localStorage */
   .auth-bar .theme-switch-compact {
     display: none;
