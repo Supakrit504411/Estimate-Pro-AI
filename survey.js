@@ -1453,7 +1453,11 @@
   }
 
   function getSurveyMeta() {
-    return state.surveyMeta || buildSurveyMetaObject();
+    // สร้างใหม่จาก state.segments ปัจจุบันเสมอ ห้าม cache
+    // — state.surveyMeta ถูก set ที่ captureAndStoreSurveyArtifacts ก่อน applySpecsToProject
+    //   ทำให้ setUsage เก็บเฉพาะหัวเสาของหมุด 0 (ที่ user เลือกตอนปักหมุด)
+    //   ส่วนหมุดทางตรง/ต้นสุดท้ายยังไม่ถูกเติม default → SET หาย
+    return buildSurveyMetaObject();
   }
 
   function drawSurveyStatsOverlay(ctx, width, height, stats) {
