@@ -6915,17 +6915,8 @@ body.field-contrast .survey-map-hint {
     padding: 3px 9px;
     font-size: 11px;
   }
-  /* View-header bar เล็กลง */
+  /* ซ่อน view-header-bar บน mobile — bottom nav ทำหน้าที่แทนแล้ว */
   .view-header-bar {
-    padding: 5px 12px;
-  }
-  .view-header-bar .view-header-title {
-    font-size: 13px;
-    font-weight: 600;
-    opacity: 0.75;
-  }
-  .view-header-bar .view-back-btn {
-    width: 26px;
-    height: 26px;
+    display: none;
   }
 }
