@@ -2514,7 +2514,7 @@
     const specialKind = getSpecialPoleKind(pole);
     const baseFilled = Boolean(pole.poleMaterialId && pole.headMaterialId && pole.cableMaterialId);
     if (specialKind) {
-      pole.specFilled = baseFilled && Boolean(pole.guySetId);
+      pole.specFilled = baseFilled;
       return;
     }
     pole.specFilled = baseFilled;
@@ -3559,7 +3559,7 @@
           <td class="staging-no">${i + 1}</td>
           <td title="${escH(entry.id)}">${escH(entry.name)}</td>
           <td>${laborCell}</td>
-          <td><input type="number" class="staging-qty-input" value="${entry.qty}" step="any" min="0.01" data-ridx="${i}"></td>
+          <td><input type="number" class="staging-qty-input" value="${entry.qty}" step="any" min="0" data-ridx="${i}"></td>
           <td class="rtotal">${total.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
           <td><button type="button" class="staging-remove" data-ridx="${i}">✕</button></td>
         </tr>`;
@@ -3581,28 +3581,42 @@
       cancelButtonText: "ยกเลิก",
       didOpen: () => {
         const popup = Swal.getPopup();
+        const rebuildKeepScroll = (focusIdx) => {
+          const wrap = popup.querySelector(".staging-table-wrap");
+          const scrollTop = wrap ? wrap.scrollTop : 0;
+          popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems);
+          const wrap2 = popup.querySelector(".staging-table-wrap");
+          if (wrap2) wrap2.scrollTop = scrollTop;
+          if (focusIdx !== undefined && focusIdx !== null) {
+            const el = wrap2?.querySelector(`[data-ridx="${focusIdx}"]`);
+            if (el) el.focus();
+          }
+        };
         popup.addEventListener("input", e => {
           const idx = e.target.dataset?.ridx !== undefined ? Number(e.target.dataset.ridx) : null;
           if (idx === null) return;
           if (e.target.classList.contains("staging-qty-input")) {
             const v = parseFloat(e.target.value);
-            if (Number.isFinite(v) && v > 0) { reviewItems[idx].qty = v; popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems); }
+            if (Number.isFinite(v) && v >= 0) { reviewItems[idx].qty = v; }
           }
         });
         popup.addEventListener("change", e => {
           const idx = e.target.dataset?.ridx !== undefined ? Number(e.target.dataset.ridx) : null;
           if (idx === null) return;
+          if (e.target.classList.contains("staging-qty-input")) {
+            rebuildKeepScroll(idx);
+          }
           if (e.target.classList.contains("staging-labor-select")) {
             const li = Number(e.target.value);
             const labor = reviewItems[idx].laborOptions[li];
-            if (labor) { reviewItems[idx].laborIndex = li; reviewItems[idx].labPrice = labor.price; reviewItems[idx].laborDesc = labor.desc; popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems); }
+            if (labor) { reviewItems[idx].laborIndex = li; reviewItems[idx].labPrice = labor.price; reviewItems[idx].laborDesc = labor.desc; rebuildKeepScroll(idx); }
           }
         });
         popup.addEventListener("click", e => {
           if (e.target.classList.contains("staging-remove")) {
             const idx = Number(e.target.dataset.ridx);
             reviewItems.splice(idx, 1);
-            popup.querySelector(".swal2-html-container").innerHTML = buildReviewHtml(reviewItems);
+            rebuildKeepScroll();
           }
         });
       }
