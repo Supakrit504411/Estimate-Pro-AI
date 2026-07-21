@@ -6855,3 +6855,31 @@ body.field-contrast .survey-map-hint {
     min-height: 0;
   }
 }
+
+/* ── AI badge shimmer ── */
+@keyframes aiShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.brand-ai {
+  background: linear-gradient(90deg, #74045f 0%, #c044a0 40%, #e070c8 55%, #c044a0 70%, #74045f 100%);
+  background-size: 300% 100%;
+  animation: aiShimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  border: 1.5px solid rgba(192, 68, 160, 0.55);
+  padding: 1px 8px;
+  border-radius: 6px;
+  vertical-align: 2px;
+}
+
+/* ── LINE login button compact ── */
+.line-login-btn {
+  width: auto;
+  min-width: 0;
+  padding: 11px 32px;
+  margin: 16px auto 0;
+  display: flex;
+}
