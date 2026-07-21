@@ -6893,3 +6893,39 @@ body.field-contrast .survey-map-hint {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ── Mobile: auth bar + view-header minimal ── */
+@media (max-width: 720px) {
+  /* ซ่อน theme switch บน mobile — ตั้งค่าครั้งเดียวแล้วจำใน localStorage */
+  .auth-bar .theme-switch-compact {
+    display: none;
+  }
+  .auth-bar {
+    padding: 2px 6px 2px 6px;
+    gap: 4px;
+  }
+  .auth-user-name {
+    font-size: 11px;
+    max-width: 72px;
+  }
+  .auth-user-role {
+    display: none;
+  }
+  .auth-logout-btn {
+    padding: 3px 9px;
+    font-size: 11px;
+  }
+  /* View-header bar เล็กลง */
+  .view-header-bar {
+    padding: 5px 12px;
+  }
+  .view-header-bar .view-header-title {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.75;
+  }
+  .view-header-bar .view-back-btn {
+    width: 26px;
+    height: 26px;
+  }
+}
