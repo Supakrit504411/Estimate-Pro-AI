@@ -6883,3 +6883,13 @@ body.field-contrast .survey-map-hint {
   margin: 16px auto 0;
   display: flex;
 }
+
+/* ── Login title "AI" shimmer ── */
+.login-ai-shimmer {
+  background: linear-gradient(90deg, #74045f 0%, #c044a0 40%, #e070c8 55%, #c044a0 70%, #74045f 100%);
+  background-size: 300% 100%;
+  animation: aiShimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
