@@ -130,12 +130,45 @@
   const CONCRETE_RE = /(?:เทโคน|เทคอน|คอนกรีต|concrete)/;
   const CONCRETE_NEG_RE = /ไม่(?:เอา|รวม|ใส่|ต้อง).*(?:เทโคน|เทคอน|คอน)/;
 
+  const NEGATION_PREFIX = /ไม่(?:เอา|รวม|ใส่|ต้อง(?:การ)?|มี|ใช้)/;
+  const EXCLUSION_MAP = [
+    { keys: ["excludeGuy"],      words: /สายยึดโยง|ยึดโยง|สายโยง|guy|anchor/ },
+    { keys: ["excludeConcrete"], words: /เทโคน|เทคอน|คอนกรีต|concrete/ },
+    { keys: ["excludeOhgw"],     words: /ohgw|โอเอชจี|สายล่อฟ้า|ล่อฟ้า/ },
+    { keys: ["excludeSurge"],    words: /ดักเสิร์จ|surge|เสิร์จ|ล่อฟ้า|arrester/ },
+    { keys: ["excludeHead"],     words: /หัวเสา|head/ },
+    { keys: ["excludeWire"],     words: /พาดสาย|สายไฟ|ลากสาย|สาย(?!ยึด|โยง|ล่อ)/ },
+  ];
+
+  function parseExclusions(text) {
+    const t = normalizeText(text);
+    const result = {};
+    const negParts = t.split(NEGATION_PREFIX).slice(1);
+    for (const part of negParts) {
+      const snippet = part.slice(0, 40);
+      for (const rule of EXCLUSION_MAP) {
+        if (rule.words.test(snippet)) {
+          for (const k of rule.keys) result[k] = true;
+        }
+      }
+    }
+    if (/(?:ไม่|no)\s*guy|without\s*guy/i.test(t)) result.excludeGuy = true;
+    if (/without\s*(?:head|concrete|ohgw|surge|wire)/i.test(t)) {
+      if (/without\s*head/i.test(t)) result.excludeHead = true;
+      if (/without\s*concrete/i.test(t)) result.excludeConcrete = true;
+      if (/without\s*ohgw/i.test(t)) result.excludeOhgw = true;
+      if (/without\s*surge/i.test(t)) result.excludeSurge = true;
+      if (/without\s*wire/i.test(t)) result.excludeWire = true;
+    }
+    return result;
+  }
+
   function detectExcludeGuy(text) {
-    return /ไม่(?:เอา|รวม|ใส่|ต้อง(?:การ)?|มี).*(?:สายยึดโยง|ยึดโยง|guy|สายโยง|anchor)|(?:ไม่|no)\s*guy|without\s*guy/.test(text);
+    return parseExclusions(text).excludeGuy === true;
   }
 
   function detectScope(text) {
-    if (/ไม่พาดสาย|ไม่มีสาย|ไม่ลากสาย|ไม่.*(?:พาด|ลาก).*สาย|pole only/.test(text)) {
+    if (/ไม่พาดสาย|ไม่มีสาย|ไม่ลากสาย|ไม่.*(?:พาด|ลาก).*สาย|pole only/.test(text) || parseExclusions(text).excludeWire) {
       return "pole_only";
     }
     if (/อย่างเดียว|เฉพาะเสา|แค่เสา|เสาอย่างเดียว|ปักเสา.*อย่างเดียว|อย่างเดียว.*(?:ไม่|ไม่เอา)/.test(text)) {
@@ -554,7 +587,7 @@
     let scope = detectScope(text);
     const cableType = detectCableType(text, voltage);
 
-    const excludeGuy = detectExcludeGuy(text);
+    const exclusions = parseExclusions(text);
 
     let intent = applyAssemblyOptions({
       intent: "pole_run",
@@ -570,7 +603,7 @@
       cableSizeSqMm: 50,
       spanStraightM: DEFAULT_SPAN_M,
       spanCurveM: DEFAULT_CURVE_SPAN_M,
-      excludeGuy,
+      ...exclusions,
       summary: query,
       source: "local"
     }, text);
@@ -616,7 +649,7 @@
     let explicitPoleOnly = false;
     let assemblyFromText = null;
 
-    let localExcludeGuy = false;
+    let localExclusions = {};
 
     sources.forEach(text => {
       const t = normalizeText(text);
@@ -630,7 +663,7 @@
       if (/ปักเสาอย่างเดียว|อย่างเดียว|เฉพาะเสา|แค่เสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(t)) {
         explicitPoleOnly = true;
       }
-      if (detectExcludeGuy(t)) localExcludeGuy = true;
+      Object.assign(localExclusions, parseExclusions(t));
       if (!localCableType && localVoltage) {
         localCableType = detectCableType(t, localVoltage);
       }
@@ -661,7 +694,7 @@
       Object.assign(merged, assemblyFromText);
       if (assemblyFromText.assemblyMode !== "full") merged.scope = "pole_only";
     }
-    if (localExcludeGuy) merged.excludeGuy = true;
+    Object.assign(merged, localExclusions);
 
     if (merged.voltage) Object.assign(merged, applyLineDefaults(merged));
     if (merged.phase) Object.assign(merged, applyPhaseDefaults(merged));
@@ -770,20 +803,20 @@
       ? resolveCurveHeadId(params, params.config, rule)
       : (rule.headDefault || rule.headSetIds?.[0]);
 
-    if (headId) addSetToMap(lineMap, headId, 1, mergeLine, master);
+    if (headId && !params.excludeHead) addSetToMap(lineMap, headId, 1, mergeLine, master);
     if (guySetId && !params.excludeGuy) addSetToMap(lineMap, guySetId, 1, mergeLine, master);
-    if (rule.concrete?.materialId) {
+    if (rule.concrete?.materialId && !params.excludeConcrete) {
       mergeLine(lineMap, rule.concrete.materialId, rule.concrete.qty || 1, "ติดตั้ง", master);
     }
     if (params.voltage === "mv") {
-      if (rule.ohgwDefault) addSetToMap(lineMap, rule.ohgwDefault, 1, mergeLine, master);
+      if (rule.ohgwDefault && !params.excludeOhgw) addSetToMap(lineMap, rule.ohgwDefault, 1, mergeLine, master);
       if (kind === "end" && rule.groundingSetId) {
         addSetToMap(lineMap, rule.groundingSetId, 1, mergeLine, master);
       }
-      if (kind === "end" && rule.surgeArresterId) {
+      if (kind === "end" && rule.surgeArresterId && !params.excludeSurge) {
         mergeLine(lineMap, rule.surgeArresterId, rule.surgeArresterQty || 1, "ติดตั้ง", master);
       }
-    } else if (rule.surgeSetId) {
+    } else if (rule.surgeSetId && !params.excludeSurge) {
       addSetToMap(lineMap, rule.surgeSetId, 1, mergeLine, master);
     }
   }
@@ -815,8 +848,8 @@
     const guySetId = resolveGuySetId(params.poleHeightM, configKey, endRule);
     const ohgwStraightId = config?.straight?.defaults?.ohgwSetId;
     const assemblyMode = params.assemblyMode || "full";
-    const includeHead = params.includeHead !== false && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
-    const includeOhgw = params.includeOhgw !== false && assemblyMode === "full";
+    const includeHead = params.includeHead !== false && !params.excludeHead && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
+    const includeOhgw = params.includeOhgw !== false && !params.excludeOhgw && assemblyMode === "full";
     const includeConcrete = params.includeConcrete === true || assemblyMode === "pole_concrete";
     const materialOnly = assemblyMode === "pole_material" || assemblyMode === "pole_concrete";
 
@@ -849,40 +882,36 @@
       sections.push(`${parts.join(" + ")} (ไม่รวมหัวเสา SET / OHGW / Guy / สาย)`);
     } else if (layout.straightPoleCount > 0) {
       const rackNote = params.rackLabel ? ` · ${params.rackLabel}` : "";
-      sections.push(
-        `เสาทางตรง ${layout.straightPoleCount} ต้น: เสา ${poleId} + หัวเสา SET ${straightHeadId} (${getSetName(straightHeadId)})${rackNote}` +
-        (params.voltage === "mv" && config?.hasOhgw && ohgwStraightId
-          ? ` + OHGW SET ${ohgwStraightId}`
-          : "")
-      );
+      const straightParts = [`เสา ${poleId}`];
+      if (includeHead && straightHeadId) straightParts.push(`หัวเสา SET ${straightHeadId} (${getSetName(straightHeadId)})${rackNote}`);
+      if (includeOhgw && params.voltage === "mv" && config?.hasOhgw && ohgwStraightId) straightParts.push(`OHGW SET ${ohgwStraightId}`);
+      sections.push(`เสาทางตรง ${layout.straightPoleCount} ต้น: ${straightParts.join(" + ")}`);
     }
 
     if (!materialOnly && layout.curvePoleCount > 0 && curveRule) {
-      sections.push(
-        `เสาทางโค้ง ${layout.curvePoleCount} ต้น: เสา ${poleId} + หัวโค้ง SET ${curveHeadId} (${getSetName(curveHeadId)})` +
-        (params.excludeGuy ? "" : ` + Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}`) +
-        ` + ${CONCRETE_WORD} ${curveRule.concrete?.materialId || "9090010025"} × ${curveRule.concrete?.qty || 1}` +
-        (params.voltage === "mv" && curveRule.ohgwDefault ? ` + OHGW SET ${curveRule.ohgwDefault}` : "") +
-        (params.voltage === "lv" && curveRule.surgeSetId ? "" : "")
-      );
+      const curveParts = [`เสา ${poleId}`];
+      if (!params.excludeHead) curveParts.push(`หัวโค้ง SET ${curveHeadId} (${getSetName(curveHeadId)})`);
+      if (!params.excludeGuy) curveParts.push(`Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}`);
+      if (!params.excludeConcrete && curveRule.concrete?.materialId) curveParts.push(`${CONCRETE_WORD} ${curveRule.concrete.materialId} × ${curveRule.concrete?.qty || 1}`);
+      if (!params.excludeOhgw && params.voltage === "mv" && curveRule.ohgwDefault) curveParts.push(`OHGW SET ${curveRule.ohgwDefault}`);
+      sections.push(`เสาทางโค้ง ${layout.curvePoleCount} ต้น: ${curveParts.join(" + ")}`);
     }
 
     if (!materialOnly && layout.endCount > 0 && endRule) {
-      const extras = [
-        `หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`
-      ];
+      const extras = [];
+      if (!params.excludeHead) extras.push(`หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`);
       if (!params.excludeGuy && guySetId) extras.push(`ยึด Guy SET ${guySetId} (${getSetName(guySetId)})`);
-      extras.push(`${CONCRETE_WORD} ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`);
+      if (!params.excludeConcrete) extras.push(`${CONCRETE_WORD} ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`);
       if (params.voltage === "mv") {
-        if (endRule.ohgwDefault) extras.push(`OHGW SET ${endRule.ohgwDefault}`);
+        if (!params.excludeOhgw && endRule.ohgwDefault) extras.push(`OHGW SET ${endRule.ohgwDefault}`);
         if (endRule.groundingSetId) extras.push(`GROUND SET ${endRule.groundingSetId}`);
-        if (endRule.surgeArresterId) {
+        if (!params.excludeSurge && endRule.surgeArresterId) {
           extras.push(`SA ${endRule.surgeArresterId} × ${endRule.surgeArresterQty || 1}`);
         }
-      } else if (endRule.surgeSetId) {
+      } else if (!params.excludeSurge && endRule.surgeSetId) {
         extras.push(`Surge/ดักเสิร์จ SET ${endRule.surgeSetId}`);
       }
-      sections.push(`เสาต้นสุดท้าย 1 ต้น: เสา ${poleId} + ${extras.join(" + ")}`);
+      sections.push(`เสาต้นสุดท้าย 1 ต้น: เสา ${poleId}${extras.length ? " + " + extras.join(" + ") : ""}`);
     }
 
     if (params.scope === "with_wire" && (layout.totalPoles > 1 || params.distanceM > 0)) {
@@ -943,8 +972,8 @@
     } = breakdown;
 
     const assemblyMode = params.assemblyMode || "full";
-    const includeHead = params.includeHead !== false && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
-    const includeOhgw = params.includeOhgw !== false && assemblyMode === "full";
+    const includeHead = params.includeHead !== false && !params.excludeHead && assemblyMode !== "pole_material" && assemblyMode !== "pole_concrete";
+    const includeOhgw = params.includeOhgw !== false && !params.excludeOhgw && assemblyMode === "full";
     const includeConcrete = params.includeConcrete === true || assemblyMode === "pole_concrete";
     const materialOnly = assemblyMode === "pole_material" || assemblyMode === "pole_concrete";
 
@@ -989,7 +1018,7 @@
       add(cableId, dist * wireMult);
     }
 
-    if (params.voltage === "lv" && params.distanceM) {
+    if (params.voltage === "lv" && params.distanceM && !params.excludeSurge) {
       const rulesRoot = getPresetsApi()?.getSpecialPoleRules?.(breakdown.configKey);
       addLvIntervalSurges(lineMap, params.distanceM, rulesRoot, mergeLine, master);
     }
@@ -1231,6 +1260,7 @@
     expandSetItems,
     applyLineDefaults,
     applyPhaseDefaults,
-    applyVoltageDefaults
+    applyVoltageDefaults,
+    parseExclusions
   };
 })();
