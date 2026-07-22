@@ -393,9 +393,16 @@
     const height = Number(merged.poleHeightM);
     const summaryText = normalizeText(merged.summary || "");
     if (!merged.voltage) {
-      if (height >= 12 || /แรงสูง|\bmv\b|22\s*kv/.test(summaryText)) {
+      if (/แรงสูง|\bmv\b|22\s*kv/.test(summaryText)) {
         merged.voltage = "mv";
-      } else if ((height > 0 && height <= 9) || /แรงต่ำ|\blv\b|0\.4/.test(summaryText)) {
+      } else if (/แรงต่ำ|\blv\b|0\.4/.test(summaryText)) {
+        merged.voltage = "lv";
+      } else if (height >= 12) {
+        merged.voltage = "mv";
+      } else if (height >= 10) {
+        merged.voltage = "mv";
+        merged.voltageInferred = true;
+      } else if (height > 0 && height <= 9) {
         merged.voltage = "lv";
       }
     }
@@ -507,11 +514,12 @@
 
   function buildClarificationFields(intent) {
     const fields = [];
-    if (!intent.voltage) {
+    if (!intent.voltage || intent.voltageInferred) {
       fields.push({
         key: "voltage",
         label: "ระบบแรงดัน",
         type: "select",
+        defaultValue: intent.voltage || undefined,
         options: [
           { value: "mv", label: "MV แรงสูง (22 kV)" },
           { value: "lv", label: "LV แรงต่ำ (0.4 kV)" }
@@ -568,12 +576,17 @@
 
   function buildClarificationQuestion(intent) {
     if (intent.distanceM != null) {
-      if (!intent.voltage) return "ระบุว่าเป็นงาน MV แรงสูง หรือ LV แรงต่ำ";
+      if (!intent.voltage && !intent.voltageInferred) return "ระบุว่าเป็นงาน MV แรงสูง หรือ LV แรงต่ำ";
+      if (intent.voltageInferred) return `ระบบคาดว่าเป็น ${intent.voltage === "mv" ? "MV แรงสูง" : "LV แรงต่ำ"} (จากขนาดเสา) — กรุณายืนยันหรือแก้ไข`;
       if (!intent.phase) return "ระบบ 1 เฟส (1P) หรือ 3 เฟส (3P)? — LV 1P ใช้ Rack 2 (สาย ×2), LV 3P ใช้ Rack 4 (สาย ×4)";
       return null;
     }
     const parts = [];
-    if (!intent.voltage) parts.push("ระบบ MV แรงสูง หรือ LV แรงต่ำ");
+    if (intent.voltageInferred) {
+      parts.push(`ยืนยันระบบแรงดัน (คาดว่า ${intent.voltage === "mv" ? "MV แรงสูง" : "LV แรงต่ำ"})`);
+    } else if (!intent.voltage) {
+      parts.push("ระบบ MV แรงสูง หรือ LV แรงต่ำ");
+    }
     if (!intent.phase) parts.push("1 เฟส หรือ 3 เฟส");
     if (!intent.scope) parts.push("ปักเสาอย่างเดียว หรือรวมพาดสาย");
     if (intent.voltage === "mv" && intent.scope === "with_wire" && !intent.cableType) {
