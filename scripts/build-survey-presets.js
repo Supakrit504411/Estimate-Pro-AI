@@ -472,6 +472,23 @@ sets["10533"] = set("10533", "CLEVIS, FLAT STEEL INST. UNDER HT. (22 M.), INSULA
   ["1030130100", "CLEVIS,FLAT STEEL 4 1/4\" FOR INSULATOR EEI-NEMA CLASS 53-2 TIS.227", "ชิ้น", 1]
 ]);
 
+// LV concrete (เทโคน) sets — from Set LV sheet
+sets["14217"] = set("14217", "COVERED CONCRETE, POLE SIZE 9.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)", [
+  ["9090010025", "CONCRETE 1/3/5", "ลบ.ม.", 0.13]
+]);
+sets["14230"] = set("14230", "COVERED CONCRETE, POLE SIZE 12.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)", [
+  ["9090010025", "CONCRETE 1/3/5", "ลบ.ม.", 0.25]
+]);
+sets["14233"] = set("14233", "COVERED CONCRETE, POLE SIZE 14.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)", [
+  ["9090010025", "CONCRETE 1/3/5", "ลบ.ม.", 0.21]
+]);
+sets["14238"] = set("14238", "COVERED CONCRETE, POLE SIZE 12.20 AND 16.00 m LONG FOR ROCK (ASSEMBLY NO. 8201)", [
+  ["9090010025", "CONCRETE 1/3/5", "ลบ.ม.", 0.54]
+]);
+sets["14241"] = set("14241", "COVERED CONCRETE, POLE SIZE 14.30 m LONG FOR ROCK (ASSEMBLY NO. 8201)", [
+  ["9090010025", "CONCRETE 1/3/5", "ลบ.ม.", 0.77]
+]);
+
 const mvCables = [
   ["1020010000", "CONDUCTOR,AL.,BARE 25 SQ.MM.TIS.85"],
   ["1020010001", "CONDUCTOR,AL,BARE 35 sq.mm.TIS.85"],
@@ -645,8 +662,10 @@ const configs = {
 
 Object.assign(sets, specialSets, trSets);
 
+const lvExtraSets = ["14217", "14230", "14233", "14238", "14241"];
+
 const output = `/* Auto-generated survey presets — MV/LV + GUY/SURGE/GROUND + TR */
-window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables, specialPoleRules, transformers, trInstallCatalog }, null, 2)};
+window.SURVEY_PRESETS = ${JSON.stringify({ sets, configs, mvCables, lvCables, lvExtraSets, specialPoleRules, transformers, trInstallCatalog }, null, 2)};
 
 window.SurveyPresetsApi = {
   getConfigKey(voltage, phase) {

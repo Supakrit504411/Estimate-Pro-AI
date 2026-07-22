@@ -660,8 +660,9 @@
     }
 
     const fieldHtml = fields.map(field => {
+      const dv = field.defaultValue || "";
       const options = (field.options || []).map(opt => `
-        <option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>
+        <option value="${escapeHtml(opt.value)}" ${String(opt.value) === String(dv) ? "selected" : ""}>${escapeHtml(opt.label)}</option>
       `).join("");
       return `
         <label class="price-clarify-field">
@@ -1451,6 +1452,12 @@
     const resultItem = event.target.closest(".res-item");
     if (resultItem) {
       const budgetIndex = Number(resultItem.dataset.budgetIndex);
+      if (resultItem.dataset.setId) {
+        const setEntry = { id: resultItem.dataset.setId, name: "", isSet: true };
+        document.querySelectorAll(".res-box").forEach(b => { b.style.display = "none"; });
+        addSetToStaging(budgetIndex, setEntry);
+        return;
+      }
       const item = JSON.parse(resultItem.dataset.item);
       addToStaging(budgetIndex, item);
       return;
@@ -2000,6 +2007,9 @@
       Object.entries(presets.specialPoleRules || {}).forEach(([key, rules]) => {
         if (key.startsWith(voltage)) collectSetIdsFromObject(rules, ids);
       });
+      if (voltage === "lv" && Array.isArray(presets.lvExtraSets)) {
+        presets.lvExtraSets.forEach(id => ids.add(id));
+      }
     }
 
     return [...ids]
@@ -2186,11 +2196,28 @@
       return;
     }
 
+    const terms = value.split(" ");
     const hits = state.dataStore.filter(item =>
-      value.split(" ").every(term => `${item.id} ${item.name}`.toLowerCase().includes(term))
+      terms.every(term => `${item.id} ${item.name}`.toLowerCase().includes(term))
     );
 
-    box.innerHTML = hits.slice(0, 100).map(item => `
+    const setHits = [];
+    const setsMap = window.SURVEY_PRESETS?.sets;
+    if (setsMap) {
+      for (const [id, s] of Object.entries(setsMap)) {
+        if (terms.every(term => `${id} ${s.name}`.toLowerCase().includes(term))) {
+          setHits.push(s);
+        }
+      }
+    }
+
+    const setHtml = setHits.slice(0, 20).map(s => `
+      <div class="res-item is-set-result" data-budget-index="${budgetIndex}" data-set-id="${escapeHtml(s.id)}">
+        <b>SET ${s.id}</b><br>${s.name}
+      </div>
+    `).join("");
+
+    box.innerHTML = setHtml + hits.slice(0, 100).map(item => `
       <div class="res-item" data-budget-index="${budgetIndex}" data-item='${escapeHtml(JSON.stringify(item))}'>
         <b>${item.id}</b><br>${item.name}
       </div>

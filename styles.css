@@ -6946,3 +6946,9 @@ body.field-contrast .survey-map-hint {
     display: none;
   }
 }
+
+/* ── SET results in search dropdown ── */
+.res-item.is-set-result {
+  border-left: 3px solid var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}

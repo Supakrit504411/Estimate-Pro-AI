@@ -1573,6 +1573,66 @@ window.SURVEY_PRESETS = {
         }
       ]
     },
+    "14217": {
+      "id": "14217",
+      "name": "COVERED CONCRETE, POLE SIZE 9.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)",
+      "items": [
+        {
+          "id": "9090010025",
+          "name": "CONCRETE 1/3/5",
+          "unit": "ลบ.ม.",
+          "qty": 0.13
+        }
+      ]
+    },
+    "14230": {
+      "id": "14230",
+      "name": "COVERED CONCRETE, POLE SIZE 12.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)",
+      "items": [
+        {
+          "id": "9090010025",
+          "name": "CONCRETE 1/3/5",
+          "unit": "ลบ.ม.",
+          "qty": 0.25
+        }
+      ]
+    },
+    "14233": {
+      "id": "14233",
+      "name": "COVERED CONCRETE, POLE SIZE 14.00 m LONG FOR NORMAL SOIL (ASSEMBLY NO. 8201)",
+      "items": [
+        {
+          "id": "9090010025",
+          "name": "CONCRETE 1/3/5",
+          "unit": "ลบ.ม.",
+          "qty": 0.21
+        }
+      ]
+    },
+    "14238": {
+      "id": "14238",
+      "name": "COVERED CONCRETE, POLE SIZE 12.20 AND 16.00 m LONG FOR ROCK (ASSEMBLY NO. 8201)",
+      "items": [
+        {
+          "id": "9090010025",
+          "name": "CONCRETE 1/3/5",
+          "unit": "ลบ.ม.",
+          "qty": 0.54
+        }
+      ]
+    },
+    "14241": {
+      "id": "14241",
+      "name": "COVERED CONCRETE, POLE SIZE 14.30 m LONG FOR ROCK (ASSEMBLY NO. 8201)",
+      "items": [
+        {
+          "id": "9090010025",
+          "name": "CONCRETE 1/3/5",
+          "unit": "ลบ.ม.",
+          "qty": 0.77
+        }
+      ]
+    },
     "20101": {
       "id": "20101",
       "name": "X-ARM-C, 1-P, SP 0-5 * C",
@@ -6262,6 +6322,13 @@ window.SURVEY_PRESETS = {
       "id": "1020070008",
       "name": "CABLE,AL,COMPACT STRANDED,PVC-INSULATED,750 V. 75 DEG.C, 240 SQ.MM. TIS.293"
     }
+  ],
+  "lvExtraSets": [
+    "14217",
+    "14230",
+    "14233",
+    "14238",
+    "14241"
   ],
   "specialPoleRules": {
     "mv1p": {
