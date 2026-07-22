@@ -6952,3 +6952,31 @@ body.field-contrast .survey-map-hint {
   border-left: 3px solid var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
+
+/* ── User location blue dot on survey map ── */
+.user-location-dot {
+  background: #2196F3;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(33,150,243,.5);
+  animation: loc-pulse 2s ease-out infinite;
+}
+@keyframes loc-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(33,150,243,.45); }
+  70% { box-shadow: 0 0 0 12px rgba(33,150,243,0); }
+  100% { box-shadow: 0 0 0 0 rgba(33,150,243,0); }
+}
+.user-location-accuracy {
+  fill: rgba(33,150,243,.1);
+  stroke: rgba(33,150,243,.25);
+  stroke-width: 1;
+}
+.survey-map-ctrl .survey-loc-btn.has-fix {
+  color: #2196F3;
+}
+.survey-map-ctrl .survey-loc-btn.is-loading {
+  animation: loc-spin .8s linear infinite;
+}
+@keyframes loc-spin {
+  to { transform: rotate(360deg); }
+}

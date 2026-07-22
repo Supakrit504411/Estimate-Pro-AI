@@ -41,7 +41,11 @@
     },
     segments: [],
     trInstalls: [],
-    activeSegmentId: null
+    activeSegmentId: null,
+    geoWatchId: null,
+    userLocationMarker: null,
+    userLocationAccuracy: null,
+    lastUserLatLng: null
   };
 
   const projectApi = window.SurveyProject;
@@ -1863,7 +1867,8 @@
       const div = L.DomUtil.create("div", "leaflet-bar survey-map-ctrl");
       div.innerHTML = ""
         + '<a href="#" id="surveyMapFsBtn" title="ขยายแผนที่เต็มจอ" role="button" aria-label="ขยายแผนที่เต็มจอ">⛶</a>'
-        + '<a href="#" id="surveyMapSatBtn" title="สลับแผนที่ถนน/ดาวเทียม" role="button" aria-label="สลับภาพดาวเทียม">🛰</a>';
+        + '<a href="#" id="surveyMapSatBtn" title="สลับแผนที่ถนน/ดาวเทียม" role="button" aria-label="สลับภาพดาวเทียม">🛰</a>'
+        + '<a href="#" id="surveyMapLocBtn" title="ตำแหน่งปัจจุบันของฉัน" role="button" aria-label="ตำแหน่งปัจจุบันของฉัน" class="survey-loc-btn">📍</a>';
       L.DomEvent.disableClickPropagation(div);
       div.querySelector("#surveyMapFsBtn").addEventListener("click", event => {
         event.preventDefault();
@@ -1872,6 +1877,10 @@
       div.querySelector("#surveyMapSatBtn").addEventListener("click", event => {
         event.preventDefault();
         toggleBaseLayer();
+      });
+      div.querySelector("#surveyMapLocBtn").addEventListener("click", event => {
+        event.preventDefault();
+        flyToMyLocation();
       });
       return div;
     };
@@ -1882,6 +1891,63 @@
         toggleMapFullscreen();
       }
     });
+  }
+
+  function startLocationTracking() {
+    if (!navigator.geolocation || state.geoWatchId != null) return;
+    state.geoWatchId = navigator.geolocation.watchPosition(
+      pos => {
+        const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+        state.lastUserLatLng = latlng;
+        if (!state.map) return;
+        if (!state.userLocationMarker) {
+          const icon = L.divIcon({
+            className: "user-location-dot",
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+          });
+          state.userLocationMarker = L.marker(latlng, { icon, interactive: false, zIndexOffset: -100 }).addTo(state.map);
+          state.userLocationAccuracy = L.circle(latlng, {
+            radius: pos.coords.accuracy,
+            className: "user-location-accuracy",
+            interactive: false
+          }).addTo(state.map);
+        } else {
+          state.userLocationMarker.setLatLng(latlng);
+          state.userLocationAccuracy.setLatLng(latlng).setRadius(pos.coords.accuracy);
+        }
+        const locBtn = document.getElementById("surveyMapLocBtn");
+        if (locBtn) locBtn.classList.add("has-fix");
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  function flyToMyLocation() {
+    if (state.lastUserLatLng && state.map) {
+      state.map.flyTo(state.lastUserLatLng, Math.max(state.map.getZoom(), 17));
+      return;
+    }
+    if (!navigator.geolocation) {
+      Swal.fire("ไม่รองรับ GPS", "อุปกรณ์นี้ไม่สามารถดึงตำแหน่งได้", "error");
+      return;
+    }
+    const locBtn = document.getElementById("surveyMapLocBtn");
+    if (locBtn) locBtn.classList.add("is-loading");
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        if (locBtn) locBtn.classList.remove("is-loading");
+        const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+        state.lastUserLatLng = latlng;
+        if (state.map) state.map.flyTo(latlng, Math.max(state.map.getZoom(), 17));
+      },
+      () => {
+        if (locBtn) locBtn.classList.remove("is-loading");
+        Swal.fire("GPS ไม่สำเร็จ", "ไม่สามารถดึงตำแหน่งได้", "error");
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
   }
 
   function initMap() {
@@ -1910,6 +1976,7 @@
       state.mapResizeObserver.observe(els.mapEl);
     }
     state.mapReady = true;
+    startLocationTracking();
   }
 
   function ensureProjectReady() {
