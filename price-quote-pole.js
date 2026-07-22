@@ -102,6 +102,17 @@
     };
   }
 
+  function applyPoleTypeOverride(layout, poleType) {
+    if (!poleType || !layout) return;
+    if (poleType === "end" && layout.endCount === 0) {
+      layout.endCount = 1;
+      layout.straightPoleCount = Math.max(0, layout.totalPoles - layout.endCount - layout.curvePoleCount);
+    } else if (poleType === "curve" && layout.curvePoleCount === 0) {
+      layout.curvePoleCount = 1;
+      layout.straightPoleCount = Math.max(0, layout.totalPoles - layout.endCount - layout.curvePoleCount);
+    }
+  }
+
   function computePoleCountLayout(poleCount) {
     const count = Math.max(1, Number(poleCount) || 1);
     return {
@@ -161,6 +172,12 @@
       if (/without\s*wire/i.test(t)) result.excludeWire = true;
     }
     return result;
+  }
+
+  function detectPoleType(text) {
+    if (/ต้นสุดท้าย|เสาสุดท้าย|ปลายทาง|เสาปลายทาง|end\s*pole|สุดท้าย/.test(text)) return "end";
+    if (/โค้ง|เข้าโค้ง|ออกโค้ง|curve/.test(text)) return "curve";
+    return null;
   }
 
   function detectExcludeGuy(text) {
@@ -588,6 +605,7 @@
     const cableType = detectCableType(text, voltage);
 
     const exclusions = parseExclusions(text);
+    const poleType = detectPoleType(text);
 
     let intent = applyAssemblyOptions({
       intent: "pole_run",
@@ -604,6 +622,7 @@
       spanStraightM: DEFAULT_SPAN_M,
       spanCurveM: DEFAULT_CURVE_SPAN_M,
       ...exclusions,
+      poleType: poleType || undefined,
       summary: query,
       source: "local"
     }, text);
@@ -650,6 +669,7 @@
     let assemblyFromText = null;
 
     let localExclusions = {};
+    let localPoleType = null;
 
     sources.forEach(text => {
       const t = normalizeText(text);
@@ -664,6 +684,7 @@
         explicitPoleOnly = true;
       }
       Object.assign(localExclusions, parseExclusions(t));
+      if (!localPoleType) localPoleType = detectPoleType(t);
       if (!localCableType && localVoltage) {
         localCableType = detectCableType(t, localVoltage);
       }
@@ -695,6 +716,7 @@
       if (assemblyFromText.assemblyMode !== "full") merged.scope = "pole_only";
     }
     Object.assign(merged, localExclusions);
+    if (localPoleType && !merged.poleType) merged.poleType = localPoleType;
 
     if (merged.voltage) Object.assign(merged, applyLineDefaults(merged));
     if (merged.phase) Object.assign(merged, applyPhaseDefaults(merged));
@@ -754,6 +776,10 @@
       merged.layout = computePoleCountLayout(merged.poleCount);
       merged.spanStraightM = Number(merged.spanStraightM) || DEFAULT_SPAN_M;
       if (!merged.scope) merged.scope = "pole_only";
+    }
+
+    if (merged.poleType && merged.layout) {
+      applyPoleTypeOverride(merged.layout, merged.poleType);
     }
 
     merged.spanCurveM = Number(merged.spanCurveM) || DEFAULT_CURVE_SPAN_M;
