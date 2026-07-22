@@ -846,7 +846,7 @@
       }
       if (hasDistance) {
         result.scope = result.scope === "pole_only" ? result.scope : "with_wire";
-        delete result.poleCount;
+        if (!result.poleCount) delete result.poleCount;
       }
 
       const fields = window.PriceQuotePole?.buildClarificationFields?.(result) || [];

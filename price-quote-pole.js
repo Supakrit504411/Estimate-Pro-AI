@@ -696,15 +696,22 @@
     if (merged.phase) merged = applyPhaseDefaults(merged);
 
     const distanceM = Number(merged.distanceM);
+    const explicitPoleCount = Number(merged.poleCount);
     if (Number.isFinite(distanceM) && distanceM > 0) {
       merged.distanceM = distanceM;
       merged.curveDistanceM = Math.max(0, Number(merged.curveDistanceM) || 0);
-      merged.layout = computePoleLayout(merged.distanceM, {
-        spanStraightM: merged.spanStraightM,
-        spanCurveM: merged.spanCurveM,
-        curveDistanceM: merged.curveDistanceM
-      });
-      merged.poleCount = merged.layout.totalPoles;
+      if (Number.isFinite(explicitPoleCount) && explicitPoleCount >= 1) {
+        merged.poleCount = explicitPoleCount;
+        merged.layout = computePoleCountLayout(explicitPoleCount);
+        merged.layout.distanceM = distanceM;
+      } else {
+        merged.layout = computePoleLayout(merged.distanceM, {
+          spanStraightM: merged.spanStraightM,
+          spanCurveM: merged.spanCurveM,
+          curveDistanceM: merged.curveDistanceM
+        });
+        merged.poleCount = merged.layout.totalPoles;
+      }
       merged.scope = "with_wire";
     } else {
       merged.poleHeightM = Number(merged.poleHeightM || parsePoleHeight(intent.summary || ""))
