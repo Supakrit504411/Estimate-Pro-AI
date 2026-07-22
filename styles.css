@@ -6922,3 +6922,27 @@ body.field-contrast .survey-map-hint {
     display: none;
   }
 }
+
+/* ── price-ask chips: single scrollable row on mobile ── */
+.price-ask-chips-bar {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 720px) {
+  .price-ask-input-bar {
+    padding: 8px 10px 6px;
+  }
+  .price-ask-input-row {
+    margin-bottom: 6px;
+  }
+  .price-ask-chips-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .price-ask-chips-bar::-webkit-scrollbar {
+    display: none;
+  }
+}
