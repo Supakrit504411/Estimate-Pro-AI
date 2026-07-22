@@ -885,7 +885,7 @@
       sections.push(`เสาต้นสุดท้าย 1 ต้น: เสา ${poleId} + ${extras.join(" + ")}`);
     }
 
-    if (params.scope === "with_wire" && layout.totalPoles > 1) {
+    if (params.scope === "with_wire" && (layout.totalPoles > 1 || params.distanceM > 0)) {
       const cableId = resolveCableMaterialId(params.voltage, params.cableType, params.cableSizeSqMm, config);
       const wireMult = params.wireMultiplier || config?.wireMultiplier || 1;
       const dist = params.distanceM != null
@@ -975,7 +975,7 @@
       }
     }
 
-    if (params.scope === "with_wire" && layout.totalPoles > 1) {
+    if (params.scope === "with_wire" && (layout.totalPoles > 1 || params.distanceM > 0)) {
       const cableId = resolveCableMaterialId(
         params.voltage,
         params.cableType,
