@@ -130,6 +130,10 @@
   const CONCRETE_RE = /(?:เทโคน|เทคอน|คอนกรีต|concrete)/;
   const CONCRETE_NEG_RE = /ไม่(?:เอา|รวม|ใส่|ต้อง).*(?:เทโคน|เทคอน|คอน)/;
 
+  function detectExcludeGuy(text) {
+    return /ไม่(?:เอา|รวม|ใส่|ต้อง(?:การ)?|มี).*(?:สายยึดโยง|ยึดโยง|guy|สายโยง|anchor)|(?:ไม่|no)\s*guy|without\s*guy/.test(text);
+  }
+
   function detectScope(text) {
     if (/ไม่พาดสาย|ไม่มีสาย|ไม่ลากสาย|ไม่.*(?:พาด|ลาก).*สาย|pole only/.test(text)) {
       return "pole_only";
@@ -550,6 +554,8 @@
     let scope = detectScope(text);
     const cableType = detectCableType(text, voltage);
 
+    const excludeGuy = detectExcludeGuy(text);
+
     let intent = applyAssemblyOptions({
       intent: "pole_run",
       budgetType,
@@ -564,6 +570,7 @@
       cableSizeSqMm: 50,
       spanStraightM: DEFAULT_SPAN_M,
       spanCurveM: DEFAULT_CURVE_SPAN_M,
+      excludeGuy,
       summary: query,
       source: "local"
     }, text);
@@ -609,6 +616,8 @@
     let explicitPoleOnly = false;
     let assemblyFromText = null;
 
+    let localExcludeGuy = false;
+
     sources.forEach(text => {
       const t = normalizeText(text);
       localDistance = localDistance ?? parseDistanceM(t);
@@ -621,6 +630,7 @@
       if (/ปักเสาอย่างเดียว|อย่างเดียว|เฉพาะเสา|แค่เสา|ไม่พาดสาย|ไม่มีสาย|pole only/.test(t)) {
         explicitPoleOnly = true;
       }
+      if (detectExcludeGuy(t)) localExcludeGuy = true;
       if (!localCableType && localVoltage) {
         localCableType = detectCableType(t, localVoltage);
       }
@@ -651,6 +661,7 @@
       Object.assign(merged, assemblyFromText);
       if (assemblyFromText.assemblyMode !== "full") merged.scope = "pole_only";
     }
+    if (localExcludeGuy) merged.excludeGuy = true;
 
     if (merged.voltage) Object.assign(merged, applyLineDefaults(merged));
     if (merged.phase) Object.assign(merged, applyPhaseDefaults(merged));
@@ -753,7 +764,7 @@
       : (rule.headDefault || rule.headSetIds?.[0]);
 
     if (headId) addSetToMap(lineMap, headId, 1, mergeLine, master);
-    if (guySetId) addSetToMap(lineMap, guySetId, 1, mergeLine, master);
+    if (guySetId && !params.excludeGuy) addSetToMap(lineMap, guySetId, 1, mergeLine, master);
     if (rule.concrete?.materialId) {
       mergeLine(lineMap, rule.concrete.materialId, rule.concrete.qty || 1, "ติดตั้ง", master);
     }
@@ -842,7 +853,7 @@
     if (!materialOnly && layout.curvePoleCount > 0 && curveRule) {
       sections.push(
         `เสาทางโค้ง ${layout.curvePoleCount} ต้น: เสา ${poleId} + หัวโค้ง SET ${curveHeadId} (${getSetName(curveHeadId)})` +
-        ` + Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}` +
+        (params.excludeGuy ? "" : ` + Guy SET ${resolveGuySetId(params.poleHeightM, configKey, curveRule)}`) +
         ` + ${CONCRETE_WORD} ${curveRule.concrete?.materialId || "9090010025"} × ${curveRule.concrete?.qty || 1}` +
         (params.voltage === "mv" && curveRule.ohgwDefault ? ` + OHGW SET ${curveRule.ohgwDefault}` : "") +
         (params.voltage === "lv" && curveRule.surgeSetId ? "" : "")
@@ -851,10 +862,10 @@
 
     if (!materialOnly && layout.endCount > 0 && endRule) {
       const extras = [
-        `หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`,
-        `ยึด Guy SET ${guySetId} (${getSetName(guySetId)})`,
-        `${CONCRETE_WORD} ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`
+        `หัวเสาต้นสุดท้าย SET ${endHeadId} (${getSetName(endHeadId)})`
       ];
+      if (!params.excludeGuy && guySetId) extras.push(`ยึด Guy SET ${guySetId} (${getSetName(guySetId)})`);
+      extras.push(`${CONCRETE_WORD} ${endRule.concrete?.materialId || "9090010025"} × ${endRule.concrete?.qty || 1}`);
       if (params.voltage === "mv") {
         if (endRule.ohgwDefault) extras.push(`OHGW SET ${endRule.ohgwDefault}`);
         if (endRule.groundingSetId) extras.push(`GROUND SET ${endRule.groundingSetId}`);
