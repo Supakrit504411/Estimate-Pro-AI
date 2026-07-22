@@ -497,6 +497,7 @@
     }
 
     els.priceAskBtn.disabled = true;
+    if (els.priceAskInput) els.priceAskInput.value = "";
     els.priceAskResult.classList.remove("hidden");
 
     const displayQuery = query || (faqId ? (appConfig.priceFaq?.[faqId]?.label || faqId) : "");
