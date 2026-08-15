@@ -1597,18 +1597,50 @@
       poles.forEach((pole, index) => {
         const pt = px(map.latLngToContainerPoint([pole.lat, pole.lng]));
         const isStart = pole.source === "start" || pole.number === 0;
-        ctx.fillStyle = isStart ? "#f5c96a" : color;
+        const sub = buildPinSubLabel(pole, seg);
+
+        // ให้ตรงกับหมุดบนจอ: สี่เหลี่ยม + ป้ายขนาด/เข้า-ออกโค้ง และแยกสีตามชนิดเสา
+        const fill = isStart ? "#f5c96a"
+          : pole.source === "curve_in" || pole.source === "curve_out" || pole.source === "curve_waypoint" ? "#8f6bff"
+          : pole.source === "control" || pole.source === "end" ? "#74045f"
+          : color;
+        const light = fill === "#8f6bff" || fill === "#74045f";
+
+        ctx.font = `bold ${8 * scale}px Sarabun,sans-serif`;
+        const subW = sub ? ctx.measureText(sub).width : 0;
+        const boxW = Math.max((isStart ? 22 : 20) * scale, subW + 8 * scale);
+        const boxH = (sub ? 26 : isStart ? 22 : 20) * scale;
+        const r = 4 * scale;
+        const x = pt.x - boxW / 2;
+        const y = pt.y - boxH / 2;
+
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, (isStart ? 11 : 8) * scale, 0, Math.PI * 2);
+        if (ctx.roundRect) ctx.roundRect(x, y, boxW, boxH, r);
+        else ctx.rect(x, y, boxW, boxH);
+        ctx.fillStyle = fill;
         ctx.fill();
         ctx.strokeStyle = "rgba(255,255,255,0.85)";
         ctx.lineWidth = 1.5 * scale;
         ctx.stroke();
-        ctx.fillStyle = "#03111f";
-        ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
+
+        if (pole.source === "end") {
+          ctx.strokeStyle = "rgba(116,4,95,0.55)";
+          ctx.lineWidth = 2.5 * scale;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(x - 2.5 * scale, y - 2.5 * scale, boxW + 5 * scale, boxH + 5 * scale, r + 2 * scale);
+          else ctx.rect(x - 2.5 * scale, y - 2.5 * scale, boxW + 5 * scale, boxH + 5 * scale);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = light ? "#ffffff" : "#03111f";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+        ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
+        ctx.fillText(String(pole.number ?? index), pt.x, sub ? pt.y - 5 * scale : pt.y);
+        if (sub) {
+          ctx.font = `600 ${7.5 * scale}px Sarabun,sans-serif`;
+          ctx.fillText(sub, pt.x, pt.y + 6 * scale);
+        }
       });
     });
 
@@ -2974,7 +3006,7 @@
     return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
-  function createNumberIcon(number, source, heightLabel = "") {
+  function createNumberIcon(number, source, subLabel = "") {
     const classes = ["survey-pin"];
     if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
@@ -2985,23 +3017,79 @@
     // จึงตกไปใช้สีพื้นฐาน (ม่วง PEA) เหมือนกัน แยกด้วยตาไม่ได้
     if (source === "control") classes.push("is-control");
     if (source === "end") classes.push("is-end");
+    if (subLabel) classes.push("has-sub");
 
-    const sub = heightLabel ? `<span class="survey-pin-ht">${heightLabel}</span>` : "";
-    const hasHt = !!heightLabel;
+    const isStart = source === "start";
+    const sub = subLabel ? `<span class="survey-pin-ht">${escapeHtml(subLabel)}</span>` : "";
+
+    // ป้ายโค้ง ("เข้า·12.2ม") ยาวกว่าป้ายขนาดเปล่า ("12.2ม") มาก จึงกว้างตามเนื้อหา
+    // iconSize ต้องตรงกับความกว้างจริงของ .survey-pin ไม่งั้นหมุดจะเยื้องจากพิกัด
+    let w = isStart ? 30 : 28;
+    let h = isStart ? 30 : 28;
+    if (subLabel) {
+      w = Math.max(w, Math.round(subLabel.length * 5.2) + 14);
+      h = isStart ? 36 : 34;
+    }
+
     return L.divIcon({
       className: "survey-pin-wrap",
       html: `<div class="${classes.join(" ")}">${number}${sub}</div>`,
-      iconSize: source === "start" ? (hasHt ? [32, 36] : [30, 30]) : (hasHt ? [30, 34] : [28, 28]),
-      iconAnchor: source === "start" ? (hasHt ? [16, 18] : [15, 15]) : (hasHt ? [15, 17] : [14, 14])
+      iconSize: [w, h],
+      iconAnchor: [Math.round(w / 2), Math.round(h / 2)]
     });
+  }
+
+  // รหัสเสา → ความสูงเป็นเมตร กลับด้านจาก POLE_BY_HEIGHT_M ใน price-quote-catalog
+  // ถ้ารหัสเดียวผูกหลายค่า (12 กับ 12.2 → 1000010012) เลือกค่าที่ละเอียดกว่า
+  let poleHeightByIdCache = null;
+  function getPoleHeightById() {
+    if (poleHeightByIdCache) return poleHeightByIdCache;
+    const map = {};
+    const src = window.PRICE_QUOTE_CATALOG?.POLE_BY_HEIGHT_M || {};
+    Object.entries(src).forEach(([height, id]) => {
+      const h = Number(height);
+      const key = String(id);
+      if (map[key] == null || String(h).includes(".")) map[key] = h;
+    });
+    poleHeightByIdCache = map;
+    return map;
   }
 
   function getPoleHeightLabel(poleMaterialId) {
     if (!poleMaterialId) return "";
-    const item = findMaterialById(poleMaterialId);
+    const id = String(poleMaterialId).trim();
+
+    const known = getPoleHeightById()[id];
+    if (known != null) return `${known}ม`;
+
+    // สำรอง: อ่านจากชื่อวัสดุ — master data ใช้ชื่ออังกฤษ ("POLE,CONCRETE, 12.20 M. LONG")
+    // แต่รองรับชื่อไทยไว้ด้วยเผื่อมีการเพิ่มภายหลัง
+    const item = findMaterialById(id);
     if (!item) return "";
-    const m = String(item.name || item.id).match(/([\d.]+)\s*ม\.?/);
-    return m ? m[1] + "ม" : "";
+    const name = String(item.name || "");
+    const m = name.match(/(\d+(?:\.\d+)?)\s*(?:M\b|ม\.?|เมตร)/i);
+    if (!m) return "";
+    return `${parseFloat(m[1])}ม`;
+  }
+
+  // ระหว่างสำรวจยังไม่ได้เลือกรหัสเสา — ใช้ค่า default ของ config เพื่อให้เห็นขนาดได้ทันที
+  function getPoleHeightLabelForPole(pole, segment) {
+    if (pole.source === "start") return "";
+    if (pole.poleMaterialId) return getPoleHeightLabel(pole.poleMaterialId);
+    const config = presetsApi
+      ? presetsApi.getConfig(segment?.type || state.voltageType, segment?.phase || state.phaseType)
+      : null;
+    return getPoleHeightLabel(config?.poleDefault || "");
+  }
+
+  // ป้ายใต้เลขหมุด: ขนาดเสา และระบุเข้า/ออกโค้งด้วย เพราะสองอย่างนี้สีเดียวกันบนแผนที่
+  function buildPinSubLabel(pole, segment) {
+    const height = getPoleHeightLabelForPole(pole, segment);
+    const role = pole.source === "curve_in" ? "เข้า"
+      : pole.source === "curve_out" ? "ออก"
+      : "";
+    if (role && height) return `${role}·${height}`;
+    return role || height;
   }
 
   function createTrIcon() {
@@ -3052,9 +3140,9 @@
       }
 
       (seg.poles || []).forEach(pole => {
-        const heightLabel = getPoleHeightLabel(pole.poleMaterialId);
+        const subLabel = buildPinSubLabel(pole, seg);
         const marker = L.marker([pole.lat, pole.lng], {
-          icon: createNumberIcon(pole.number, pole.source, heightLabel),
+          icon: createNumberIcon(pole.number, pole.source, subLabel),
           draggable: isActive && state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId,
           opacity: isActive ? 1 : 0.65
         }).addTo(state.map);

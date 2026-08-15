@@ -7021,3 +7021,18 @@ body.field-contrast .survey-pin.is-end {
 body.field-contrast .survey-pin.is-end {
   box-shadow: 0 0 0 3px #fff, 0 0 0 6px #4a148c, 0 2px 6px rgba(0, 0, 0, 0.5);
 }
+
+/* หมุดที่มีป้ายใต้เลข (ขนาดเสา / เข้า-ออกโค้ง) ต้องกว้างตามข้อความ
+   ความกว้างคงที่ 28px เดิมทำให้ป้ายอย่าง "เข้า·12.2ม" ล้นออกนอกหมุด */
+.survey-pin.has-sub {
+  width: auto;
+  height: auto;
+  min-width: 28px;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.survey-pin.has-sub .survey-pin-ht {
+  font-size: 8px;
+  margin-top: 1px;
+}
