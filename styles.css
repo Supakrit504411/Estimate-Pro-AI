@@ -6999,3 +6999,25 @@ body.field-contrast .survey-map-hint {
   opacity: 0.92;
   letter-spacing: 0;
 }
+
+/* หมุดที่ผู้ใช้ปักเอง (control) กับต้นสุดท้าย (end) เดิมไม่มี class จึงใช้สีพื้นฐาน
+   ม่วง PEA เหมือนกันจนแยกไม่ออก และเลขเป็นสีเข้มบนพื้นเข้มทำให้อ่านยาก
+   คงสีม่วงทึบไว้ตามภาษาดีไซน์ แยกต้นสุดท้ายด้วยวงแหวนแทนการเพิ่มสีใหม่ */
+.survey-pin.is-control,
+.survey-pin.is-end {
+  color: #fff;
+}
+
+.survey-pin.is-end {
+  box-shadow: 0 0 0 3px rgba(116, 4, 95, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+body.field-contrast .survey-pin.is-control,
+body.field-contrast .survey-pin.is-end {
+  background: #4a148c;
+  color: #fff;
+}
+
+body.field-contrast .survey-pin.is-end {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px #4a148c, 0 2px 6px rgba(0, 0, 0, 0.5);
+}

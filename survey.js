@@ -1484,6 +1484,7 @@
       ["เข้าโค้ง–ออกโค้ง", stats.curveEntryExit ?? 0],
       ["เสาภายในโค้ง", stats.curveInterior ?? 0],
       ["เสาต้นสุดท้าย", stats.endPoles ?? 0],
+      ["จุดต่อเดิม (ไม่ตั้งใหม่)", stats.startPoles ?? 0],
       ["ยึดโยง (Guy)", stats.guySets ?? 0]
     ];
     const boxW = Math.min(220, Math.max(188, width * 0.34));
@@ -1539,6 +1540,7 @@
       ["เข้าโค้ง–ออกโค้ง", stats.curveEntryExit ?? 0],
       ["เสาภายในโค้ง", stats.curveInterior ?? 0],
       ["เสาต้นสุดท้าย", stats.endPoles ?? 0],
+      ["จุดต่อเดิม (ไม่ตั้งใหม่)", stats.startPoles ?? 0],
       ["ยึดโยง (Guy)", stats.guySets ?? 0]
     ];
     els.mapStatsOverlay.innerHTML = `
@@ -2979,6 +2981,10 @@
     if (source === "curve_out") classes.push("is-curve-out");
     if (source === "curve_waypoint") classes.push("is-curve-in");
     if (source === "auto") classes.push("is-auto");
+    // control = หมุดที่ผู้ใช้ปักเอง, end = ต้นสุดท้าย — เดิมไม่มี class ทั้งคู่
+    // จึงตกไปใช้สีพื้นฐาน (ม่วง PEA) เหมือนกัน แยกด้วยตาไม่ได้
+    if (source === "control") classes.push("is-control");
+    if (source === "end") classes.push("is-end");
 
     const sub = heightLabel ? `<span class="survey-pin-ht">${heightLabel}</span>` : "";
     const hasHt = !!heightLabel;

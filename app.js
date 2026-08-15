@@ -3191,6 +3191,7 @@
               <tr><td class="kv-label">เข้า/ออกโค้ง</td><td class="kv-value">${stats.curveEntryExit ?? 0} ต้น</td></tr>
               <tr><td class="kv-label">เสาภายในโค้ง</td><td class="kv-value">${stats.curveInterior ?? 0} ต้น</td></tr>
               <tr><td class="kv-label">เสาต้นสุดท้าย</td><td class="kv-value">${stats.endPoles ?? 0} ต้น</td></tr>
+              <tr><td class="kv-label">จุดต่อเดิม (ไม่ตั้งใหม่)</td><td class="kv-value">${stats.startPoles ?? 0} ต้น</td></tr>
               <tr><td class="kv-label">ยึดโยง (Guy)</td><td class="kv-value">${stats.guySets ?? 0} ชุด</td></tr>
       ` : "";
       const setUsageHtml = "";
@@ -4067,7 +4068,7 @@
     const endLabel = meta.endLabel || (poleCount !== "-" ? `หมุด ${Math.max(0, Number(poleCount) - 1)}` : "-");
     const stats = meta.poleStats;
     const statsHtml = stats ? `
-      <br>เสาทางตรง: ${stats.straightRun} · เข้า/ออกโค้ง: ${stats.curveEntryExit} · ในโค้ง: ${stats.curveInterior} · ต้นสุดท้าย: ${stats.endPoles} · Guy: ${stats.guySets}
+      <br>เสาทางตรง: ${stats.straightRun} · เข้า/ออกโค้ง: ${stats.curveEntryExit} · ในโค้ง: ${stats.curveInterior} · ต้นสุดท้าย: ${stats.endPoles} · จุดต่อเดิม: ${stats.startPoles ?? 0} · Guy: ${stats.guySets}
     ` : "";
 
     return `

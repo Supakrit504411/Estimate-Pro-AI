@@ -230,6 +230,7 @@
 
   function computeSurveyPoleStats(project) {
     const stats = {
+      startPoles: 0,
       straightRun: 0,
       curveEntryExit: 0,
       curveInterior: 0,
@@ -240,13 +241,18 @@
     project.segments.filter(s => s.kind === "line").forEach(segment => {
       (segment.poles || []).forEach(pole => {
         const source = pole.source;
-        if (source === "end") {
+        // "control" = หมุดที่ผู้ใช้ปักเองระหว่างทาง (ไม่ใช่ต้นสุดท้าย) — เป็นเสาใหม่เหมือน "auto"
+        // ถ้าไม่นับตรงนี้ ยอดในแผงสรุปจะน้อยกว่าจำนวนเสาที่ปักจริง
+        const isRunPole = source === "auto" || source === "control";
+        if (source === "start") {
+          stats.startPoles += 1;
+        } else if (source === "end") {
           stats.endPoles += 1;
         } else if (source === "curve_in" || source === "curve_out") {
           stats.curveEntryExit += 1;
-        } else if (source === "curve_waypoint" || (source === "auto" && pole.section === "curve")) {
+        } else if (source === "curve_waypoint" || (isRunPole && pole.section === "curve")) {
           stats.curveInterior += 1;
-        } else if (source === "auto") {
+        } else if (isRunPole) {
           stats.straightRun += 1;
         }
         if (pole.guySetId) stats.guySets += 1;
