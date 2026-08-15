@@ -66,6 +66,7 @@
     els.mapEl = document.getElementById("surveyMap");
     els.mapShell = document.querySelector(".survey-map-shell");
     els.mapStatsOverlay = document.getElementById("surveyMapStatsOverlay");
+    els.mapCost = document.getElementById("surveyMapCost");
     els.poleList = document.getElementById("surveyPoleList");
     els.prePanel = document.getElementById("surveyPrePanel");
     els.mapStage = document.getElementById("surveyMapStage");
@@ -1641,6 +1642,24 @@
           ctx.font = `600 ${7.5 * scale}px Sarabun,sans-serif`;
           ctx.fillText(sub, pt.x, pt.y + 6 * scale);
         }
+
+        // ป้ายเข้า/ออกโค้งวางข้างหมุด ให้ตรงกับที่แสดงบนจอ
+        const side = buildPinSideLabel(pole);
+        if (side) {
+          ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
+          const tw = ctx.measureText(side).width;
+          const bx = x + boxW + 5 * scale;
+          const by = pt.y - 8 * scale;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(bx, by, tw + 10 * scale, 16 * scale, 5 * scale);
+          else ctx.rect(bx, by, tw + 10 * scale, 16 * scale);
+          ctx.fillStyle = "#8f6bff";
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.textAlign = "left";
+          ctx.fillText(side, bx + 5 * scale, pt.y);
+          ctx.textAlign = "center";
+        }
       });
     });
 
@@ -3006,7 +3025,7 @@
     return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
-  function createNumberIcon(number, source, subLabel = "") {
+  function createNumberIcon(number, source, subLabel = "", sideLabel = "") {
     const classes = ["survey-pin"];
     if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
@@ -3031,9 +3050,12 @@
       h = isStart ? 36 : 34;
     }
 
+    // ป้ายข้างหมุดวาดทับออกไปนอก iconSize จึงไม่กระทบตำแหน่งหมุดบนพิกัด
+    const side = sideLabel ? `<span class="survey-pin-side">${escapeHtml(sideLabel)}</span>` : "";
+
     return L.divIcon({
       className: "survey-pin-wrap",
-      html: `<div class="${classes.join(" ")}">${number}${sub}</div>`,
+      html: `<div class="${classes.join(" ")}">${number}${sub}</div>${side}`,
       iconSize: [w, h],
       iconAnchor: [Math.round(w / 2), Math.round(h / 2)]
     });
@@ -3082,14 +3104,16 @@
     return getPoleHeightLabel(config?.poleDefault || "");
   }
 
-  // ป้ายใต้เลขหมุด: ขนาดเสา และระบุเข้า/ออกโค้งด้วย เพราะสองอย่างนี้สีเดียวกันบนแผนที่
+  // ป้ายใต้เลขหมุด = ขนาดเสาอย่างเดียว
   function buildPinSubLabel(pole, segment) {
-    const height = getPoleHeightLabelForPole(pole, segment);
-    const role = pole.source === "curve_in" ? "เข้า"
-      : pole.source === "curve_out" ? "ออก"
-      : "";
-    if (role && height) return `${role}·${height}`;
-    return role || height;
+    return getPoleHeightLabelForPole(pole, segment);
+  }
+
+  // เข้า/ออกโค้งวางเป็นป้ายข้างหมุด (มีไม่กี่ต้น) ไม่เบียดพื้นที่ในกรอบเสา
+  function buildPinSideLabel(pole) {
+    if (pole.source === "curve_in") return "เข้าโค้ง";
+    if (pole.source === "curve_out") return "ออกโค้ง";
+    return "";
   }
 
   function createTrIcon() {
@@ -3142,7 +3166,7 @@
       (seg.poles || []).forEach(pole => {
         const subLabel = buildPinSubLabel(pole, seg);
         const marker = L.marker([pole.lat, pole.lng], {
-          icon: createNumberIcon(pole.number, pole.source, subLabel),
+          icon: createNumberIcon(pole.number, pole.source, subLabel, buildPinSideLabel(pole)),
           draggable: isActive && state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId,
           opacity: isActive ? 1 : 0.65
         }).addTo(state.map);
@@ -3547,18 +3571,35 @@
       }
     });
     const segCount = state.segments.filter(s => s.kind === "line").length;
-    const { cost, isEstimate } = computeRunningCost();
-    const costLabel = isEstimate ? "คร่าวๆ ~฿" : "ราคารวม ฿";
-    const costRow = cost > 0
-      ? `<span style="margin-top:6px;color:var(--primary);font-weight:700;">${costLabel} ${cost.toLocaleString("th-TH", { maximumFractionDigits: 0 })}</span>`
-      : "";
 
     els.summary.innerHTML = `
       <span>ระยะรวม</span>
       <strong>${Math.round(totalDist)} ม.</strong>
       <span style="margin-top:6px;">${segCount} ส่วน · ${poleCount} หมุด · TR ${state.trInstalls.length}</span>
-      ${costRow}
     `;
+
+    updateMapCostOverlay();
+  }
+
+  // ราคาแสดงเป็นกล่องใหญ่มุมซ้ายบนของแผนที่ อ่านได้ระหว่างปักหมุดโดยไม่ต้องมองแถบข้าง
+  function updateMapCostOverlay() {
+    if (!els.mapCost) return;
+
+    const hasPoles = state.segments.some(s => s.kind === "line" && (s.poles || []).length);
+    const { cost, isEstimate } = computeRunningCost();
+
+    if (!hasPoles || !(cost > 0)) {
+      els.mapCost.classList.add("hidden");
+      els.mapCost.innerHTML = "";
+      return;
+    }
+
+    els.mapCost.innerHTML = `
+      <div class="survey-map-cost-label">${isEstimate ? "ราคาโดยประมาณ" : "ราคารวมพัสดุ"}</div>
+      <div class="survey-map-cost-value">฿ ${cost.toLocaleString("th-TH", { maximumFractionDigits: 0 })}</div>
+      ${isEstimate ? `<div class="survey-map-cost-note">ยังไม่ได้เลือกรหัสพัสดุครบทุกต้น</div>` : ""}
+    `;
+    els.mapCost.classList.remove("hidden");
   }
 
   function getControlPathDistance(fromIdx, toIdx) {

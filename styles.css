@@ -7036,3 +7036,74 @@ body.field-contrast .survey-pin.is-end {
   font-size: 8px;
   margin-top: 1px;
 }
+
+/* ราคาสะสมมุมซ้ายบนของแผนที่ — left เว้นให้พ้นแถบปุ่มควบคุม (30px + ขอบ) */
+.survey-map-cost {
+  position: absolute;
+  top: 12px;
+  left: 52px;
+  z-index: 650;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 2px solid #74045f;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  max-width: calc(100% - 64px);
+}
+
+.survey-map-cost-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b6b73;
+  line-height: 1.2;
+}
+
+.survey-map-cost-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #74045f;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.survey-map-cost-note {
+  font-size: 10px;
+  color: #8a8a92;
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .survey-map-cost { padding: 6px 10px; }
+  .survey-map-cost-value { font-size: 18px; }
+}
+
+/* ป้ายเข้า/ออกโค้ง วางข้างหมุด ไม่กินพื้นที่ในกรอบสี่เหลี่ยม
+   ใช้ absolute เพื่อไม่ให้ดันตำแหน่งหมุดออกจากพิกัดจริง */
+.survey-pin-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.survey-pin-side {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: #fff;
+  background: #8f6bff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+body.field-contrast .survey-pin-side {
+  background: #4a148c;
+  font-size: 11px;
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, 0.5);
+}
