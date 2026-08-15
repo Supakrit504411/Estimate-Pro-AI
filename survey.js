@@ -731,15 +731,28 @@
     const ref = getAimReferencePoint();
 
     removeAimLine();
+
+    // คำนวณระยะรวมสะสมของเสาที่ปักไปแล้วทั้งหมด
+    let accumulatedDist = 0;
+    state.segments.filter(s => s.kind === "line").forEach(seg => {
+      const poles = seg.poles || [];
+      for (let i = 1; i < poles.length; i++) {
+        accumulatedDist += distanceMeters(poles[i - 1], poles[i]);
+      }
+    });
+    const totalRow = accumulatedDist > 0
+      ? `<small style="display:block;margin-top:3px;opacity:0.85;">รวม ${Math.round(accumulatedDist)} ม.</small>`
+      : "";
+
     if (ref) {
       const dist = distanceMeters(ref, { lat: center.lat, lng: center.lng });
       if (els.mapAimDist) {
-        els.mapAimDist.textContent = `${Math.round(dist)} ม. จาก${ref.label ? ` ${ref.label}` : ""}`;
+        els.mapAimDist.innerHTML = `${Math.round(dist)} ม. จาก${ref.label ? ` ${ref.label}` : ""}${totalRow}`;
         els.mapAimDist.classList.remove("hidden");
       }
       drawAimLineScreen(ref);
     } else if (els.mapAimDist) {
-      els.mapAimDist.textContent = "เลื่อนแผนที่ให้กากบาทตรงจุดปัก";
+      els.mapAimDist.innerHTML = `เลื่อนแผนที่ให้กากบาทตรงจุดปัก${totalRow}`;
       els.mapAimDist.classList.remove("hidden");
     }
   }
@@ -2959,7 +2972,7 @@
     return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
-  function createNumberIcon(number, source) {
+  function createNumberIcon(number, source, heightLabel = "") {
     const classes = ["survey-pin"];
     if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
@@ -2967,12 +2980,22 @@
     if (source === "curve_waypoint") classes.push("is-curve-in");
     if (source === "auto") classes.push("is-auto");
 
+    const sub = heightLabel ? `<span class="survey-pin-ht">${heightLabel}</span>` : "";
+    const hasHt = !!heightLabel;
     return L.divIcon({
       className: "survey-pin-wrap",
-      html: `<div class="${classes.join(" ")}">${number}</div>`,
-      iconSize: source === "start" ? [30, 30] : [28, 28],
-      iconAnchor: source === "start" ? [15, 15] : [14, 14]
+      html: `<div class="${classes.join(" ")}">${number}${sub}</div>`,
+      iconSize: source === "start" ? (hasHt ? [32, 36] : [30, 30]) : (hasHt ? [30, 34] : [28, 28]),
+      iconAnchor: source === "start" ? (hasHt ? [16, 18] : [15, 15]) : (hasHt ? [15, 17] : [14, 14])
     });
+  }
+
+  function getPoleHeightLabel(poleMaterialId) {
+    if (!poleMaterialId) return "";
+    const item = findMaterialById(poleMaterialId);
+    if (!item) return "";
+    const m = String(item.name || item.id).match(/([\d.]+)\s*ม\.?/);
+    return m ? m[1] + "ม" : "";
   }
 
   function createTrIcon() {
@@ -3023,8 +3046,9 @@
       }
 
       (seg.poles || []).forEach(pole => {
+        const heightLabel = getPoleHeightLabel(pole.poleMaterialId);
         const marker = L.marker([pole.lat, pole.lng], {
-          icon: createNumberIcon(pole.number, pole.source),
+          icon: createNumberIcon(pole.number, pole.source, heightLabel),
           draggable: isActive && state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId,
           opacity: isActive ? 1 : 0.65
         }).addTo(state.map);
@@ -3370,6 +3394,49 @@
     updateUiState();
   }
 
+  function computeRunningCost() {
+    try {
+      // Phase 1: ใช้ BOM จาก spec ที่กรอกแล้ว (spec phase)
+      const lines = buildBomLines();
+      let specTotal = 0;
+      lines.forEach(line => {
+        const item = findMaterialById(line.materialId);
+        if (item) specTotal += ((item.matPrice || 0) + (item.labPrice || 0)) * line.qty;
+      });
+      if (specTotal > 0) return { cost: specTotal, isEstimate: false };
+
+      // Phase 2: survey phase — ประมาณจาก poleDefault ของแต่ละ segment
+      let estTotal = 0;
+      state.segments.filter(s => s.kind === "line").forEach(seg => {
+        const config = presetsApi ? presetsApi.getConfig(seg.type || state.voltageType, seg.phase || state.phaseType) : null;
+        if (!config) return;
+        const poles = seg.poles || [];
+        const poleDefId = config.poleDefault;
+        const wireMult = config.wireMultiplier || 1;
+        const cableDef = state.defaults?.straight?.cableMaterialId || config.straight?.cableIds?.[0] || "";
+
+        if (poleDefId) {
+          const poleItem = findMaterialById(poleDefId);
+          const poleUnitCost = poleItem ? (poleItem.matPrice || 0) + (poleItem.labPrice || 0) : 0;
+          // นับเฉพาะ non-start poles (auto + manual)
+          const nonStartCount = poles.filter(p => p.source !== "start").length;
+          estTotal += poleUnitCost * nonStartCount;
+        }
+
+        if (cableDef) {
+          const cableItem = findMaterialById(cableDef);
+          const cableUnitCost = cableItem ? (cableItem.matPrice || 0) + (cableItem.labPrice || 0) : 0;
+          let segDist = 0;
+          for (let i = 1; i < poles.length; i++) segDist += distanceMeters(poles[i - 1], poles[i]);
+          estTotal += cableUnitCost * Math.ceil(segDist * wireMult);
+        }
+      });
+      return { cost: estTotal, isEstimate: true };
+    } catch (e) {
+      return { cost: 0, isEstimate: false };
+    }
+  }
+
   function updateSummary() {
     if (!els.summary) return;
 
@@ -3384,11 +3451,17 @@
       }
     });
     const segCount = state.segments.filter(s => s.kind === "line").length;
+    const { cost, isEstimate } = computeRunningCost();
+    const costLabel = isEstimate ? "คร่าวๆ ~฿" : "ราคารวม ฿";
+    const costRow = cost > 0
+      ? `<span style="margin-top:6px;color:var(--primary);font-weight:700;">${costLabel} ${cost.toLocaleString("th-TH", { maximumFractionDigits: 0 })}</span>`
+      : "";
 
     els.summary.innerHTML = `
       <span>ระยะรวม</span>
       <strong>${Math.round(totalDist)} ม.</strong>
       <span style="margin-top:6px;">${segCount} ส่วน · ${poleCount} หมุด · TR ${state.trInstalls.length}</span>
+      ${costRow}
     `;
   }
 
