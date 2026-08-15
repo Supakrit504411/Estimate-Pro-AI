@@ -2441,6 +2441,23 @@
     });
   }
 
+  // GAS ตอบกลับหลายรูปแบบเมื่อผิดพลาด (บางกรณีเป็นหน้า HTML ขออนุญาต Google ที่ได้ HTTP 200)
+  // ถ้าไม่ตรวจให้ชัด จะขึ้น "บันทึกสำเร็จ" แล้วล้าง state ทิ้งทั้งที่ยังไม่ได้เขียนลงชีต
+  function assertSaveSucceeded(result) {
+    if (result == null) {
+      throw new Error("เซิร์ฟเวอร์ไม่ตอบกลับ — ยังไม่ได้บันทึก");
+    }
+    if (typeof result !== "object") {
+      console.error("saveProject: unexpected response", result);
+      throw new Error(
+        "เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ (อาจเป็นหน้าขออนุญาตของ Google) — ยังไม่ได้บันทึก"
+      );
+    }
+    if (result.status === "error" || result.error || result.blocked) {
+      throw new Error(result.msg || result.message || "บันทึกไม่สำเร็จ");
+    }
+  }
+
   async function saveProject(options = {}) {
     if (!els.pjName.value.trim()) {
       const ready = await ensureProjectNameForBudget();
@@ -2471,9 +2488,7 @@
 
     try {
       const result = await window.ApiService.saveProject(payload);
-      if (result?.status === "error") {
-        throw new Error(result.msg || "บันทึกไม่สำเร็จ");
-      }
+      assertSaveSucceeded(result);
       await Swal.fire("สำเร็จ", "บันทึกโครงการเรียบร้อย", "success");
 
       if (options.fromSurvey) {
@@ -2536,9 +2551,19 @@
     `;
 
     try {
-      state.historyCache = await window.ApiService.getSavedProjects();
+      const rows = await window.ApiService.getSavedProjects();
+      // GAS คืน [] ทั้งตอนไม่มีข้อมูลและตอน error — ถ้าไม่ใช่ array แปลว่าอ่านไม่สำเร็จจริง
+      // อย่าปล่อยให้ขึ้น "ยังไม่มีประวัติโครงการ" เพราะทำให้เข้าใจผิดว่าบันทึกไม่ติด
+      if (!Array.isArray(rows)) {
+        console.error("getSavedProjects: unexpected response", rows);
+        throw new Error(
+          (rows && (rows.msg || rows.message)) ||
+          "เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ (อาจเป็นหน้าขออนุญาตของ Google)"
+        );
+      }
+      state.historyCache = rows;
       await loadShareUserList();
-      renderHistory(state.historyCache || []);
+      renderHistory(rows);
     } catch (error) {
       console.error(error);
       els.histContent.innerHTML = `

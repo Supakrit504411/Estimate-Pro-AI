@@ -3394,44 +3394,46 @@
     updateUiState();
   }
 
+  function unitCostOf(materialId) {
+    if (!materialId) return 0;
+    const item = findMaterialById(materialId);
+    return item ? (item.matPrice || 0) + (item.labPrice || 0) : 0;
+  }
+
+  // ราคาสะสมระหว่างสำรวจ = BOM จริงจาก spec ที่กรอกแล้ว
+  // บวกราคาประมาณของเสา/สายที่ยังไม่ได้เลือกรหัส (ใช้ค่า default ของ config)
   function computeRunningCost() {
     try {
-      // Phase 1: ใช้ BOM จาก spec ที่กรอกแล้ว (spec phase)
-      const lines = buildBomLines();
-      let specTotal = 0;
-      lines.forEach(line => {
-        const item = findMaterialById(line.materialId);
-        if (item) specTotal += ((item.matPrice || 0) + (item.labPrice || 0)) * line.qty;
+      let total = 0;
+      buildBomLines().forEach(line => {
+        total += unitCostOf(line.materialId) * line.qty;
       });
-      if (specTotal > 0) return { cost: specTotal, isEstimate: false };
 
-      // Phase 2: survey phase — ประมาณจาก poleDefault ของแต่ละ segment
-      let estTotal = 0;
+      let estimated = 0;
       state.segments.filter(s => s.kind === "line").forEach(seg => {
-        const config = presetsApi ? presetsApi.getConfig(seg.type || state.voltageType, seg.phase || state.phaseType) : null;
+        const config = presetsApi
+          ? presetsApi.getConfig(seg.type || state.voltageType, seg.phase || state.phaseType)
+          : null;
         if (!config) return;
+
         const poles = seg.poles || [];
-        const poleDefId = config.poleDefault;
         const wireMult = config.wireMultiplier || 1;
-        const cableDef = state.defaults?.straight?.cableMaterialId || config.straight?.cableIds?.[0] || "";
+        const poleUnit = unitCostOf(config.poleDefault);
+        const cableUnit = unitCostOf(
+          state.defaults?.straight?.cableMaterialId || config.straight?.cableIds?.[0] || ""
+        );
 
-        if (poleDefId) {
-          const poleItem = findMaterialById(poleDefId);
-          const poleUnitCost = poleItem ? (poleItem.matPrice || 0) + (poleItem.labPrice || 0) : 0;
-          // นับเฉพาะ non-start poles (auto + manual)
-          const nonStartCount = poles.filter(p => p.source !== "start").length;
-          estTotal += poleUnitCost * nonStartCount;
-        }
-
-        if (cableDef) {
-          const cableItem = findMaterialById(cableDef);
-          const cableUnitCost = cableItem ? (cableItem.matPrice || 0) + (cableItem.labPrice || 0) : 0;
-          let segDist = 0;
-          for (let i = 1; i < poles.length; i++) segDist += distanceMeters(poles[i - 1], poles[i]);
-          estTotal += cableUnitCost * Math.ceil(segDist * wireMult);
-        }
+        let estCableM = 0;
+        poles.forEach((pole, index) => {
+          if (pole.source !== "start" && !pole.poleMaterialId) estimated += poleUnit;
+          if (index > 0 && !pole.cableMaterialId) {
+            estCableM += distanceMeters(poles[index - 1], pole) * wireMult;
+          }
+        });
+        estimated += cableUnit * Math.ceil(estCableM);
       });
-      return { cost: estTotal, isEstimate: true };
+
+      return { cost: total + estimated, isEstimate: estimated > 0 };
     } catch (e) {
       return { cost: 0, isEstimate: false };
     }
