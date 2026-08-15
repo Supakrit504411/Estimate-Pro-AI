@@ -1637,31 +1637,44 @@
         ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
         ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
 
-        // ป้ายข้างหมุด: ขนาดเสาเป็นตัวเทาบางๆ ตามด้วยป้ายเข้า/ออกโค้งถ้ามี
-        let cursor = x + boxW + 5 * scale;
+        // ป้ายข้างหมุด: แถวบน = ขนาดเสา + เข้า/ออกโค้ง, แถวล่าง = พิกัด (เฉพาะหมุดอ้างอิง)
+        const side = buildPinSideLabel(pole);
+        const coord = buildPinCoordLabel(pole);
+        const labelX = x + boxW + 5 * scale;
+        const rowY = coord ? pt.y - 6 * scale : pt.y;
+        let cursor = labelX;
         ctx.textAlign = "left";
 
         if (heightLabel) {
           ctx.font = `600 ${10 * scale}px Sarabun,sans-serif`;
           ctx.lineWidth = 3 * scale;
           ctx.strokeStyle = "rgba(255,255,255,0.95)";
-          ctx.strokeText(heightLabel, cursor, pt.y);
+          ctx.strokeText(heightLabel, cursor, rowY);
           ctx.fillStyle = "#6b6b73";
-          ctx.fillText(heightLabel, cursor, pt.y);
+          ctx.fillText(heightLabel, cursor, rowY);
           cursor += ctx.measureText(heightLabel).width + 5 * scale;
         }
 
-        const side = buildPinSideLabel(pole);
         if (side) {
           ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
           const tw = ctx.measureText(side).width;
           ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(cursor, pt.y - 8 * scale, tw + 10 * scale, 16 * scale, 5 * scale);
-          else ctx.rect(cursor, pt.y - 8 * scale, tw + 10 * scale, 16 * scale);
+          if (ctx.roundRect) ctx.roundRect(cursor, rowY - 8 * scale, tw + 10 * scale, 16 * scale, 5 * scale);
+          else ctx.rect(cursor, rowY - 8 * scale, tw + 10 * scale, 16 * scale);
           ctx.fillStyle = "#8f6bff";
           ctx.fill();
           ctx.fillStyle = "#ffffff";
-          ctx.fillText(side, cursor + 5 * scale, pt.y);
+          ctx.fillText(side, cursor + 5 * scale, rowY);
+        }
+
+        if (coord) {
+          ctx.font = `500 ${9 * scale}px Sarabun,sans-serif`;
+          ctx.lineWidth = 3 * scale;
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          const coordY = (heightLabel || side) ? pt.y + 7 * scale : pt.y;
+          ctx.strokeText(coord, labelX, coordY);
+          ctx.fillStyle = "#7a7a82";
+          ctx.fillText(coord, labelX, coordY);
         }
         ctx.textAlign = "center";
       });
@@ -3029,7 +3042,7 @@
     return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
-  function createNumberIcon(number, source, heightLabel = "", sideLabel = "") {
+  function createNumberIcon(number, source, heightLabel = "", sideLabel = "", coordLabel = "") {
     const classes = ["survey-pin"];
     if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
@@ -3047,11 +3060,15 @@
     const w = isStart ? 30 : 28;
     const h = isStart ? 30 : 28;
 
-    const parts = [];
-    if (heightLabel) parts.push(`<span class="survey-pin-height">${escapeHtml(heightLabel)}</span>`);
-    if (sideLabel) parts.push(`<span class="survey-pin-side">${escapeHtml(sideLabel)}</span>`);
-    const stack = parts.length
-      ? `<span class="survey-pin-side-stack">${parts.join("")}</span>`
+    const row = [];
+    if (heightLabel) row.push(`<span class="survey-pin-height">${escapeHtml(heightLabel)}</span>`);
+    if (sideLabel) row.push(`<span class="survey-pin-side">${escapeHtml(sideLabel)}</span>`);
+
+    const rows = [];
+    if (row.length) rows.push(`<span class="survey-pin-side-row">${row.join("")}</span>`);
+    if (coordLabel) rows.push(`<span class="survey-pin-coord">${escapeHtml(coordLabel)}</span>`);
+    const stack = rows.length
+      ? `<span class="survey-pin-side-stack">${rows.join("")}</span>`
       : "";
 
     return L.divIcon({
@@ -3116,6 +3133,15 @@
     return "";
   }
 
+  // แสดงพิกัดเฉพาะหมุดอ้างอิงหลัก — ต้นเริ่ม ต้นสุดท้าย และจุดเข้า/ออกโค้ง
+  // (ถ้าใส่ทุกต้นแผนที่จะอ่านไม่ออก) ทศนิยม 6 ตำแหน่งให้ตรงกับหน้ารายละเอียดโครงการ
+  const COORD_LABEL_SOURCES = ["start", "end", "curve_in", "curve_out"];
+  function buildPinCoordLabel(pole) {
+    if (!COORD_LABEL_SOURCES.includes(pole.source)) return "";
+    if (pole.lat == null || pole.lng == null) return "";
+    return `${Number(pole.lat).toFixed(6)}, ${Number(pole.lng).toFixed(6)}`;
+  }
+
   function createTrIcon() {
     return L.divIcon({
       className: "survey-pin-wrap",
@@ -3166,7 +3192,13 @@
       (seg.poles || []).forEach(pole => {
         const subLabel = buildPinSubLabel(pole, seg);
         const marker = L.marker([pole.lat, pole.lng], {
-          icon: createNumberIcon(pole.number, pole.source, subLabel, buildPinSideLabel(pole)),
+          icon: createNumberIcon(
+            pole.number,
+            pole.source,
+            subLabel,
+            buildPinSideLabel(pole),
+            buildPinCoordLabel(pole)
+          ),
           draggable: isActive && state.phase === "surveying" && pole.source !== "auto" && pole.ctrlId,
           opacity: isActive ? 1 : 0.65
         }).addTo(state.map);

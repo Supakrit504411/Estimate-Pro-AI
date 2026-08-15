@@ -7073,10 +7073,34 @@ body.field-contrast .survey-pin.is-end {
   transform: translateY(-50%);
   margin-left: 5px;
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
   white-space: nowrap;
   pointer-events: none;
+}
+
+.survey-pin-side-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* พิกัดของหมุดอ้างอิง (ต้นเริ่ม/สุดท้าย/เข้า-ออกโค้ง) — เล็กและจางกว่าขนาดเสา */
+.survey-pin-coord {
+  font-size: 9px;
+  font-weight: 500;
+  color: #7a7a82;
+  letter-spacing: -0.2px;
+  text-shadow:
+    0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff,
+    1px 1px 0 rgba(255, 255, 255, 0.9), -1px -1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body.field-contrast .survey-pin-coord {
+  font-size: 10px;
+  font-weight: 700;
+  color: #333;
 }
 
 /* ขนาดเสา — บอกให้รู้พอ ไม่ต้องเด่น ใช้เงาขาวบางๆ ให้อ่านออกบนพื้นแผนที่ */
@@ -7095,12 +7119,9 @@ body.field-contrast .survey-pin-height {
   color: #333;
 }
 
+/* อยู่ใน .survey-pin-side-row แล้ว ต้องเป็น flow ปกติ — ถ้าตั้ง absolute/left:100%
+   จะไปอ้างอิงความกว้างของ stack (เท่าบรรทัดพิกัด) แล้วลอยห่างจากหมุด */
 .survey-pin-side {
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 5px;
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 10px;
