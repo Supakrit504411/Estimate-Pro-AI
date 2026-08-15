@@ -1598,19 +1598,17 @@
       poles.forEach((pole, index) => {
         const pt = px(map.latLngToContainerPoint([pole.lat, pole.lng]));
         const isStart = pole.source === "start" || pole.number === 0;
-        const sub = buildPinSubLabel(pole, seg);
+        const heightLabel = buildPinSubLabel(pole, seg);
 
-        // ให้ตรงกับหมุดบนจอ: สี่เหลี่ยม + ป้ายขนาด/เข้า-ออกโค้ง และแยกสีตามชนิดเสา
+        // ให้ตรงกับหมุดบนจอ: สี่เหลี่ยมขนาดคงที่ ป้ายทั้งหมดอยู่ข้างหมุด
         const fill = isStart ? "#f5c96a"
           : pole.source === "curve_in" || pole.source === "curve_out" || pole.source === "curve_waypoint" ? "#8f6bff"
           : pole.source === "control" || pole.source === "end" ? "#74045f"
           : color;
         const light = fill === "#8f6bff" || fill === "#74045f";
 
-        ctx.font = `bold ${8 * scale}px Sarabun,sans-serif`;
-        const subW = sub ? ctx.measureText(sub).width : 0;
-        const boxW = Math.max((isStart ? 22 : 20) * scale, subW + 8 * scale);
-        const boxH = (sub ? 26 : isStart ? 22 : 20) * scale;
+        const boxW = (isStart ? 22 : 20) * scale;
+        const boxH = boxW;
         const r = 4 * scale;
         const x = pt.x - boxW / 2;
         const y = pt.y - boxH / 2;
@@ -1637,29 +1635,35 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
-        ctx.fillText(String(pole.number ?? index), pt.x, sub ? pt.y - 5 * scale : pt.y);
-        if (sub) {
-          ctx.font = `600 ${7.5 * scale}px Sarabun,sans-serif`;
-          ctx.fillText(sub, pt.x, pt.y + 6 * scale);
+        ctx.fillText(String(pole.number ?? index), pt.x, pt.y);
+
+        // ป้ายข้างหมุด: ขนาดเสาเป็นตัวเทาบางๆ ตามด้วยป้ายเข้า/ออกโค้งถ้ามี
+        let cursor = x + boxW + 5 * scale;
+        ctx.textAlign = "left";
+
+        if (heightLabel) {
+          ctx.font = `600 ${10 * scale}px Sarabun,sans-serif`;
+          ctx.lineWidth = 3 * scale;
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.strokeText(heightLabel, cursor, pt.y);
+          ctx.fillStyle = "#6b6b73";
+          ctx.fillText(heightLabel, cursor, pt.y);
+          cursor += ctx.measureText(heightLabel).width + 5 * scale;
         }
 
-        // ป้ายเข้า/ออกโค้งวางข้างหมุด ให้ตรงกับที่แสดงบนจอ
         const side = buildPinSideLabel(pole);
         if (side) {
           ctx.font = `bold ${9 * scale}px Sarabun,sans-serif`;
           const tw = ctx.measureText(side).width;
-          const bx = x + boxW + 5 * scale;
-          const by = pt.y - 8 * scale;
           ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(bx, by, tw + 10 * scale, 16 * scale, 5 * scale);
-          else ctx.rect(bx, by, tw + 10 * scale, 16 * scale);
+          if (ctx.roundRect) ctx.roundRect(cursor, pt.y - 8 * scale, tw + 10 * scale, 16 * scale, 5 * scale);
+          else ctx.rect(cursor, pt.y - 8 * scale, tw + 10 * scale, 16 * scale);
           ctx.fillStyle = "#8f6bff";
           ctx.fill();
           ctx.fillStyle = "#ffffff";
-          ctx.textAlign = "left";
-          ctx.fillText(side, bx + 5 * scale, pt.y);
-          ctx.textAlign = "center";
+          ctx.fillText(side, cursor + 5 * scale, pt.y);
         }
+        ctx.textAlign = "center";
       });
     });
 
@@ -3025,7 +3029,7 @@
     return withPoles.length > 0 && withPoles.every(seg => seg.poles.every(pole => pole.specFilled));
   }
 
-  function createNumberIcon(number, source, subLabel = "", sideLabel = "") {
+  function createNumberIcon(number, source, heightLabel = "", sideLabel = "") {
     const classes = ["survey-pin"];
     if (source === "start") classes.push("is-start", "is-zero");
     if (source === "curve_in") classes.push("is-curve-in");
@@ -3036,26 +3040,23 @@
     // จึงตกไปใช้สีพื้นฐาน (ม่วง PEA) เหมือนกัน แยกด้วยตาไม่ได้
     if (source === "control") classes.push("is-control");
     if (source === "end") classes.push("is-end");
-    if (subLabel) classes.push("has-sub");
 
+    // หมุดขนาดคงที่ตรงกับ CSS เสมอ — ป้ายทั้งหมดไปอยู่ข้างนอกแบบ absolute
+    // จึงล้นออกนอก iconSize โดยไม่ดันหมุดออกจากพิกัด
     const isStart = source === "start";
-    const sub = subLabel ? `<span class="survey-pin-ht">${escapeHtml(subLabel)}</span>` : "";
+    const w = isStart ? 30 : 28;
+    const h = isStart ? 30 : 28;
 
-    // ป้ายโค้ง ("เข้า·12.2ม") ยาวกว่าป้ายขนาดเปล่า ("12.2ม") มาก จึงกว้างตามเนื้อหา
-    // iconSize ต้องตรงกับความกว้างจริงของ .survey-pin ไม่งั้นหมุดจะเยื้องจากพิกัด
-    let w = isStart ? 30 : 28;
-    let h = isStart ? 30 : 28;
-    if (subLabel) {
-      w = Math.max(w, Math.round(subLabel.length * 5.2) + 14);
-      h = isStart ? 36 : 34;
-    }
-
-    // ป้ายข้างหมุดวาดทับออกไปนอก iconSize จึงไม่กระทบตำแหน่งหมุดบนพิกัด
-    const side = sideLabel ? `<span class="survey-pin-side">${escapeHtml(sideLabel)}</span>` : "";
+    const parts = [];
+    if (heightLabel) parts.push(`<span class="survey-pin-height">${escapeHtml(heightLabel)}</span>`);
+    if (sideLabel) parts.push(`<span class="survey-pin-side">${escapeHtml(sideLabel)}</span>`);
+    const stack = parts.length
+      ? `<span class="survey-pin-side-stack">${parts.join("")}</span>`
+      : "";
 
     return L.divIcon({
       className: "survey-pin-wrap",
-      html: `<div class="${classes.join(" ")}">${number}${sub}</div>${side}`,
+      html: `<div class="${classes.join(" ")}">${number}</div>${stack}`,
       iconSize: [w, h],
       iconAnchor: [Math.round(w / 2), Math.round(h / 2)]
     });
@@ -3104,7 +3105,6 @@
     return getPoleHeightLabel(config?.poleDefault || "");
   }
 
-  // ป้ายใต้เลขหมุด = ขนาดเสาอย่างเดียว
   function buildPinSubLabel(pole, segment) {
     return getPoleHeightLabelForPole(pole, segment);
   }

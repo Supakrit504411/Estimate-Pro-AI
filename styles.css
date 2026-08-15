@@ -6991,14 +6991,6 @@ body.field-contrast .survey-map-hint {
 .survey-pin.is-tr    { border-radius: 5px !important; }
 .survey-pin.is-auto  { border-radius: 3px !important; }
 
-.survey-pin-ht {
-  display: block;
-  font-size: 7px;
-  font-weight: 600;
-  line-height: 1;
-  opacity: 0.92;
-  letter-spacing: 0;
-}
 
 /* หมุดที่ผู้ใช้ปักเอง (control) กับต้นสุดท้าย (end) เดิมไม่มี class จึงใช้สีพื้นฐาน
    ม่วง PEA เหมือนกันจนแยกไม่ออก และเลขเป็นสีเข้มบนพื้นเข้มทำให้อ่านยาก
@@ -7022,20 +7014,7 @@ body.field-contrast .survey-pin.is-end {
   box-shadow: 0 0 0 3px #fff, 0 0 0 6px #4a148c, 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
-/* หมุดที่มีป้ายใต้เลข (ขนาดเสา / เข้า-ออกโค้ง) ต้องกว้างตามข้อความ
-   ความกว้างคงที่ 28px เดิมทำให้ป้ายอย่าง "เข้า·12.2ม" ล้นออกนอกหมุด */
-.survey-pin.has-sub {
-  width: auto;
-  height: auto;
-  min-width: 28px;
-  padding: 3px 6px;
-  white-space: nowrap;
-}
-
-.survey-pin.has-sub .survey-pin-ht {
-  font-size: 8px;
-  margin-top: 1px;
-}
+/* ขนาดเสาย้ายออกไปอยู่ข้างหมุด หมุดจึงกลับมาเป็นสี่เหลี่ยมขนาดคงที่ */
 
 /* ราคาสะสมมุมซ้ายบนของแผนที่ — left เว้นให้พ้นแถบปุ่มควบคุม (30px + ขอบ) */
 .survey-map-cost {
@@ -7078,11 +7057,42 @@ body.field-contrast .survey-pin.is-end {
   .survey-map-cost-value { font-size: 18px; }
 }
 
-/* ป้ายเข้า/ออกโค้ง วางข้างหมุด ไม่กินพื้นที่ในกรอบสี่เหลี่ยม
-   ใช้ absolute เพื่อไม่ให้ดันตำแหน่งหมุดออกจากพิกัดจริง */
+/* ป้ายข้างหมุด — absolute ล้นออกนอก iconSize จึงไม่ดันหมุดออกจากพิกัด
+   ห้ามตั้ง position ที่ .survey-pin-wrap เด็ดขาด: Leaflet ต้องการ
+   .leaflet-marker-icon เป็น absolute ถ้าทับเป็น relative หมุดจะหลุดจากพิกัด
+   ไปเรียงตาม document flow แทน (ตัว marker เป็น absolute อยู่แล้ว
+   จึงเป็น containing block ให้ลูกที่ absolute ได้เอง) */
 .survey-pin-wrap {
-  position: relative;
   overflow: visible;
+}
+
+.survey-pin-side-stack {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ขนาดเสา — บอกให้รู้พอ ไม่ต้องเด่น ใช้เงาขาวบางๆ ให้อ่านออกบนพื้นแผนที่ */
+.survey-pin-height {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b6b73;
+  text-shadow:
+    0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff,
+    1px 1px 0 rgba(255, 255, 255, 0.9), -1px -1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body.field-contrast .survey-pin-height {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
 }
 
 .survey-pin-side {
